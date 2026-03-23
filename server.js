@@ -2,6 +2,7 @@ import express from "express";
 import CONFIG from "./config.js";
 import { connectDB } from "./db.js";
 import { requestLoggerMiddleware } from "./middleware/RequestLoggerMiddleware.js";
+import { fieldProjectionMiddleware } from "./middleware/FieldProjectionMiddleware.js";
 
 // ─── Model Setup ───────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 app.use(requestLoggerMiddleware);
+app.use(fieldProjectionMiddleware);
 
 // ─── Mount Domain Routers ──────────────────────────────────────────
 
