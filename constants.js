@@ -1184,10 +1184,10 @@ export const API_RATE_LIMITS = {
     requestDelayMs: 100,
   },
   TMDB: {
-    qps: null,
-    qpm: 40,
-    qpd: null,
-    requestDelayMs: 1_500, // 60000 / 40 QPM
+    qps: 50,
+    qpm: null,
+    qpd: null, // no daily limit; old 40/10s limit retired Dec 2019
+    requestDelayMs: 20, // 1000 / 50 QPS
   },
   GOOGLE_PLACES: {
     qps: 10,
@@ -1227,9 +1227,9 @@ export const API_RATE_LIMITS = {
   },
   PRODUCTHUNT: {
     qps: null,
-    qpm: null,
-    qpd: null, // GraphQL, undocumented
-    requestDelayMs: 1_000,
+    qpm: 30,
+    qpd: null, // 450 requests per 15-min window = 30 QPM
+    requestDelayMs: 2_000, // 60000 / 30 QPM
   },
   EBAY: {
     qps: 5,
@@ -1271,15 +1271,15 @@ export const API_RATE_LIMITS = {
   },
   MASTODON: {
     qps: null,
-    qpm: 300,
-    qpd: null,
-    requestDelayMs: 200, // 60000 / 300 QPM
+    qpm: 60,
+    qpd: null, // 300 requests per 5-min window = 60 QPM
+    requestDelayMs: 1_000, // 60000 / 60 QPM
   },
   BLUESKY: {
     qps: null,
-    qpm: 300,
-    qpd: null,
-    requestDelayMs: 200,
+    qpm: 600,
+    qpd: null, // 3000 requests per 5-min window = 600 QPM
+    requestDelayMs: 100, // 60000 / 600 QPM
   },
   GITHUB: {
     qps: null,
@@ -1306,18 +1306,18 @@ export const API_RATE_LIMITS = {
     requestDelayMs: 1_000,
   },
   TVMAZE: {
-    qps: 20,
+    qps: 2,
     qpm: null,
-    qpd: null,
-    requestDelayMs: 50,
+    qpd: null, // 20 calls per 10 seconds = 2 QPS
+    requestDelayMs: 500, // 1000 / 2 QPS
   },
 
   // ─── Weather Domain ───────────────────────────────────────────────
   OPEN_METEO: {
-    qps: null,
-    qpm: null,
-    qpd: 10_000,
-    requestDelayMs: 500,
+    qps: 10,
+    qpm: 600,
+    qpd: 10_000, // 600 QPM, 5000/hr, 10000/day
+    requestDelayMs: 100, // 1000 / 10 QPS
   },
   TOMORROWIO: {
     qps: 3,
@@ -1327,9 +1327,9 @@ export const API_RATE_LIMITS = {
   },
   NASA: {
     qps: null,
-    qpm: null,
-    qpd: 1_000,
-    requestDelayMs: 500,
+    qpm: 16,
+    qpd: 1_000, // 1000 req/hr with API key ≈ 16 QPM
+    requestDelayMs: 3_750, // 60000 / 16 QPM
   },
   USGS: {
     qps: null,
@@ -1345,14 +1345,14 @@ export const API_RATE_LIMITS = {
   },
   GOOGLE_AIR_QUALITY: {
     qps: null,
-    qpm: null,
-    qpd: 500,
+    qpm: 6_000,
+    qpd: 500, // 6000 QPM default; qpd is self-imposed budget cap
     requestDelayMs: 1_000,
   },
   GOOGLE_POLLEN: {
     qps: null,
-    qpm: null,
-    qpd: 500,
+    qpm: 6_000,
+    qpd: 500, // 6000 QPM default; qpd is self-imposed budget cap
     requestDelayMs: 1_000,
   },
   ENV_CANADA: {
