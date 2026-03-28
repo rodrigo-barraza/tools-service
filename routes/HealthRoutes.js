@@ -12,6 +12,8 @@ import {
   getFoodCategories,
   getTopFoodsByCategory,
   listCategoryNutrients,
+  searchByTaxonomy,
+  getTaxonomyTree,
 } from "../fetchers/health/NutritionFetcher.js";
 import { parseIntParam } from "../utilities.js";
 
@@ -142,6 +144,45 @@ router.get("/nutrition/nutrients/:category", (req, res) => {
     res
       .status(500)
       .json({ error: `Category nutrients lookup failed: ${err.message}` });
+  }
+});
+
+router.get("/nutrition/taxonomy/search", (req, res) => {
+  const { rank, value, limit, nutrientTypes } = req.query;
+  if (!rank || !value) {
+    return res.status(400).json({
+      error:
+        "Query parameters 'rank' and 'value' are required. Ranks: kingdom, phylum, class, order, family, genus, species, etc.",
+    });
+  }
+  try {
+    const result = searchByTaxonomy(rank, value, {
+      limit: parseIntParam(limit, 25),
+      nutrientTypes,
+    });
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Taxonomy search failed: ${err.message}` });
+  }
+});
+
+router.get("/nutrition/taxonomy/tree", (req, res) => {
+  const { rank, parentRank, parentValue } = req.query;
+  try {
+    const result = getTaxonomyTree(rank || null, parentRank || null, parentValue || null);
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Taxonomy tree lookup failed: ${err.message}` });
   }
 });
 

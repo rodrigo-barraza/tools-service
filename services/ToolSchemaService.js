@@ -808,10 +808,25 @@ const FIELDS = {
     "form",
     "state",
     "taxonomy.taxon",
+    "taxonomy.kingdom",
+    "taxonomy.phylum",
+    "taxonomy.class",
+    "taxonomy.order",
+    "taxonomy.suborder",
+    "taxonomy.family",
+    "taxonomy.subfamily",
+    "taxonomy.tribe",
     "taxonomy.genus",
     "taxonomy.species",
-    "taxonomy.family",
+    "taxonomy.subspecies",
+    "taxonomy.variety",
+    "taxonomy.form",
+    "taxonomy.group",
+    "taxonomy.cultivar",
+    "taxonomy.phenotype",
     "taxonomy.binomial",
+    "taxonomy.nomial",
+    "taxonomy.trinomial",
     "perHundredGrams.macros",
     "perHundredGrams.minerals",
     "perHundredGrams.vitamins",
@@ -819,6 +834,18 @@ const FIELDS = {
     "perHundredGrams.lipidProfile",
     "perHundredGrams.carbDetails",
     "perHundredGrams.sterols",
+  ],
+
+  // USDA Taxonomy Search: from NutritionFetcher.searchByTaxonomy()
+  USDA_TAXONOMY: [
+    "rank",
+    "value",
+    "count",
+    "foods.name",
+    "foods.description",
+    "foods.kingdom",
+    "foods.taxonomy",
+    "foods.perHundredGrams",
   ],
 
   // USDA Nutrient Ranking: from NutritionFetcher.rankByNutrient()
@@ -2819,6 +2846,117 @@ const TOOL_DEFINITIONS = [
         ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
       },
       required: ["category", "nutrient"],
+    },
+  },
+  {
+    name: "search_foods_by_taxonomy",
+    description:
+      "Find all foods matching a specific biological taxonomic classification. Filter by any Linnaean rank — kingdom, phylum, class, order, family, subfamily, tribe, genus, species, subspecies, variety, cultivar, etc. Example: rank='family', value='Rosaceae' returns all rose-family foods (apples, pears, cherries, etc). Use browse_food_taxonomy first to discover available values.",
+    endpoint: {
+      path: "/health/nutrition/taxonomy/search",
+      queryParams: ["rank", "value", "limit", "nutrientTypes"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        rank: {
+          type: "string",
+          description: "Taxonomic rank to filter on",
+          enum: [
+            "kingdom",
+            "phylum",
+            "class",
+            "order",
+            "suborder",
+            "family",
+            "subfamily",
+            "tribe",
+            "genus",
+            "species",
+            "subspecies",
+            "variety",
+            "form",
+            "group",
+            "cultivar",
+            "phenotype",
+          ],
+        },
+        value: {
+          type: "string",
+          description:
+            "Value to match at the specified rank (case-insensitive). E.g. 'Rosaceae', 'Brassica', 'animalia', 'Chordata'",
+        },
+        limit: {
+          type: "number",
+          description: "Max results (default: 25)",
+        },
+        nutrientTypes: {
+          type: "string",
+          description:
+            "Comma-separated nutrient categories to include: macros, minerals, vitamins, amino_acids, lipids, carbs, sterols. Omit for all.",
+        },
+        ...fieldsParam(FIELDS.USDA_TAXONOMY),
+      },
+      required: ["rank", "value"],
+    },
+  },
+  {
+    name: "browse_food_taxonomy",
+    description:
+      "Discover available biological taxonomy values in the USDA food database. Without parameters, returns the full taxonomy tree with all ranks and their unique values. Optionally filter to a single rank, or scope by a parent rank (e.g. rank='genus', parentRank='family', parentValue='Rosaceae' to see all genera within the Rosaceae family). Use this to explore before using search_foods_by_taxonomy.",
+    endpoint: {
+      path: "/health/nutrition/taxonomy/tree",
+      queryParams: ["rank", "parentRank", "parentValue"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        rank: {
+          type: "string",
+          description:
+            "Optional: return only values for this specific rank",
+          enum: [
+            "kingdom",
+            "phylum",
+            "class",
+            "order",
+            "suborder",
+            "family",
+            "subfamily",
+            "tribe",
+            "genus",
+            "species",
+            "subspecies",
+            "variety",
+            "form",
+            "group",
+            "cultivar",
+            "phenotype",
+          ],
+        },
+        parentRank: {
+          type: "string",
+          description:
+            "Optional: filter by parent taxonomic rank (requires parentValue)",
+          enum: [
+            "kingdom",
+            "phylum",
+            "class",
+            "order",
+            "suborder",
+            "family",
+            "subfamily",
+            "tribe",
+            "genus",
+            "species",
+          ],
+        },
+        parentValue: {
+          type: "string",
+          description:
+            "Value to match at the parent rank (e.g. parentRank='family', parentValue='Rosaceae')",
+        },
+      },
     },
   },
 

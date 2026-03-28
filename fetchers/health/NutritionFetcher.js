@@ -13,11 +13,14 @@ import {
 } from "../../constants.js";
 
 /**
- * USDA Nutrition Fetcher — Static In-Memory Database
+ * Nutrition Fetcher — Static In-Memory Multi-Source Database
  *
- * Loads ~1,346 raw whole foods from the curated USDA digest CSV
- * into memory at import time. Provides search, lookup, and
- * nutrient-specific queries without any external API calls.
+ * Loads raw whole foods from multiple curated digest CSVs into memory:
+ *   - USDA National Nutrient Database (~1,346 foods)
+ *   - Health Canada Canadian Nutrient File (~3,570 foods)
+ *
+ * Provides search, lookup, and nutrient-specific queries
+ * without any external API calls.
  *
  * All nutrient values are per 100g of the food.
  */
@@ -53,15 +56,17 @@ const FOOD_DB = [];
 const NUTRIENT_DB = [];
 let loaded = false;
 
-function ensureLoaded() {
-  if (loaded) return;
-  loaded = true;
+const FOOD_DATA_FILES = [
+  { file: "digest_food.csv", source: "USDA" },
+  { file: "digest_food_canada.csv", source: "Health Canada CNF" },
+];
 
-  // Load food data
-  const foodPath = join(__dirname, "data", "digest_food.csv");
+function loadFoodCSV(filename, source) {
+  const foodPath = join(__dirname, "data", filename);
   const foodRaw = readFileSync(foodPath, "utf-8");
   const foodLines = foodRaw.split("\n").filter((l) => l.trim());
   const foodHeaders = parseCSVLine(foodLines[0]);
+  let count = 0;
 
   for (let i = 1; i < foodLines.length; i++) {
     const values = parseCSVLine(foodLines[i]);
@@ -79,7 +84,25 @@ function ensureLoaded() {
       row[foodHeaders[n]] = isNaN(val) ? null : val;
     }
 
+    // Tag the data source for provenance
+    row._source = source;
+
     FOOD_DB.push(row);
+    count++;
+  }
+
+  return count;
+}
+
+function ensureLoaded() {
+  if (loaded) return;
+  loaded = true;
+
+  // Load all food data files
+  const counts = [];
+  for (const { file, source } of FOOD_DATA_FILES) {
+    const count = loadFoodCSV(file, source);
+    counts.push(`${count} ${source}`);
   }
 
   // Load nutrient metadata
@@ -98,7 +121,7 @@ function ensureLoaded() {
   }
 
   console.log(
-    `🥦 Nutrition DB loaded: ${FOOD_DB.length} foods, ${NUTRIENT_DB.length} nutrients`,
+    `🥦 Nutrition DB loaded: ${FOOD_DB.length} foods (${counts.join(", ")}), ${NUTRIENT_DB.length} nutrients`,
   );
 }
 
@@ -237,6 +260,8 @@ function formatFood(food, nutrientTypes = null) {
   const base = {
     name: food.food_name,
     description: food.description_long,
+    source: food._source || "USDA",
+    region: food.food_region || null,
     kingdom: food.kingdom,
     foodType: food.food_type,
     foodSubtype: food.food_subtype || null,
@@ -245,10 +270,25 @@ function formatFood(food, nutrientTypes = null) {
     state: food.food_state || null,
     taxonomy: {
       taxon: food.taxon || null,
+      kingdom: food.kingdom || null,
+      phylum: food.phylum || null,
+      class: food.class || null,
+      order: food.order || null,
+      suborder: food.suborder || null,
+      family: food.family || null,
+      subfamily: food.subfamily || null,
+      tribe: food.tribe || null,
       genus: food.genus || null,
       species: food.species || null,
-      family: food.family || null,
+      subspecies: food.subspecies || null,
+      variety: food.variety || null,
+      form: food.form || null,
+      group: food.group || null,
+      cultivar: food.cultivar || null,
+      phenotype: food.phenotype || null,
       binomial: food.binomial || null,
+      nomial: food.nomial || null,
+      trinomial: food.trinomial || null,
     },
     perHundredGrams: {},
   };
@@ -330,7 +370,7 @@ export function searchFoods(query, opts = {}) {
   return {
     count: scored.length,
     query,
-    note: "All nutrient values are per 100g of edible portion. Source: USDA National Nutrient Database.",
+    note: "All nutrient values are per 100g of edible portion. Sources: USDA National Nutrient Database, Health Canada Canadian Nutrient File.",
     foods: scored.map((s) => formatFood(s.food, nutrientTypes)),
   };
 }
@@ -405,10 +445,11 @@ export function rankByNutrient(nutrient, opts = {}) {
     nutrientName: nutrientMeta?.nutrient_name || nutrient,
     type: nutrientMeta?.nutrient_type || "unknown",
     count: ranked.length,
-    note: "All values per 100g edible portion. Source: USDA National Nutrient Database.",
+    note: "All values per 100g edible portion. Sources: USDA, Health Canada CNF.",
     foods: ranked.map((f) => ({
       name: f.food_name,
       description: f.description_long,
+      source: f._source || "USDA",
       kingdom: f.kingdom,
       foodType: f.food_type,
       value: f[nutrient],
@@ -427,7 +468,7 @@ export function getNutrientTypes() {
     types: NUTRITION_NUTRIENT_TYPES,
     totalFoods: FOOD_DB.length,
     totalNutrients: NUTRIENT_DB.length,
-    source: "USDA National Nutrient Database (curated raw whole foods)",
+    source: "USDA National Nutrient Database + Health Canada Canadian Nutrient File (curated whole foods)",
   };
 }
 
@@ -488,7 +529,7 @@ export function compareFoods(foodNames, nutrientTypes = null) {
 
   return {
     count: results.filter((r) => r.found).length,
-    note: "All nutrient values per 100g edible portion. Source: USDA.",
+    note: "All nutrient values per 100g edible portion. Sources: USDA, Health Canada CNF.",
     comparison: results,
   };
 }
@@ -608,10 +649,11 @@ export function getTopFoodsByCategory(category, nutrient, opts = {}) {
     nutrientName: nutrientMeta?.nutrient_name || resolved.column,
     unit: nutrientMeta?.unit || null,
     count: ranked.length,
-    note: "All values per 100g edible portion. Source: USDA National Nutrient Database.",
+    note: "All values per 100g edible portion. Sources: USDA, Health Canada CNF.",
     foods: ranked.map((f) => ({
       name: f.food_name,
       description: f.description_long,
+      source: f._source || "USDA",
       kingdom: f.kingdom,
       foodType: f.food_type,
       value: f[resolved.column],
@@ -645,6 +687,143 @@ export function listCategoryNutrients(category) {
       column,
       label,
     })),
+  };
+}
+
+// ─── Taxonomy Constants ────────────────────────────────────────
+
+const TAXONOMY_RANKS = [
+  "kingdom",
+  "phylum",
+  "class",
+  "order",
+  "suborder",
+  "family",
+  "subfamily",
+  "tribe",
+  "genus",
+  "species",
+  "subspecies",
+  "variety",
+  "form",
+  "group",
+  "cultivar",
+  "phenotype",
+];
+
+// ─── Search by Taxonomy ────────────────────────────────────────
+
+/**
+ * Search / browse foods by taxonomic rank and value.
+ * Example: rank="family", value="Rosaceae" → all rose-family foods.
+ * @param {string} rank - Taxonomic rank to filter on
+ * @param {string} value - Value to match (case-insensitive)
+ * @param {object} opts
+ * @param {number} [opts.limit=25] - Max results
+ * @param {string} [opts.nutrientTypes] - Comma-separated nutrient categories to include
+ * @returns {object} Matched foods
+ */
+export function searchByTaxonomy(rank, value, opts = {}) {
+  ensureLoaded();
+
+  const normalizedRank = rank.toLowerCase().trim();
+  if (!TAXONOMY_RANKS.includes(normalizedRank)) {
+    return {
+      error: `Unknown taxonomic rank: "${rank}"`,
+      availableRanks: TAXONOMY_RANKS,
+    };
+  }
+
+  const { limit = 25, nutrientTypes } = opts;
+  const normalizedValue = value.toLowerCase().trim();
+
+  const matched = FOOD_DB.filter((f) => {
+    const fieldVal = (f[normalizedRank] || "").toLowerCase().trim();
+    return fieldVal === normalizedValue || fieldVal.includes(normalizedValue);
+  }).slice(0, limit);
+
+  return {
+    rank: normalizedRank,
+    value,
+    count: matched.length,
+    note: "All nutrient values per 100g edible portion. Sources: USDA, Health Canada CNF.",
+    foods: matched.map((f) => formatFood(f, nutrientTypes)),
+  };
+}
+
+/**
+ * Get all unique values at each taxonomic rank — the full taxonomy tree.
+ * Useful for discovery: "what families exist?", "what genera are in Rosaceae?"
+ * @param {string} [rank] - Optional: return only values for a specific rank
+ * @param {string} [parentRank] - Optional: filter by a parent rank
+ * @param {string} [parentValue] - Optional: filter by a parent rank value
+ * @returns {object} Taxonomy tree or single-rank listing
+ */
+export function getTaxonomyTree(
+  rank = null,
+  parentRank = null,
+  parentValue = null,
+) {
+  ensureLoaded();
+
+  // If a specific rank is requested
+  if (rank) {
+    const normalizedRank = rank.toLowerCase().trim();
+    if (!TAXONOMY_RANKS.includes(normalizedRank)) {
+      return {
+        error: `Unknown taxonomic rank: "${rank}"`,
+        availableRanks: TAXONOMY_RANKS,
+      };
+    }
+
+    let candidates = FOOD_DB;
+
+    // Filter by parent rank if provided
+    if (parentRank && parentValue) {
+      const normalizedParent = parentRank.toLowerCase().trim();
+      const normalizedParentVal = parentValue.toLowerCase().trim();
+      if (!TAXONOMY_RANKS.includes(normalizedParent)) {
+        return {
+          error: `Unknown parent rank: "${parentRank}"`,
+          availableRanks: TAXONOMY_RANKS,
+        };
+      }
+      candidates = candidates.filter(
+        (f) =>
+          (f[normalizedParent] || "").toLowerCase().trim() ===
+          normalizedParentVal,
+      );
+    }
+
+    const values = [
+      ...new Set(candidates.map((f) => f[normalizedRank]).filter(Boolean)),
+    ].sort();
+
+    return {
+      rank: normalizedRank,
+      parentFilter: parentRank
+        ? { rank: parentRank, value: parentValue }
+        : null,
+      count: values.length,
+      values,
+    };
+  }
+
+  // Full tree: all ranks with their unique values
+  const tree = {};
+  for (const r of TAXONOMY_RANKS) {
+    const values = [
+      ...new Set(FOOD_DB.map((f) => f[r]).filter(Boolean)),
+    ].sort();
+    if (values.length > 0) {
+      tree[r] = { count: values.length, values };
+    }
+  }
+
+  return {
+    totalFoods: FOOD_DB.length,
+    ranks: TAXONOMY_RANKS,
+    tree,
   };
 }
 
