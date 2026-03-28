@@ -218,7 +218,6 @@ export async function searchNearbyPlaces({
     type,
     center: { latitude: lat, longitude: lng },
     radiusMeters: rad,
-    mapEmbedUrl: buildMapEmbedUrl(places),
     places,
     fetchedAt: new Date().toISOString(),
   };
@@ -302,7 +301,6 @@ export async function searchPlacesByText({
     query,
     center: { latitude: lat, longitude: lng },
     radiusMeters: rad,
-    mapEmbedUrl: buildMapEmbedUrl(places),
     places,
     fetchedAt: new Date().toISOString(),
   };

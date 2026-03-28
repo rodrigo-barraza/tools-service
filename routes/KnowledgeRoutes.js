@@ -41,6 +41,19 @@ import {
   rankElementsByProperty,
   getElementCategories,
 } from "../fetchers/knowledge/PeriodicTableFetcher.js";
+import {
+  getCountryIndicators,
+  rankCountriesByIndicator,
+  compareCountries,
+  getAvailableIndicators,
+} from "../fetchers/knowledge/WorldBankFetcher.js";
+import {
+  searchExoplanets,
+  getExoplanetByName,
+  rankExoplanets,
+  getDiscoveryStats,
+  getHabitableZonePlanets,
+} from "../fetchers/knowledge/ExoplanetFetcher.js";
 import { parseIntParam } from "../utilities.js";
 
 const router = Router();
@@ -440,6 +453,165 @@ router.get("/elements/:symbol", (req, res) => {
   }
 });
 
+// ─── World Bank Indicators (in-memory) ─────────────────────────────
+
+router.get("/indicators/country/:code", (req, res) => {
+  try {
+    const result = getCountryIndicators(req.params.code);
+    if (!result) {
+      return res
+        .status(404)
+        .json({ error: `Country not found: ${req.params.code}` });
+    }
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Country indicators failed: ${err.message}` });
+  }
+});
+
+router.get("/indicators/rank", (req, res) => {
+  const { indicator, limit, order } = req.query;
+  if (!indicator) {
+    return res
+      .status(400)
+      .json({ error: "Query parameter 'indicator' is required" });
+  }
+  try {
+    const result = rankCountriesByIndicator(indicator, {
+      limit: parseIntParam(limit, 10),
+      order: order || "desc",
+    });
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Indicator ranking failed: ${err.message}` });
+  }
+});
+
+router.get("/indicators/compare", (req, res) => {
+  const { countries, indicator } = req.query;
+  if (!countries) {
+    return res.status(400).json({
+      error:
+        "Query parameter 'countries' is required (comma-separated ISO alpha-3 codes)",
+    });
+  }
+  try {
+    const codes = countries
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean);
+    if (codes.length < 2) {
+      return res
+        .status(400)
+        .json({ error: "At least 2 country codes required for comparison" });
+    }
+    const result = compareCountries(codes, indicator || null);
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Country comparison failed: ${err.message}` });
+  }
+});
+
+router.get("/indicators/list", (_req, res) => {
+  try {
+    const result = getAvailableIndicators();
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Indicator list failed: ${err.message}` });
+  }
+});
+
+// ─── Exoplanets ────────────────────────────────────────────────────
+
+router.get("/exoplanets/search", (req, res) => {
+  const { q, limit, method } = req.query;
+  if (!q) {
+    return res.status(400).json({ error: "Query parameter 'q' is required" });
+  }
+  try {
+    const result = searchExoplanets(q, {
+      limit: parseIntParam(limit, 10),
+      method,
+    });
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Exoplanet search failed: ${err.message}` });
+  }
+});
+
+router.get("/exoplanets/lookup/:name", (req, res) => {
+  try {
+    const result = getExoplanetByName(req.params.name);
+    if (!result) {
+      return res.status(404).json({ error: `Exoplanet not found: ${req.params.name}` });
+    }
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Exoplanet lookup failed: ${err.message}` });
+  }
+});
+
+router.get("/exoplanets/rank", (req, res) => {
+  const { field, limit, order } = req.query;
+  if (!field) {
+    return res.status(400).json({ error: "Query parameter 'field' is required" });
+  }
+  try {
+    const result = rankExoplanets(field, {
+      limit: parseIntParam(limit, 10),
+      order: order || "desc",
+    });
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Exoplanet ranking failed: ${err.message}` });
+  }
+});
+
+router.get("/exoplanets/stats", (_req, res) => {
+  try {
+    const result = getDiscoveryStats();
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Exoplanet stats failed: ${err.message}` });
+  }
+});
+
+router.get("/exoplanets/habitable", (req, res) => {
+  const { limit } = req.query;
+  try {
+    const result = getHabitableZonePlanets({
+      limit: parseIntParam(limit, 20),
+    });
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Habitable zone query failed: ${err.message}` });
+  }
+});
+
 // ─── Health ────────────────────────────────────────────────────────
 
 export function getKnowledgeHealth() {
@@ -453,6 +625,8 @@ export function getKnowledgeHealth() {
     tmdbMovies: "on-demand",
     tmdbTvShows: "on-demand",
     periodicTable: "on-demand (in-memory, 119 elements)",
+    worldBankIndicators: "on-demand (in-memory, 217 countries)",
+    nasaExoplanets: "on-demand (in-memory, ~6,153 planets)",
   };
 }
 

@@ -6,6 +6,8 @@
 //   - name, description, parameters (JSON Schema for LLM)
 //   - endpoint metadata (path, pathParams, queryParams)
 //     so clients can build executors dynamically.
+//   - dataSource metadata (type, provider, intervalSeconds)
+//     describing where data comes from and how it's refreshed.
 //
 // Consumed by:
 //   - tools-api: GET /admin/tool-schemas
@@ -18,6 +20,73 @@
 //   query params — e.g. if the property is "q", the URL gets
 //   ?q=value. A mismatch (e.g. "query" vs "q") causes 400s.
 // ============================================================
+
+// ────────────────────────────────────────────────────────────
+// Interval Constants — imported as single source of truth
+// for both the collectors and the dataSource metadata.
+// ────────────────────────────────────────────────────────────
+
+import {
+  // Weather domain
+  OPEN_METEO_INTERVAL_MS,
+  AIR_QUALITY_INTERVAL_MS,
+  EARTHQUAKE_INTERVAL_MS,
+  DONKI_INTERVAL_MS,
+  KP_INDEX_INTERVAL_MS,
+  TWILIGHT_INTERVAL_MS,
+  TIDE_INTERVAL_MS,
+  WILDFIRE_INTERVAL_MS,
+  ISS_POSITION_INTERVAL_MS,
+  NEO_INTERVAL_MS,
+  SOLAR_WIND_INTERVAL_MS,
+  GOOGLE_POLLEN_INTERVAL_MS,
+  APOD_INTERVAL_MS,
+  LAUNCH_INTERVAL_MS,
+  ENV_CANADA_INTERVAL_MS,
+  AVALANCHE_INTERVAL_MS,
+  GOOGLE_AIR_QUALITY_INTERVAL_MS,
+  // Event domain
+  TICKETMASTER_INTERVAL_MS,
+  // Market domain
+  COMMODITIES_INTERVAL_MS,
+  // Product domain
+  BESTBUY_INTERVAL_MS,
+  BESTBUY_CA_AVAILABILITY_INTERVAL_MS,
+  COSTCO_INTERVAL_MS,
+  // Trend domain
+  GOOGLE_TRENDS_INTERVAL_MS,
+  // Finance domain
+  FINNHUB_NEWS_INTERVAL_MS,
+  FINNHUB_EARNINGS_INTERVAL_MS,
+} from "../constants.js";
+
+// ────────────────────────────────────────────────────────────
+// Data Source Helpers — builds the dataSource metadata
+// ────────────────────────────────────────────────────────────
+// type: "cached"    — background-polled on a cron interval,
+//                     served from in-memory cache / database.
+// type: "onDemand"  — fetched from a provider at request time.
+//
+// provider: the external API or "internal" for own data.
+// intervalSeconds: polling interval (cached only), derived
+//                  from the same constant the collector uses.
+// ────────────────────────────────────────────────────────────
+
+function cached(provider, intervalMs) {
+  return {
+    type: "cached",
+    provider,
+    intervalSeconds: Math.round(intervalMs / 1000),
+  };
+}
+
+function onDemand(provider) {
+  return { type: "onDemand", provider };
+}
+
+function staticDataset(name) {
+  return { type: "static", provider: "internal", dataset: name };
+}
 
 // ────────────────────────────────────────────────────────────
 // Available Fields — per-tool field enums
@@ -935,7 +1004,6 @@ const FIELDS = {
     "googleMapsUrl",
     "description",
     "openNow",
-    "mapEmbedUrl",
   ],
 
   // Periodic Table: from PeriodicTableFetcher
@@ -975,6 +1043,135 @@ const FIELDS = {
     "elements.value",
     "elements.category",
   ],
+
+  // World Bank: from WorldBankFetcher
+  WORLD_BANK_COUNTRY: [
+    "countryCode",
+    "countryName",
+    "dataYear",
+    "indicators.gdp_usd",
+    "indicators.gdp_per_capita_usd",
+    "indicators.population",
+    "indicators.life_expectancy",
+    "indicators.infant_mortality_per_1k",
+    "indicators.co2_per_capita_tons",
+    "indicators.literacy_rate_pct",
+    "indicators.internet_users_pct",
+    "indicators.unemployment_pct",
+    "indicators.inflation_cpi_pct",
+    "indicators.forest_area_pct",
+    "indicators.renewable_energy_pct",
+    "indicators.gini_index",
+    "indicators.electricity_access_pct",
+    "indicators.health_expenditure_per_capita_usd",
+  ],
+
+  // World Bank Ranking: from WorldBankFetcher.rankCountriesByIndicator()
+  WORLD_BANK_RANKING: [
+    "indicator",
+    "indicatorLabel",
+    "unit",
+    "order",
+    "count",
+    "countries.countryCode",
+    "countries.countryName",
+    "countries.value",
+    "countries.dataYear",
+  ],
+
+  // ── Airport Domain ─────────────────────────────────────────────
+
+  // Airport Search/Lookup: from AirportFetcher
+  AIRPORTS: [
+    "iataCode",
+    "icaoCode",
+    "name",
+    "city",
+    "countryCode",
+    "continent",
+    "latitude",
+    "longitude",
+    "elevationFt",
+    "type",
+    "scheduledService",
+  ],
+
+  // Nearest Airport: from AirportFetcher.getNearestAirports()
+  AIRPORTS_NEAREST: [
+    "iataCode",
+    "icaoCode",
+    "name",
+    "city",
+    "countryCode",
+    "distanceKm",
+  ],
+
+  // ── Exoplanet Domain ───────────────────────────────────────────
+
+  // Exoplanet Search/Lookup: from ExoplanetFetcher
+  EXOPLANETS: [
+    "name",
+    "hostStar",
+    "discoveryMethod",
+    "discoveryYear",
+    "discoveryFacility",
+    "orbitalPeriodDays",
+    "radiusEarth",
+    "massEarth",
+    "semiMajorAxisAU",
+    "eccentricity",
+    "equilibriumTempK",
+    "stellarMassSolar",
+    "stellarRadiusSolar",
+    "stellarTempK",
+    "distanceParsecs",
+  ],
+
+  // Exoplanet Ranking: from ExoplanetFetcher.rankExoplanets()
+  EXOPLANET_RANKING: [
+    "field",
+    "label",
+    "unit",
+    "order",
+    "count",
+    "planets.name",
+    "planets.hostStar",
+    "planets.value",
+    "planets.discoveryYear",
+    "planets.method",
+  ],
+
+  // Exoplanet Discovery Stats: from ExoplanetFetcher.getDiscoveryStats()
+  EXOPLANET_STATS: [
+    "totalPlanets",
+    "yearRange.first",
+    "yearRange.latest",
+    "discoveryMethods",
+    "topFacilities",
+  ],
+
+  // ── FDA Drug Domain ────────────────────────────────────────────
+
+  // FDA Drug Search: from FdaDrugFetcher
+  FDA_DRUGS: [
+    "productNdc",
+    "genericName",
+    "brandName",
+    "labelerName",
+    "dosageForm",
+    "route",
+    "productType",
+    "marketingCategory",
+    "activeIngredients",
+    "pharmClass",
+  ],
+
+  // FDA Dosage Forms: from FdaDrugFetcher.getDosageForms()
+  FDA_DOSAGE_FORMS: [
+    "totalProducts",
+    "dosageForms.form",
+    "dosageForms.count",
+  ],
 };
 
 // ────────────────────────────────────────────────────────────
@@ -998,6 +1195,7 @@ const TOOL_DEFINITIONS = [
   // ── Weather / Environment ──────────────────────────────────
   {
     name: "get_current_weather",
+    dataSource: cached("Open-Meteo", OPEN_METEO_INTERVAL_MS),
     description:
       "Get current weather conditions including temperature, humidity, wind, UV index, feels-like temperature, precipitation, and air quality indicators.",
     endpoint: { path: "/weather/weather/current" },
@@ -1009,6 +1207,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_weather_forecast",
+    dataSource: cached("Open-Meteo", OPEN_METEO_INTERVAL_MS),
     description:
       "Get multi-day weather forecast. Each forecast entry includes temperature highs/lows, precipitation probability, wind, and conditions.",
     endpoint: { path: "/weather/weather/forecast", queryParams: ["days"] },
@@ -1026,6 +1225,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_air_quality",
+    dataSource: cached("Open-Meteo", AIR_QUALITY_INTERVAL_MS),
     description:
       "Get current air quality data including AQI (US and European), PM2.5, PM10, ozone, and pollutant concentrations.",
     endpoint: { path: "/weather/weather/air" },
@@ -1037,6 +1237,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_earthquakes",
+    dataSource: cached("USGS", EARTHQUAKE_INTERVAL_MS),
     description:
       "Get recent earthquake data. Each earthquake includes magnitude, location, depth, time, and alert level.",
     endpoint: { path: "/weather/earthquakes" },
@@ -1048,6 +1249,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_solar_activity",
+    dataSource: cached("NASA DONKI", DONKI_INTERVAL_MS),
     description:
       "Get current solar activity summary including solar flare count, CME count, geomagnetic storm count, strongest flare, fastest CME, and Earth-directed CME details.",
     endpoint: { path: "/weather/space-weather/summary" },
@@ -1059,6 +1261,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_aurora_forecast",
+    dataSource: cached("NOAA SWPC", KP_INDEX_INTERVAL_MS),
     description:
       "Get aurora/northern lights forecast including current Kp index, storm classification, and 24h peak.",
     endpoint: { path: "/weather/kp/current" },
@@ -1070,6 +1273,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_twilight",
+    dataSource: cached("Sunrise-Sunset API", TWILIGHT_INTERVAL_MS),
     description:
       "Get sunrise, sunset, solar noon, day length, and civil/nautical/astronomical twilight times for today.",
     endpoint: { path: "/weather/twilight" },
@@ -1081,6 +1285,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_tides",
+    dataSource: cached("NOAA CO-OPS", TIDE_INTERVAL_MS),
     description:
       "Get tidal predictions including high and low tide times, heights, and type.",
     endpoint: { path: "/weather/tides" },
@@ -1092,6 +1297,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_wildfires",
+    dataSource: cached("NASA EONET", WILDFIRE_INTERVAL_MS),
     description:
       "Get active wildfire data including fire title, location coordinates, magnitude, and status (open/closed).",
     endpoint: { path: "/weather/wildfires" },
@@ -1103,6 +1309,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_iss_position",
+    dataSource: cached("Open Notify", ISS_POSITION_INTERVAL_MS),
     description:
       "Get the current position (lat/lng) of the International Space Station and the list of astronauts currently aboard.",
     endpoint: { path: "/weather/iss" },
@@ -1114,6 +1321,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_near_earth_objects",
+    dataSource: cached("NASA NeoWs", NEO_INTERVAL_MS),
     description:
       "Get today's near-Earth objects (asteroids) summary including total count, hazardous count, closest approach, and largest object.",
     endpoint: { path: "/weather/neo/summary" },
@@ -1125,6 +1333,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_solar_wind",
+    dataSource: cached("NOAA SWPC", SOLAR_WIND_INTERVAL_MS),
     description:
       "Get latest solar wind conditions including plasma speed, density, temperature, and interplanetary magnetic field (Bz, Bt). Important for aurora and space weather assessment.",
     endpoint: { path: "/weather/solar-wind/latest" },
@@ -1136,6 +1345,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_pollen",
+    dataSource: cached("Google Pollen API", GOOGLE_POLLEN_INTERVAL_MS),
     description:
       "Get today's pollen forecast including grass, tree, and weed pollen index values, categories, and whether each type is in season.",
     endpoint: { path: "/weather/pollen/today" },
@@ -1147,6 +1357,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_apod",
+    dataSource: cached("NASA APOD", APOD_INTERVAL_MS),
     description:
       "Get NASA's Astronomy Picture of the Day including title, explanation, image URL, and copyright information.",
     endpoint: { path: "/weather/apod" },
@@ -1158,6 +1369,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_launches",
+    dataSource: cached("Launch Library 2", LAUNCH_INTERVAL_MS),
     description:
       "Get upcoming rocket launch summary including next launch details, provider, rocket, mission, pad location, and launch window.",
     endpoint: { path: "/weather/launches/summary" },
@@ -1169,6 +1381,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_weather_warnings",
+    dataSource: cached("Environment Canada", ENV_CANADA_INTERVAL_MS),
     description:
       "Get active Environment Canada weather warnings, watches, advisories, and special weather statements for Metro Vancouver.",
     endpoint: { path: "/weather/warnings" },
@@ -1180,6 +1393,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_avalanche_forecast",
+    dataSource: cached("Avalanche Canada", AVALANCHE_INTERVAL_MS),
     description:
       "Get Avalanche Canada forecast for BC regions including danger ratings (alpine/treeline/below treeline), problems, and highlights.",
     endpoint: { path: "/weather/avalanche" },
@@ -1191,6 +1405,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_google_air_quality",
+    dataSource: cached("Google Air Quality API", GOOGLE_AIR_QUALITY_INTERVAL_MS),
     description:
       "Get detailed air quality from Google's Air Quality API including universal AQI, US EPA AQI, dominant pollutant, pollutant concentrations, and health recommendations.",
     endpoint: { path: "/weather/airquality/google" },
@@ -1204,6 +1419,7 @@ const TOOL_DEFINITIONS = [
   // ── Events ─────────────────────────────────────────────────
   {
     name: "search_events",
+    dataSource: cached("Ticketmaster / SeatGeek / TMDB / Google Places", TICKETMASTER_INTERVAL_MS),
     description:
       "Search for local events including concerts, sports games, festivals, community gatherings, and movie releases. Can filter by source, category, and text search.",
     endpoint: {
@@ -1238,6 +1454,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_upcoming_events",
+    dataSource: cached("Ticketmaster / SeatGeek / TMDB / Google Places", TICKETMASTER_INTERVAL_MS),
     description:
       "Get upcoming events in chronological order. Good for 'what's happening this weekend' type questions.",
     endpoint: {
@@ -1262,6 +1479,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_events_today",
+    dataSource: cached("Ticketmaster / SeatGeek / TMDB / Google Places", TICKETMASTER_INTERVAL_MS),
     description:
       "Get all events happening today. Returns events with venue, category, and timing information.",
     endpoint: { path: "/event/today" },
@@ -1273,6 +1491,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_event_summary",
+    dataSource: cached("internal", TICKETMASTER_INTERVAL_MS),
     description:
       "Get a statistical summary of all cached events: total count, today's count, upcoming count, breakdown by category and source.",
     endpoint: { path: "/event/summary" },
@@ -1286,6 +1505,7 @@ const TOOL_DEFINITIONS = [
   // ── Commodities / Markets ──────────────────────────────────
   {
     name: "get_commodities_summary",
+    dataSource: cached("Yahoo Finance", COMMODITIES_INTERVAL_MS),
     description:
       "Get a summary of all commodity/market prices including top gainers, top losers, and breakdown by category. Each item shows ticker, name, price, change, and percent change.",
     endpoint: { path: "/market/commodities/summary" },
@@ -1297,6 +1517,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_commodity_by_category",
+    dataSource: cached("Yahoo Finance", COMMODITIES_INTERVAL_MS),
     description:
       "Get commodity prices filtered by category. Returns an array of commodities with ticker, name, price, change, and percent change.",
     endpoint: {
@@ -1333,6 +1554,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_commodity_ticker",
+    dataSource: cached("Yahoo Finance", COMMODITIES_INTERVAL_MS),
     description:
       "Get detailed data for a specific commodity/market ticker symbol.",
     endpoint: {
@@ -1354,6 +1576,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_commodity_categories",
+    dataSource: cached("Yahoo Finance", COMMODITIES_INTERVAL_MS),
     description:
       "Get a list of all available commodity categories (energy, precious_metals, crypto, forex, etc.).",
     endpoint: { path: "/market/commodities/categories" },
@@ -1364,6 +1587,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_commodity_history",
+    dataSource: cached("Yahoo Finance / MongoDB", COMMODITIES_INTERVAL_MS),
     description:
       "Get price history snapshots for a specific commodity ticker over a time window.",
     endpoint: {
@@ -1392,6 +1616,7 @@ const TOOL_DEFINITIONS = [
   // ── Trends ─────────────────────────────────────────────────
   {
     name: "get_trends",
+    dataSource: cached("Google Trends / Reddit / Wikipedia / HackerNews / X / Mastodon / Bluesky / GitHub / ProductHunt / TVMaze / Google News", GOOGLE_TRENDS_INTERVAL_MS),
     description:
       "Get currently trending topics aggregated from multiple sources including Google Trends, Reddit, Wikipedia, Hacker News, X (Twitter), Bluesky, Mastodon, and news.",
     endpoint: {
@@ -1416,6 +1641,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_hot_trends",
+    dataSource: cached("internal", GOOGLE_TRENDS_INTERVAL_MS),
     description:
       "Get cross-platform correlated trending topics — topics appearing in 2+ sources simultaneously. Shows which topics are truly viral across Google, Reddit, X, news, etc.",
     endpoint: { path: "/trend/trends/hot" },
@@ -1427,6 +1653,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_top_trends",
+    dataSource: cached("internal / MongoDB", GOOGLE_TRENDS_INTERVAL_MS),
     description:
       "Get the highest-volume trending topics from the database over a configurable time window. Aggregated across all sources.",
     endpoint: {
@@ -1453,6 +1680,7 @@ const TOOL_DEFINITIONS = [
   // ── Products ───────────────────────────────────────────────
   {
     name: "search_products",
+    dataSource: cached("Best Buy / Amazon / eBay / Etsy / ProductHunt / Costco", BESTBUY_INTERVAL_MS),
     description:
       "Search for products with pricing, ratings, and deal information from Best Buy, Amazon, eBay, Etsy, Product Hunt, Costco US, and Costco Canada.",
     endpoint: {
@@ -1481,6 +1709,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_trending_products",
+    dataSource: cached("Best Buy / Amazon / eBay / Etsy / ProductHunt / Costco", BESTBUY_INTERVAL_MS),
     description:
       "Get currently trending products ranked by trending score. Shows top deals and popular items.",
     endpoint: {
@@ -1501,6 +1730,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_product_availability",
+    dataSource: cached("Best Buy Canada", BESTBUY_CA_AVAILABILITY_INTERVAL_MS),
     description:
       "Get Best Buy Canada product availability for all monitored watchlist items. Shows in-stock/out-of-stock status.",
     endpoint: { path: "/product/products/availability" },
@@ -1512,6 +1742,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "check_product_availability",
+    dataSource: onDemand("Best Buy Canada"),
     description:
       "Check Best Buy Canada availability for specific SKUs on demand. Useful for checking arbitrary products not on the watchlist.",
     endpoint: {
@@ -1532,6 +1763,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_costco_us_products",
+    dataSource: cached("Costco US", COSTCO_INTERVAL_MS),
     description:
       "Get products from Costco US (costco.com) including laptops, desktops, TVs, phones, tablets, headphones, speakers, cameras, video games, and appliances. Shows name, price (USD), rating, and product URL.",
     endpoint: {
@@ -1545,6 +1777,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_costco_ca_products",
+    dataSource: cached("Costco Canada", COSTCO_INTERVAL_MS),
     description:
       "Get products from Costco Canada (costco.ca) including laptops, desktops, TVs, phones, tablets, headphones, speakers, cameras, video games, and appliances. Shows name, price (CAD), rating, and product URL.",
     endpoint: {
@@ -1560,6 +1793,7 @@ const TOOL_DEFINITIONS = [
   // ── Finance / Stocks (Finnhub) ─────────────────────────────
   {
     name: "get_stock_quote",
+    dataSource: onDemand("Finnhub"),
     description:
       "Get real-time stock quote. Fields: c=current price, d=change, dp=percent change, h=day high, l=day low, o=open, pc=previous close, t=timestamp.",
     endpoint: {
@@ -1580,6 +1814,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_company_profile",
+    dataSource: onDemand("Finnhub"),
     description:
       "Get company profile including name, industry, market capitalization, shares outstanding, logo, and website.",
     endpoint: {
@@ -1600,6 +1835,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_market_news",
+    dataSource: cached("Finnhub", FINNHUB_NEWS_INTERVAL_MS),
     description:
       "Get latest market news articles. Can optionally filter by company symbol for company-specific news.",
     endpoint: {
@@ -1621,6 +1857,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_earnings_calendar",
+    dataSource: cached("Finnhub", FINNHUB_EARNINGS_INTERVAL_MS),
     description:
       "Get upcoming earnings calendar showing which companies are reporting earnings, with estimated and actual EPS and revenue.",
     endpoint: { path: "/finance/earnings" },
@@ -1632,6 +1869,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_stock_recommendation",
+    dataSource: onDemand("Finnhub"),
     description:
       "Get analyst recommendation trends for a stock, including buy/hold/sell/strongBuy/strongSell counts per period.",
     endpoint: {
@@ -1652,6 +1890,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_stock_financials",
+    dataSource: onDemand("Finnhub"),
     description:
       "Get basic financial metrics for a stock including P/E ratio, EPS, 52-week high/low, beta, dividend yield, market cap, revenue, and profit margins.",
     endpoint: {
@@ -1674,6 +1913,7 @@ const TOOL_DEFINITIONS = [
   // ── Finance (FRED Macroeconomics) ──────────────────────────────
   {
     name: "get_macro_indicators",
+    dataSource: onDemand("FRED (St. Louis Fed)"),
     description:
       "Get the latest snapshot of key macroeconomic indicators including inflation (CPI, PCE), interest rates (Fed Funds, 10Y Yield), unemployment, GDP, and consumer sentiment from the St. Louis Fed (FRED).",
     endpoint: {
@@ -1688,6 +1928,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "search_macro_series",
+    dataSource: onDemand("FRED (St. Louis Fed)"),
     description:
       "Search for macroeconomic data series by keywords (e.g. 'housing prices', 'credit card debt', 'wheat prices') from FRED. Returns series IDs required for fetching specific observations.",
     endpoint: {
@@ -1717,6 +1958,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_macro_series_info",
+    dataSource: onDemand("FRED (St. Louis Fed)"),
     description:
       "Get detailed metadata about a specific FRED macroeconomic data series by its ID, including unit description, frequency, and notes.",
     endpoint: {
@@ -1737,6 +1979,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_macro_observations",
+    dataSource: onDemand("FRED (St. Louis Fed)"),
     description:
       "Get historical observations (data points) for a specific FRED macroeconomic data series by its ID.",
     endpoint: {
@@ -1777,6 +2020,7 @@ const TOOL_DEFINITIONS = [
   // ── Knowledge ──────────────────────────────────────────────────
   {
     name: "define_word",
+    dataSource: onDemand("Free Dictionary API"),
     description:
       "Look up a word's definition, pronunciation, phonetics (with audio URLs), synonyms, antonyms, etymology, and usage examples using the Free Dictionary API.",
     endpoint: {
@@ -1797,6 +2041,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "search_books",
+    dataSource: onDemand("Open Library"),
     description:
       "Search for books by title, author, or query. Returns book metadata, cover images, ratings, author names, publication year, and edition count from Open Library (3M+ books).",
     endpoint: {
@@ -1821,6 +2066,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_book_details",
+    dataSource: onDemand("Open Library"),
     description:
       "Get detailed information about a specific book by its Open Library work key. Returns description, subjects, cover image, links, and publication date.",
     endpoint: {
@@ -1841,6 +2087,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_author_info",
+    dataSource: onDemand("Open Library"),
     description:
       "Get author biography, birth/death dates, photo, and Wikipedia link from Open Library.",
     endpoint: {
@@ -1861,6 +2108,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_country_info",
+    dataSource: onDemand("REST Countries"),
     description:
       "Get detailed information about a country by name. Returns population, capital, languages, currencies, timezones, borders, flag, continent, calling codes, and more.",
     endpoint: {
@@ -1882,6 +2130,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_country_by_code",
+    dataSource: onDemand("REST Countries"),
     description:
       "Get country information by ISO country code (2 or 3 letter). Returns full country details.",
     endpoint: {
@@ -1903,6 +2152,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "search_papers",
+    dataSource: onDemand("arXiv"),
     description:
       "Search academic papers on arXiv. Returns titles, abstracts, authors, publication dates, PDF links, and category classifications. Covers CS, physics, math, biology, economics, and more.",
     endpoint: {
@@ -1937,6 +2187,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_wikipedia_summary",
+    dataSource: onDemand("Wikipedia REST API"),
     description:
       "Get a summary of any Wikipedia article including extract text, thumbnail image, description, and page URL. Good for quick factual lookups.",
     endpoint: {
@@ -1958,6 +2209,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_on_this_day",
+    dataSource: onDemand("Wikipedia REST API"),
     description:
       "Get historical events, births, deaths, or holidays that happened on a specific date from Wikipedia. Defaults to today if no date specified.",
     endpoint: {
@@ -1987,6 +2239,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "search_anime",
+    dataSource: onDemand("Jikan (MyAnimeList)"),
     description: "Search for anime titles on MyAnimeList (via Jikan API).",
     endpoint: {
       path: "/knowledge/anime/search",
@@ -2010,6 +2263,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_top_anime",
+    dataSource: onDemand("Jikan (MyAnimeList)"),
     description: "Get the top-ranked anime from MyAnimeList (via Jikan API).",
     endpoint: {
       path: "/knowledge/anime/top",
@@ -2028,6 +2282,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_current_season_anime",
+    dataSource: onDemand("Jikan (MyAnimeList)"),
     description:
       "Get currently airing seasonal anime from MyAnimeList (via Jikan API).",
     endpoint: {
@@ -2047,6 +2302,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_anime_details",
+    dataSource: onDemand("Jikan (MyAnimeList)"),
     description:
       "Get comprehensive details for a specific anime by its MyAnimeList ID.",
     endpoint: {
@@ -2069,6 +2325,7 @@ const TOOL_DEFINITIONS = [
   // ── Movies (TMDb) ──────────────────────────────────────────────
   {
     name: "search_movies",
+    dataSource: onDemand("TMDb"),
     description:
       "Search for movies by title. Returns matching movies with posters, ratings, release dates, and overviews from TMDb.",
     endpoint: {
@@ -2097,6 +2354,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_movie_details",
+    dataSource: onDemand("TMDb"),
     description:
       "Get comprehensive details for a specific movie by its TMDb ID, including budget, revenue, runtime, production companies, and IMDB link.",
     endpoint: {
@@ -2117,6 +2375,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_movie_credits",
+    dataSource: onDemand("TMDb"),
     description:
       "Get the cast and key crew (director, writer, producer, cinematographer, composer) for a movie by its TMDb ID.",
     endpoint: {
@@ -2137,6 +2396,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_trending_movies",
+    dataSource: onDemand("TMDb"),
     description:
       "Get currently trending movies. Reflects real-time popularity across TMDb users.",
     endpoint: {
@@ -2161,6 +2421,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "discover_movies",
+    dataSource: onDemand("TMDb"),
     description:
       "Discover movies using filters like genre, year, minimum rating, and sort order. Good for 'best sci-fi movies of 2024' type queries.",
     endpoint: {
@@ -2209,6 +2470,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_movie_genres",
+    dataSource: onDemand("TMDb"),
     description:
       "Get the list of official TMDb movie genres with their IDs. Use this to find genre IDs for the discover_movies tool.",
     endpoint: {
@@ -2223,6 +2485,7 @@ const TOOL_DEFINITIONS = [
   // ── TV Series (TMDb) ───────────────────────────────────────────
   {
     name: "search_tv_shows",
+    dataSource: onDemand("TMDb"),
     description:
       "Search for TV series by name. Returns matching shows with posters, ratings, air dates, and overviews from TMDb.",
     endpoint: {
@@ -2251,6 +2514,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_tv_show_details",
+    dataSource: onDemand("TMDb"),
     description:
       "Get comprehensive details for a TV series by its TMDb ID, including seasons, episodes, networks, creators, and production info.",
     endpoint: {
@@ -2271,6 +2535,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_tv_show_credits",
+    dataSource: onDemand("TMDb"),
     description:
       "Get the aggregate cast and key crew for a TV series across all seasons.",
     endpoint: {
@@ -2291,6 +2556,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_tv_season_details",
+    dataSource: onDemand("TMDb"),
     description:
       "Get details for a specific TV season including all episodes with names, air dates, runtimes, and ratings.",
     endpoint: {
@@ -2315,6 +2581,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_trending_tv_shows",
+    dataSource: onDemand("TMDb"),
     description:
       "Get currently trending TV series. Reflects real-time popularity across TMDb users.",
     endpoint: {
@@ -2339,6 +2606,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "discover_tv_shows",
+    dataSource: onDemand("TMDb"),
     description:
       "Discover TV series using filters like genre, year, minimum rating, and sort order. Good for 'best drama series of 2025' type queries.",
     endpoint: {
@@ -2386,6 +2654,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_tv_genres",
+    dataSource: onDemand("TMDb"),
     description:
       "Get the list of official TMDb TV genres with their IDs. Use this to find genre IDs for the discover_tv_shows tool.",
     endpoint: {
@@ -2400,6 +2669,7 @@ const TOOL_DEFINITIONS = [
   // ── Health ─────────────────────────────────────────────────────
   {
     name: "search_drug_info",
+    dataSource: onDemand("openFDA"),
     description:
       "Search FDA drug labels by brand or generic name. Returns indications, warnings, side effects, dosage, contraindications, and drug interactions.",
     endpoint: {
@@ -2425,6 +2695,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_drug_adverse_events",
+    dataSource: onDemand("openFDA"),
     description:
       "Get FDA adverse event reports for a drug, including reported reactions, seriousness (death, hospitalization, life-threatening), and patient demographics.",
     endpoint: {
@@ -2449,6 +2720,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_drug_recalls",
+    dataSource: onDemand("openFDA"),
     description:
       "Get FDA drug recall and enforcement actions. Returns recall classification, reason, affected products, and recalling firm.",
     endpoint: {
@@ -2475,6 +2747,7 @@ const TOOL_DEFINITIONS = [
   // ── USDA Nutrition (Raw Whole Foods) ────────────────────────────
   {
     name: "search_usda_nutrition",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "Search USDA's curated database of ~1,346 raw whole foods (fruits, vegetables, meats, fish, nuts, grains, fungi) for detailed nutritional information. Returns per-100g nutrient values including macros, minerals, vitamins, amino acids, lipid profiles, and more. Use nutrientTypes parameter to request specific nutrient categories. For ranking foods by a specific nutrient (e.g. 'highest iron'), use the top_foods_by_* tools instead.",
     endpoint: {
@@ -2515,6 +2788,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "rank_foods_by_nutrient",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "Rank raw whole foods by a specific nutrient content (highest first). Great for answering questions like 'what foods are highest in iron?' or 'best sources of vitamin C'. Supports ~1,346 USDA foods with ~150 nutrient columns.",
     endpoint: {
@@ -2549,6 +2823,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "compare_food_nutrition",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "Compare nutritional profiles side-by-side between 2+ raw whole foods. Example: compare chicken vs salmon vs tofu. Returns matched foods with their per-100g nutrient values.",
     endpoint: {
@@ -2575,6 +2850,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_food_categories",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "List all available food categories, kingdoms, types, and parts in the USDA nutrition database. Useful for discovering what filters are available before searching.",
     endpoint: {
@@ -2587,6 +2863,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_nutrient_types",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "List all available nutrient type categories (macros, minerals, vitamins, amino_acids, lipids, carbs, sterols) and database stats. Use this to understand what nutrient data is available.",
     endpoint: {
@@ -2599,6 +2876,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "list_category_nutrients",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "List all available nutrients within a specific category (e.g. all minerals, all vitamins). Returns column names and human-readable labels. Use this to discover which nutrients you can query with the top_foods_by_* tools.",
     endpoint: {
@@ -2627,6 +2905,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "top_foods_by_macro",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "Find foods highest in a specific macronutrient — protein, fat, carbs, calories, fiber, sugar, water, or alcohol. Example: 'what foods have the most protein?' → nutrient='protein'.",
     endpoint: {
@@ -2664,6 +2943,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "top_foods_by_mineral",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "Find foods highest in a specific mineral — calcium, iron, magnesium, potassium, zinc, selenium, etc. Example: 'what foods are high in iron?' → nutrient='iron'.",
     endpoint: {
@@ -2704,6 +2984,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "top_foods_by_vitamin",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "Find foods highest in a specific vitamin — vitamin A, B1-B12, C, D, E, K, folate, choline, carotenoids, etc. Example: 'best sources of vitamin C?' → nutrient='ascorbic_acid'.",
     endpoint: {
@@ -2750,6 +3031,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "top_foods_by_amino_acid",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "Find foods highest in a specific amino acid — tryptophan, leucine, lysine, methionine, etc. Essential for protein quality analysis. Example: 'foods with most leucine?' → nutrient='leucine'.",
     endpoint: {
@@ -2797,6 +3079,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "top_foods_by_lipid",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "Find foods highest in a specific fat/lipid — saturated fat, omega-3 (DHA, EPA, ALA), omega-6, monounsaturated, polyunsaturated, or trans fats. Example: 'best omega-3 DHA sources?' → nutrient='c22_d6_n3_dha'.",
     endpoint: {
@@ -2837,6 +3120,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "top_foods_by_carb",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "Find foods highest in a specific carbohydrate type — starch, glucose, fructose, sucrose, lactose, maltose, fiber, or total sugar. Example: 'foods highest in fiber?' → nutrient='fiber'.",
     endpoint: {
@@ -2875,6 +3159,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "top_foods_by_sterol",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "Find foods highest in a specific sterol — cholesterol, phytosterol, stigmasterol, campesterol, or beta-sitosterol. Example: 'foods highest in cholesterol?' → nutrient='cholesterol'.",
     endpoint: {
@@ -2909,6 +3194,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "search_foods_by_taxonomy",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "Find all foods matching a specific biological taxonomic classification. Filter by any Linnaean rank — kingdom, phylum, class, order, family, subfamily, tribe, genus, species, subspecies, variety, cultivar, etc. Example: rank='family', value='Rosaceae' returns all rose-family foods (apples, pears, cherries, etc). Use browse_food_taxonomy first to discover available values.",
     endpoint: {
@@ -2961,6 +3247,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "browse_food_taxonomy",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
       "Discover available biological taxonomy values in the USDA food database. Without parameters, returns the full taxonomy tree with all ranks and their unique values. Optionally filter to a single rank, or scope by a parent rank (e.g. rank='genus', parentRank='family', parentValue='Rosaceae' to see all genera within the Rosaceae family). Use this to explore before using search_foods_by_taxonomy.",
     endpoint: {
@@ -3022,6 +3309,7 @@ const TOOL_DEFINITIONS = [
   // ── Transit (TransLink Vancouver) ──────────────────────────────
   {
     name: "get_next_bus",
+    dataSource: onDemand("TransLink RTTI"),
     description:
       "Get real-time bus arrival estimates for a TransLink (Vancouver) bus stop. Shows route, direction, expected arrival time, countdown, schedule status, and whether the trip is cancelled.",
     endpoint: {
@@ -3047,6 +3335,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_transit_stop_info",
+    dataSource: onDemand("TransLink RTTI"),
     description:
       "Get details about a TransLink bus stop including name, street intersection, city, coordinates, wheelchair access, and which routes serve it.",
     endpoint: {
@@ -3067,6 +3356,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "find_transit_stops_nearby",
+    dataSource: onDemand("TransLink RTTI"),
     description:
       "Find TransLink bus stops near a location. Returns nearby stops with names, distances, and route numbers. Defaults to Vancouver downtown if no coordinates provided.",
     endpoint: {
@@ -3094,6 +3384,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_transit_route_info",
+    dataSource: onDemand("TransLink RTTI"),
     description:
       "Get details about a TransLink bus/SkyTrain route including name, operating company, and pattern destinations.",
     endpoint: {
@@ -3116,6 +3407,7 @@ const TOOL_DEFINITIONS = [
   // ── Utilities ──────────────────────────────────────────────────
   {
     name: "convert_currency",
+    dataSource: onDemand("Exchange Rate API"),
     description:
       "Convert an amount between any two currencies using real-time exchange rates. Supports 161 currencies including USD, CAD, EUR, GBP, JPY, etc.",
     endpoint: {
@@ -3144,6 +3436,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_time_in_timezone",
+    dataSource: onDemand("World Time API"),
     description:
       "Get the current time in any timezone worldwide. Returns datetime, UTC offset, DST status, abbreviation, and day of week.",
     endpoint: {
@@ -3170,6 +3463,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "lookup_ip",
+    dataSource: onDemand("IPinfo.io"),
     description:
       "Look up geolocation and network information for an IP address. Returns city, region, country, coordinates, and ISP/organization info. For your own server IP, omit the ip parameter or use 'self'.",
     endpoint: {
@@ -3190,8 +3484,9 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "search_nearby_places",
+    dataSource: onDemand("Google Places API"),
     description:
-      "Search for nearby places/businesses by type (e.g. restaurant, cafe, pharmacy, gas_station, grocery_store, gym, hospital, park, shopping_mall, bar, hotel, bank, library). Returns name, address, rating, reviews, price level, phone, website, and whether currently open. An interactive map with numbered markers is automatically rendered in the chat UI.",
+      "Search for nearby places/businesses by type (e.g. restaurant, cafe, pharmacy, gas_station, grocery_store, gym, hospital, park, shopping_mall, bar, hotel, bank, library). Returns name, address, rating, reviews, price level, phone, website, and whether currently open. To show results on a map, follow up with the generate_map tool using the returned coordinates.",
     endpoint: {
       path: "/utility/places/nearby",
       queryParams: ["type", "latitude", "longitude", "radius", "limit"],
@@ -3227,8 +3522,9 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "search_places",
+    dataSource: onDemand("Google Places API"),
     description:
-      "Search for places using a natural language text query (e.g. 'best sushi near downtown', 'coffee shops with wifi', '24 hour pharmacy'). More flexible than nearby search — supports descriptive queries. Returns name, address, rating, reviews, price level, phone, website, and whether currently open. An interactive map with numbered markers is automatically rendered in the chat UI.",
+      "Search for places using a natural language text query (e.g. 'best sushi near downtown', 'coffee shops with wifi', '24 hour pharmacy'). More flexible than nearby search — supports descriptive queries. Returns name, address, rating, reviews, price level, phone, website, and whether currently open. To show results on a map, follow up with the generate_map tool using the returned coordinates.",
     endpoint: {
       path: "/utility/places/search",
       queryParams: ["q", "latitude", "longitude", "radius", "limit"],
@@ -3263,11 +3559,12 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "generate_map",
+    dataSource: onDemand("Google Static Maps API"),
     description:
-      "Generate a Google Maps image with labeled markers for a set of locations. Use this AFTER a places search, IP lookup, or any query that yields coordinates. Pass the locations as a JSON markers array. The response contains a staticMapUrl that is automatically rendered as an inline map image in the chat.",
+      "Generate an interactive Google Map with labeled markers for a set of locations. Use this AFTER a places search, IP lookup, or any query that yields coordinates. Pass the locations as a JSON markers array. The response contains a mapEmbedUrl — you MUST render it in your response using ![Map](mapEmbedUrl) markdown syntax so the user sees the interactive map inline.",
     endpoint: {
       path: "/utility/map",
-      queryParams: ["markers", "center", "zoom", "size", "maptype"],
+      queryParams: ["markers", "zoom", "maptype"],
     },
     parameters: {
       type: "object",
@@ -3277,18 +3574,9 @@ const TOOL_DEFINITIONS = [
           description:
             'JSON array of marker objects. Each marker: { "latitude": number, "longitude": number, "label": "optional string" }. Example: [{"latitude":49.28,"longitude":-123.12,"label":"Miku"},{"latitude":49.27,"longitude":-123.11,"label":"Ramen Danbo"}]',
         },
-        center: {
-          type: "string",
-          description:
-            'Optional JSON center point: {"latitude": number, "longitude": number}. If omitted, auto-fits to markers.',
-        },
         zoom: {
           type: "number",
           description: "Optional zoom level (1-20). If omitted, auto-fits to markers.",
-        },
-        size: {
-          type: "string",
-          description: "Image dimensions as WxH (default: '800x400')",
         },
         maptype: {
           type: "string",
@@ -3303,6 +3591,7 @@ const TOOL_DEFINITIONS = [
   // ── Periodic Table ─────────────────────────────────────────
   {
     name: "search_elements",
+    dataSource: staticDataset("Periodic Table"),
     description:
       "Search the periodic table by element name, symbol, or atomic number. Returns full element data including atomic mass, density, melting/boiling points, electronegativity, electron configuration, and more. Optionally filter by category (e.g. 'noble gas', 'transition metal') or block (s, p, d, f).",
     endpoint: {
@@ -3335,6 +3624,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_element",
+    dataSource: staticDataset("Periodic Table"),
     description:
       "Get full details of a specific chemical element by its symbol (e.g. 'Fe' for Iron, 'Au' for Gold). Returns atomic mass, density, melting/boiling points, electron configuration, discovery info, and a summary.",
     endpoint: {
@@ -3355,6 +3645,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "rank_elements",
+    dataSource: staticDataset("Periodic Table"),
     description:
       "Rank chemical elements by a numeric property — atomic mass, density, melting point, boiling point, electronegativity, ionization energy, or electron affinity. Example: 'densest elements' → property='density_g_cm3'.",
     endpoint: {
@@ -3397,12 +3688,408 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_element_categories",
+    dataSource: staticDataset("Periodic Table"),
     description:
       "List all element categories (noble gas, transition metal, etc.), blocks (s, p, d, f), phases at STP, and available rankable properties. Use this for discovery before searching or ranking.",
     endpoint: { path: "/knowledge/elements/categories" },
     parameters: {
       type: "object",
       properties: {},
+    },
+  },
+
+  // ── World Bank Indicators ───────────────────────────────────
+  {
+    name: "get_country_indicators",
+    dataSource: staticDataset("World Bank"),
+    description:
+      "Get development indicators for a specific country by ISO alpha-3 code or name. Returns GDP, population, life expectancy, CO2 emissions, unemployment, literacy, internet penetration, and more. Data from World Bank.",
+    endpoint: {
+      path: "/knowledge/indicators/country/:code",
+      pathParams: ["code"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        code: {
+          type: "string",
+          description:
+            "ISO 3166-1 alpha-3 country code (e.g. 'USA', 'CAN', 'JPN', 'GBR') or country name",
+        },
+        ...fieldsParam(FIELDS.WORLD_BANK_COUNTRY),
+      },
+      required: ["code"],
+    },
+  },
+  {
+    name: "rank_countries_by_indicator",
+    dataSource: staticDataset("World Bank"),
+    description:
+      "Rank countries by a specific development indicator. Example: 'countries with highest GDP per capita' \u2192 indicator='gdp_per_capita_usd'. Supports ascending/descending order.",
+    endpoint: {
+      path: "/knowledge/indicators/rank",
+      queryParams: ["indicator", "limit", "order"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        indicator: {
+          type: "string",
+          description: "Which indicator to rank by",
+          enum: [
+            "gdp_usd",
+            "gdp_per_capita_usd",
+            "population",
+            "life_expectancy",
+            "infant_mortality_per_1k",
+            "co2_per_capita_tons",
+            "literacy_rate_pct",
+            "internet_users_pct",
+            "unemployment_pct",
+            "inflation_cpi_pct",
+            "forest_area_pct",
+            "renewable_energy_pct",
+            "gini_index",
+            "electricity_access_pct",
+            "health_expenditure_per_capita_usd",
+          ],
+        },
+        limit: { type: "number", description: "Max results (default: 10)" },
+        order: {
+          type: "string",
+          description: "Sort order (default: desc)",
+          enum: ["asc", "desc"],
+        },
+        ...fieldsParam(FIELDS.WORLD_BANK_RANKING),
+      },
+      required: ["indicator"],
+    },
+  },
+  {
+    name: "compare_countries",
+    dataSource: staticDataset("World Bank"),
+    description:
+      "Compare development indicators between multiple countries side-by-side. Pass comma-separated ISO alpha-3 codes. Optionally focus on a single indicator. Example: 'compare USA, CAN, GBR on life expectancy'.",
+    endpoint: {
+      path: "/knowledge/indicators/compare",
+      queryParams: ["countries", "indicator"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        countries: {
+          type: "string",
+          description:
+            "Comma-separated ISO alpha-3 codes (e.g. 'USA,CAN,JPN,GBR')",
+        },
+        indicator: {
+          type: "string",
+          description:
+            "Optional: focus comparison on one indicator (e.g. 'life_expectancy')",
+          enum: [
+            "gdp_usd",
+            "gdp_per_capita_usd",
+            "population",
+            "life_expectancy",
+            "infant_mortality_per_1k",
+            "co2_per_capita_tons",
+            "literacy_rate_pct",
+            "internet_users_pct",
+            "unemployment_pct",
+            "inflation_cpi_pct",
+            "forest_area_pct",
+            "renewable_energy_pct",
+            "gini_index",
+            "electricity_access_pct",
+            "health_expenditure_per_capita_usd",
+          ],
+        },
+        ...fieldsParam(FIELDS.WORLD_BANK_COUNTRY),
+      },
+      required: ["countries"],
+    },
+  },
+  {
+    name: "list_development_indicators",
+    dataSource: staticDataset("World Bank"),
+    description:
+      "List all available World Bank development indicators with coverage statistics. Use this for discovery before querying or ranking.",
+    endpoint: { path: "/knowledge/indicators/list" },
+    parameters: {
+      type: "object",
+      properties: {},
+    },
+  },
+
+  // ── Airport Tools ──────────────────────────────────────────────
+
+  {
+    name: "search_airports",
+    description:
+      "Search for airports by name, IATA/ICAO code, city, or country. Returns matching airports with codes, location, and type. Use this when the user asks about airports, flight routes, or travel.",
+    endpoint: { path: "/utility/airports/search" },
+    parameters: {
+      type: "object",
+      properties: {
+        q: {
+          type: "string",
+          description: "Search query: airport name, IATA code (e.g. 'YVR'), city name, etc.",
+        },
+        limit: { type: "integer", description: "Max results (default 10)" },
+        country: {
+          type: "string",
+          description: "ISO country code to filter by (e.g. 'CA', 'US', 'JP')",
+        },
+        ...fieldsParam(FIELDS.AIRPORTS),
+      },
+      required: ["q"],
+    },
+  },
+  {
+    name: "get_airport_by_code",
+    description:
+      "Look up a specific airport by its IATA or ICAO code. Returns full details including coordinates.",
+    endpoint: { path: "/utility/airports/code/{code}" },
+    parameters: {
+      type: "object",
+      properties: {
+        code: {
+          type: "string",
+          description: "IATA (e.g. 'YVR', 'LAX') or ICAO (e.g. 'CYVR') code",
+        },
+        ...fieldsParam(FIELDS.AIRPORTS),
+      },
+      required: ["code"],
+    },
+  },
+  {
+    name: "get_airports_by_country",
+    description:
+      "List all medium and large airports in a country. Results sorted by size (large airports first).",
+    endpoint: { path: "/utility/airports/country/{code}" },
+    parameters: {
+      type: "object",
+      properties: {
+        code: {
+          type: "string",
+          description: "ISO country code (e.g. 'CA', 'US', 'JP', 'DE')",
+        },
+        limit: { type: "integer", description: "Max results (default 50)" },
+        ...fieldsParam(FIELDS.AIRPORTS),
+      },
+      required: ["code"],
+    },
+  },
+  {
+    name: "find_nearest_airports",
+    description:
+      "Find the nearest airports to a given latitude/longitude coordinate. Uses Haversine distance calculation. Great for travel planning.",
+    endpoint: { path: "/utility/airports/nearest" },
+    parameters: {
+      type: "object",
+      properties: {
+        lat: { type: "number", description: "Latitude (decimal degrees)" },
+        lng: { type: "number", description: "Longitude (decimal degrees)" },
+        limit: { type: "integer", description: "Max results (default 5)" },
+        ...fieldsParam(FIELDS.AIRPORTS_NEAREST),
+      },
+      required: ["lat", "lng"],
+    },
+  },
+
+  // ── Exoplanet Tools ────────────────────────────────────────────
+
+  {
+    name: "search_exoplanets",
+    description:
+      "Search confirmed exoplanets from the NASA Exoplanet Archive by name or host star. Database contains ~6,100 planets.",
+    endpoint: { path: "/knowledge/exoplanets/search" },
+    parameters: {
+      type: "object",
+      properties: {
+        q: {
+          type: "string",
+          description: "Planet name or host star name (e.g. 'TRAPPIST-1', 'Kepler-442', 'Proxima')",
+        },
+        limit: { type: "integer", description: "Max results (default 10)" },
+        method: {
+          type: "string",
+          description: "Filter by discovery method (e.g. 'Transit', 'Radial Velocity', 'Imaging', 'Microlensing')",
+        },
+        ...fieldsParam(FIELDS.EXOPLANETS),
+      },
+      required: ["q"],
+    },
+  },
+  {
+    name: "get_exoplanet",
+    description:
+      "Get detailed information about a specific exoplanet by exact name.",
+    endpoint: { path: "/knowledge/exoplanets/lookup/{name}" },
+    parameters: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "Exact planet name (e.g. 'TRAPPIST-1 e', 'Kepler-442 b', 'Proxima Cen b')",
+        },
+        ...fieldsParam(FIELDS.EXOPLANETS),
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "rank_exoplanets",
+    description:
+      "Rank exoplanets by a physical property like mass, radius, temperature, or orbital period.",
+    endpoint: { path: "/knowledge/exoplanets/rank" },
+    parameters: {
+      type: "object",
+      properties: {
+        field: {
+          type: "string",
+          description: "Field to rank by",
+          enum: [
+            "pl_orbper",
+            "pl_rade",
+            "pl_bmasse",
+            "pl_orbsmax",
+            "pl_orbeccen",
+            "pl_eqt",
+            "st_mass",
+            "st_rad",
+            "st_teff",
+            "sy_dist",
+          ],
+        },
+        limit: { type: "integer", description: "Max results (default 10)" },
+        order: {
+          type: "string",
+          enum: ["asc", "desc"],
+          description: "Sort order (default 'desc')",
+        },
+        ...fieldsParam(FIELDS.EXOPLANET_RANKING),
+      },
+      required: ["field"],
+    },
+  },
+  {
+    name: "exoplanet_discovery_stats",
+    description:
+      "Get statistics about exoplanet discoveries: methods, facilities, year ranges, and counts.",
+    endpoint: { path: "/knowledge/exoplanets/stats" },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.EXOPLANET_STATS),
+      },
+    },
+  },
+  {
+    name: "habitable_zone_exoplanets",
+    description:
+      "Find exoplanets in the habitable zone (equilibrium temperature 200-320K or appropriate orbit around sun-like stars). Sorted by Earth similarity.",
+    endpoint: { path: "/knowledge/exoplanets/habitable" },
+    parameters: {
+      type: "object",
+      properties: {
+        limit: { type: "integer", description: "Max results (default 20)" },
+        ...fieldsParam(FIELDS.EXOPLANETS),
+      },
+    },
+  },
+
+  // ── FDA Drug NDC Tools ─────────────────────────────────────────
+
+  {
+    name: "search_fda_drugs",
+    description:
+      "Search FDA-registered drug products by name, brand, ingredient, or manufacturer. Database contains ~26,000 NDC products. For informational use only.",
+    endpoint: { path: "/health/drugs/ndc/search" },
+    parameters: {
+      type: "object",
+      properties: {
+        q: {
+          type: "string",
+          description: "Drug name, brand name, ingredient, or manufacturer (e.g. 'ibuprofen', 'Tylenol', 'Pfizer')",
+        },
+        limit: { type: "integer", description: "Max results (default 10)" },
+        dosageForm: {
+          type: "string",
+          description: "Filter by dosage form (e.g. 'TABLET', 'CAPSULE', 'INJECTION', 'CREAM')",
+        },
+        productType: {
+          type: "string",
+          description: "Filter by product type (e.g. 'HUMAN PRESCRIPTION DRUG', 'HUMAN OTC DRUG')",
+        },
+        ...fieldsParam(FIELDS.FDA_DRUGS),
+      },
+      required: ["q"],
+    },
+  },
+  {
+    name: "get_drug_by_ndc",
+    description:
+      "Look up a specific FDA drug product by its NDC (National Drug Code) identifier.",
+    endpoint: { path: "/health/drugs/ndc/lookup/{ndc}" },
+    parameters: {
+      type: "object",
+      properties: {
+        ndc: {
+          type: "string",
+          description: "Product NDC code (e.g. '0069-0770')",
+        },
+        ...fieldsParam(FIELDS.FDA_DRUGS),
+      },
+      required: ["ndc"],
+    },
+  },
+  {
+    name: "list_drug_dosage_forms",
+    description:
+      "List all available drug dosage forms (tablet, capsule, injection, etc.) with counts. Use for discovery.",
+    endpoint: { path: "/health/drugs/ndc/dosage-forms" },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.FDA_DOSAGE_FORMS),
+      },
+    },
+  },
+  {
+    name: "search_drugs_by_ingredient",
+    description:
+      "Find all FDA drug products containing a specific active ingredient.",
+    endpoint: { path: "/health/drugs/ndc/ingredient" },
+    parameters: {
+      type: "object",
+      properties: {
+        q: {
+          type: "string",
+          description: "Active ingredient name (e.g. 'acetaminophen', 'ibuprofen', 'amoxicillin')",
+        },
+        limit: { type: "integer", description: "Max results (default 20)" },
+        ...fieldsParam(FIELDS.FDA_DRUGS),
+      },
+      required: ["q"],
+    },
+  },
+  {
+    name: "search_drugs_by_pharm_class",
+    description:
+      "Find FDA drug products by pharmacological class (e.g. 'beta-blocker', 'antibiotic', 'analgesic').",
+    endpoint: { path: "/health/drugs/ndc/pharm-class" },
+    parameters: {
+      type: "object",
+      properties: {
+        q: {
+          type: "string",
+          description: "Pharmacological class (e.g. 'Beta Adrenergic Blocker', 'Nonsteroidal Anti-inflammatory', 'Opioid Agonist')",
+        },
+        limit: { type: "integer", description: "Max results (default 20)" },
+        ...fieldsParam(FIELDS.FDA_DRUGS),
+      },
+      required: ["q"],
     },
   },
 ];
@@ -3426,7 +4113,9 @@ export function getToolSchemas() {
  * @returns {Array} Tool definitions without endpoint metadata
  */
 export function getToolSchemasForAI() {
-  return TOOL_DEFINITIONS.map(({ endpoint: _endpoint, ...rest }) => rest);
+  return TOOL_DEFINITIONS.map(
+    ({ endpoint: _endpoint, dataSource: _dataSource, ...rest }) => rest,
+  );
 }
 
 /**

@@ -15,6 +15,13 @@ import {
   searchByTaxonomy,
   getTaxonomyTree,
 } from "../fetchers/health/NutritionFetcher.js";
+import {
+  searchDrugs,
+  getDrugByNdc,
+  getDosageForms,
+  searchByIngredient,
+  searchByPharmClass,
+} from "../fetchers/health/FdaDrugFetcher.js";
 import { parseIntParam } from "../utilities.js";
 
 const router = Router();
@@ -230,12 +237,93 @@ router.get("/drugs/recalls", async (req, res) => {
   }
 });
 
+// ─── FDA Drug NDC Database (In-Memory) ──────────────────────────────
+
+router.get("/drugs/ndc/search", (req, res) => {
+  const { q, limit, dosageForm, productType } = req.query;
+  if (!q) {
+    return res.status(400).json({ error: "Query parameter 'q' is required" });
+  }
+  try {
+    const result = searchDrugs(q, {
+      limit: parseIntParam(limit, 10),
+      dosageForm,
+      productType,
+    });
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Drug search failed: ${err.message}` });
+  }
+});
+
+router.get("/drugs/ndc/lookup/:ndc", (req, res) => {
+  try {
+    const result = getDrugByNdc(req.params.ndc);
+    if (!result) {
+      return res.status(404).json({ error: `Drug not found: ${req.params.ndc}` });
+    }
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Drug lookup failed: ${err.message}` });
+  }
+});
+
+router.get("/drugs/ndc/dosage-forms", (_req, res) => {
+  try {
+    const result = getDosageForms();
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Dosage forms lookup failed: ${err.message}` });
+  }
+});
+
+router.get("/drugs/ndc/ingredient", (req, res) => {
+  const { q, limit } = req.query;
+  if (!q) {
+    return res.status(400).json({ error: "Query parameter 'q' is required" });
+  }
+  try {
+    const result = searchByIngredient(q, {
+      limit: parseIntParam(limit, 20),
+    });
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Ingredient search failed: ${err.message}` });
+  }
+});
+
+router.get("/drugs/ndc/pharm-class", (req, res) => {
+  const { q, limit } = req.query;
+  if (!q) {
+    return res.status(400).json({ error: "Query parameter 'q' is required" });
+  }
+  try {
+    const result = searchByPharmClass(q, {
+      limit: parseIntParam(limit, 20),
+    });
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Pharm class search failed: ${err.message}` });
+  }
+});
+
 // ─── Health ────────────────────────────────────────────────────────
 
 export function getHealthDomainHealth() {
   return {
     openFda: "on-demand",
     usdaNutrition: "on-demand (in-memory, ~1346 raw whole foods)",
+    fdaDrugNdc: "on-demand (in-memory, ~26,000 products)",
   };
 }
 

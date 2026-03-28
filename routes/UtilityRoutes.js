@@ -12,8 +12,13 @@ import { lookupIp, batchLookupIps } from "../fetchers/utility/IpInfoFetcher.js";
 import {
   searchNearbyPlaces,
   searchPlacesByText,
-  buildStaticMapUrl,
 } from "../fetchers/utility/PlacesFetcher.js";
+import {
+  searchAirports,
+  getAirportByCode,
+  getAirportsByCountry,
+  getNearestAirports,
+} from "../fetchers/utility/AirportFetcher.js";
 
 const router = Router();
 
@@ -270,7 +275,7 @@ router.get("/map/embed", (req, res) => {
 });
 
 router.get("/map", async (req, res) => {
-  const { markers, center, zoom, size, maptype } = req.query;
+  const { markers, zoom, maptype } = req.query;
   if (!markers) {
     return res
       .status(400)
@@ -292,20 +297,6 @@ router.get("/map", async (req, res) => {
         .json({ error: "'markers' must be a non-empty array" });
     }
 
-    let centerObj = null;
-    if (center) {
-      try {
-        centerObj = JSON.parse(center);
-      } catch {
-        /* ignore */
-      }
-    }
-
-    const staticMapUrl = buildStaticMapUrl(markerList, centerObj || {}, {
-      size: size || "800x400",
-      zoom: zoom ? parseInt(zoom) : undefined,
-      maptype: maptype || "roadmap",
-    });
 
     // Build embed URL with the same markers param
     const embedParams = new URLSearchParams({ markers });
@@ -314,12 +305,78 @@ router.get("/map", async (req, res) => {
     const mapEmbedUrl = `http://localhost:${CONFIG.TOOLS_PORT}/utility/map/embed?${embedParams.toString()}`;
 
     res.json({
-      staticMapUrl,
       mapEmbedUrl,
       markerCount: markerList.length,
     });
   } catch (err) {
     res.status(502).json({ error: `Map generation failed: ${err.message}` });
+  }
+});
+
+// ─── Airports ──────────────────────────────────────────────────────
+
+router.get("/airports/search", (req, res) => {
+  const { q, limit, country } = req.query;
+  if (!q) {
+    return res.status(400).json({ error: "Query parameter 'q' is required" });
+  }
+  try {
+    const result = searchAirports(q, {
+      limit: parseInt(limit) || 10,
+      country,
+    });
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Airport search failed: ${err.message}` });
+  }
+});
+
+router.get("/airports/code/:code", (req, res) => {
+  try {
+    const result = getAirportByCode(req.params.code);
+    if (!result) {
+      return res.status(404).json({ error: `Airport not found: ${req.params.code}` });
+    }
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Airport lookup failed: ${err.message}` });
+  }
+});
+
+router.get("/airports/country/:code", (req, res) => {
+  const { limit } = req.query;
+  try {
+    const result = getAirportsByCountry(req.params.code, {
+      limit: parseInt(limit) || 50,
+    });
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Country airports lookup failed: ${err.message}` });
+  }
+});
+
+router.get("/airports/nearest", (req, res) => {
+  const { lat, lng, limit } = req.query;
+  if (!lat || !lng) {
+    return res.status(400).json({ error: "Query parameters 'lat' and 'lng' are required" });
+  }
+  try {
+    const result = getNearestAirports(
+      parseFloat(lat),
+      parseFloat(lng),
+      { limit: parseInt(limit) || 5 },
+    );
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Nearest airports lookup failed: ${err.message}` });
   }
 });
 
@@ -331,6 +388,7 @@ export function getUtilityHealth() {
     timezone: "on-demand",
     ipinfo: "on-demand",
     places: "on-demand",
+    airports: "on-demand (in-memory, ~4,555 airports)",
   };
 }
 

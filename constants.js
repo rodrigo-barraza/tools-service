@@ -2276,6 +2276,78 @@ export const DATASET_REGISTRY = [
     notes:
       "All 118 confirmed elements + Oganesson. Includes atomic mass, density, melting/boiling points, electronegativity, electron configuration, ionization energy, discovery info, and summaries. CC BY-SA 3.0.",
   },
+
+  // ─── Development / Economics ─────────────────────────────────────
+
+  {
+    id: "world-bank-indicators",
+    name: "World Bank Development Indicators",
+    domain: "economics",
+    file: "fetchers/knowledge/data/digest_world_indicators.csv",
+    source: "World Bank Open Data",
+    url: "https://data.worldbank.org/",
+    version: "2024 (most recent available year per indicator)",
+    dataYear: 2024,
+    ingestedYear: 2026,
+    records: 217,
+    region: "Global",
+    notes:
+      "15 key indicators (GDP, population, life expectancy, CO2, literacy, internet, unemployment, inflation, forest, renewables, Gini, electricity, health expenditure) for 217 countries. Most recent value per indicator (2018-2024). CC BY 4.0.",
+  },
+
+  // ─── Aviation / Utility ────────────────────────────────────────────
+
+  {
+    id: "airport-codes",
+    name: "Airport Codes (OurAirports)",
+    domain: "utility",
+    file: "fetchers/utility/data/digest_airports.csv",
+    source: "OurAirports",
+    url: "https://ourairports.com/data/",
+    version: "2026-03",
+    dataYear: 2026,
+    ingestedYear: 2026,
+    records: 4555,
+    region: "Global",
+    notes:
+      "Medium and large airports with IATA codes. Includes IATA/ICAO codes, city, country, coordinates, elevation, and type. Public Domain.",
+  },
+
+  // ─── Astronomy / Knowledge ─────────────────────────────────────────
+
+  {
+    id: "nasa-exoplanets",
+    name: "NASA Exoplanet Archive",
+    domain: "knowledge",
+    file: "fetchers/knowledge/data/digest_exoplanets.csv",
+    source: "NASA Exoplanet Archive (Planetary Systems table)",
+    url: "https://exoplanetarchive.ipac.caltech.edu/",
+    version: "2026-03",
+    dataYear: 2026,
+    ingestedYear: 2026,
+    records: 6153,
+    region: null,
+    notes:
+      "All confirmed exoplanets (default_flag=1). 18 columns: planet name, host star, discovery method/year/facility, orbital period, radius, mass, semi-major axis, eccentricity, equilibrium temp, stellar mass/radius/temp, distance, coordinates. Public Domain.",
+  },
+
+  // ─── Pharmaceuticals / Health ──────────────────────────────────────
+
+  {
+    id: "fda-drug-ndc",
+    name: "FDA Drug NDC Directory",
+    domain: "health",
+    file: "fetchers/health/data/digest_fda_drugs.csv",
+    source: "FDA openFDA NDC API",
+    url: "https://open.fda.gov/apis/drug/ndc/",
+    version: "2026-03",
+    dataYear: 2026,
+    ingestedYear: 2026,
+    records: 26000,
+    region: "United States",
+    notes:
+      "FDA-registered drug products with NDC codes, generic/brand names, dosage forms, routes, active ingredients, pharmacological classes, and marketing categories. Public Domain.",
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════
