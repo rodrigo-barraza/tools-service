@@ -2348,6 +2348,21 @@ export const DATASET_REGISTRY = [
     notes:
       "FDA-registered drug products with NDC codes, generic/brand names, dosage forms, routes, active ingredients, pharmacological classes, and marketing categories. Public Domain.",
   },
+  {
+    id: "free-exercise-db",
+    name: "Free Exercise DB",
+    domain: "health",
+    file: "fetchers/health/data/digest_exercises.csv",
+    source: "Community/Yuhonas",
+    url: "https://github.com/yuhonas/free-exercise-db",
+    version: "2026-03",
+    dataYear: 2026,
+    ingestedYear: 2026,
+    records: 873,
+    region: "Global",
+    notes:
+      "Comprehensive list of gym exercises including mechanic, force, level, equipment, and primary/secondary muscles involved. Public Domain.",
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════

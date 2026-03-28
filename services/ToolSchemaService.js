@@ -1172,6 +1172,22 @@ const FIELDS = {
     "dosageForms.form",
     "dosageForms.count",
   ],
+
+  // ── Gym Exercises ──────────────────────────────────────────────
+
+  // Exercises: from ExercisesFetcher
+  EXERCISES: [
+    "id",
+    "name",
+    "force",
+    "level",
+    "mechanic",
+    "equipment",
+    "category",
+    "primary_muscles",
+    "secondary_muscles",
+    "instructions",
+  ],
 };
 
 // ────────────────────────────────────────────────────────────
@@ -2744,6 +2760,100 @@ const TOOL_DEFINITIONS = [
     },
   },
 
+  // ── Gym Exercises (Free Exercise DB) ────────────────────────────
+  {
+    name: "search_gym_exercises",
+    dataSource: staticDataset("Free Exercise DB"),
+    description:
+      "Search for gym exercises by keyword, category, equipment, target muscle, or difficulty level. Returns detailed instructions and muscle group targets.",
+    endpoint: {
+      path: "/health/exercises/search",
+      queryParams: [
+        "q",
+        "limit",
+        "category",
+        "equipment",
+        "force",
+        "level",
+        "mechanic",
+        "muscle",
+      ],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        q: {
+          type: "string",
+          description: "Optional search query (e.g. 'curl', 'bench')",
+        },
+        limit: {
+          type: "number",
+          description: "Max results (default: 10)",
+        },
+        category: {
+          type: "string",
+          description: "Filter by category (e.g. 'strength', 'stretching')",
+        },
+        equipment: {
+          type: "string",
+          description: "Filter by equipment (e.g. 'dumbbell', 'barbell', 'body only')",
+        },
+        force: {
+          type: "string",
+          description: "Filter by force (e.g. 'push', 'pull', 'static')",
+        },
+        level: {
+          type: "string",
+          description: "Filter by level (e.g. 'beginner', 'intermediate', 'expert')",
+        },
+        mechanic: {
+          type: "string",
+          description: "Filter by mechanic (e.g. 'compound', 'isolation')",
+        },
+        muscle: {
+          type: "string",
+          description: "Filter by target muscle (e.g. 'chest', 'biceps', 'abdominals')",
+        },
+        ...fieldsParam(FIELDS.EXERCISES),
+      },
+    },
+  },
+  {
+    name: "get_gym_exercise_categories",
+    dataSource: staticDataset("Free Exercise DB"),
+    description:
+      "Get all available gym exercise categories, equipment types, and muscle groups.",
+    endpoint: {
+      path: "/health/exercises/categories",
+      queryParams: [],
+    },
+    parameters: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    name: "get_gym_exercise_by_id",
+    dataSource: staticDataset("Free Exercise DB"),
+    description:
+      "Get details for a specific gym exercise by its exact ID.",
+    endpoint: {
+      path: "/health/exercises/{id}",
+      pathParams: ["id"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        id: {
+          type: "string",
+          description: "Exact exercise ID (e.g. 'Biceps_Curl')",
+        },
+        ...fieldsParam(FIELDS.EXERCISES),
+      },
+      required: ["id"],
+    },
+  },
+
   // ── USDA Nutrition (Raw Whole Foods) ────────────────────────────
   {
     name: "search_usda_nutrition",
@@ -4224,6 +4334,9 @@ const TOOL_DOMAINS = {
   list_drug_dosage_forms: "Health",
   search_drugs_by_ingredient: "Health",
   search_drugs_by_pharm_class: "Health",
+  search_gym_exercises: "Health",
+  get_gym_exercise_categories: "Health",
+  get_gym_exercise_by_id: "Health",
 
   // Transit
   get_next_bus: "Transit",

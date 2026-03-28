@@ -22,6 +22,11 @@ import {
   searchByIngredient,
   searchByPharmClass,
 } from "../fetchers/health/FdaDrugFetcher.js";
+import {
+  searchExercises,
+  getExerciseById,
+  getExerciseCategories,
+} from "../fetchers/health/ExercisesFetcher.js";
 import { parseIntParam, asyncHandler } from "../utilities.js";
 
 const router = Router();
@@ -220,6 +225,35 @@ router.get("/drugs/ndc/pharm-class", (req, res) => {
   }));
 });
 
+// ─── Gym Exercises (Free Exercise DB) ──────────────────────────────
+
+router.get("/exercises/search", (req, res) => {
+  const { q, limit, category, equipment, force, level, mechanic, muscle } = req.query;
+  res.json(searchExercises(q, {
+    limit: parseIntParam(limit, 10),
+    category,
+    equipment,
+    force,
+    level,
+    mechanic,
+    muscle,
+  }));
+});
+
+router.get("/exercises/categories", asyncHandler(
+  () => getExerciseCategories(),
+  "Exercise categories lookup",
+  500,
+));
+
+router.get("/exercises/:id", (req, res) => {
+  const result = getExerciseById(req.params.id);
+  if (!result) {
+    return res.status(404).json({ error: `Exercise not found: ${req.params.id}` });
+  }
+  res.json(result);
+});
+
 // ─── Health ────────────────────────────────────────────────────────
 
 export function getHealthDomainHealth() {
@@ -227,6 +261,7 @@ export function getHealthDomainHealth() {
     openFda: "on-demand",
     usdaNutrition: "on-demand (in-memory, ~1346 raw whole foods)",
     fdaDrugNdc: "on-demand (in-memory, ~26,000 products)",
+    freeExerciseDb: "on-demand (in-memory, ~873 exercises)",
   };
 }
 
