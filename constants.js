@@ -2134,3 +2134,162 @@ export const NEW_API_RATE_LIMITS = {
     requestDelayMs: 200,
   },
 };
+
+// ═══════════════════════════════════════════════════════════════
+//  NUTRITION DOMAIN — USDA Raw Whole Foods Database
+// ═══════════════════════════════════════════════════════════════
+
+/** Nutrient type categories for filtering */
+export const NUTRITION_NUTRIENT_TYPES = [
+  {
+    key: "macros",
+    label: "Macronutrients",
+    description: "Protein, fat, carbs, fiber, calories, water",
+  },
+  {
+    key: "minerals",
+    label: "Minerals",
+    description: "Calcium, iron, magnesium, potassium, zinc, etc.",
+  },
+  {
+    key: "vitamins",
+    label: "Vitamins",
+    description: "Vitamin A, B-complex, C, D, E, K, folate, etc.",
+  },
+  {
+    key: "amino_acids",
+    label: "Amino Acids",
+    description: "Essential & non-essential amino acids",
+  },
+  {
+    key: "lipids",
+    label: "Lipid Profile",
+    description: "Saturated, mono/polyunsaturated fats, omega-3/6",
+  },
+  {
+    key: "carbs",
+    label: "Carbohydrate Detail",
+    description: "Sugars (glucose, fructose, sucrose), starch, fiber",
+  },
+  {
+    key: "sterols",
+    label: "Sterols",
+    description: "Cholesterol, phytosterol, campesterol, stigmasterol",
+  },
+];
+
+/** CSV column → human-readable label map for macronutrients */
+export const NUTRITION_MACRO_FIELDS = {
+  kilocalories: "calories_kcal",
+  kilojoules: "energy_kj",
+  protein: "protein_g",
+  lipid: "totalFat_g",
+  carbohydrate: "carbohydrate_g",
+  fiber: "fiber_g",
+  sugar: "totalSugar_g",
+  water: "water_g",
+  mineral: "ash_g",
+  ethanol: "alcohol_g",
+};
+
+/** CSV column → human-readable label map for minerals (values in mg unless noted) */
+export const NUTRITION_MINERAL_FIELDS = {
+  calcium: "calcium_mg",
+  iron: "iron_mg",
+  magnesium: "magnesium_mg",
+  phosphorus: "phosphorus_mg",
+  potassium: "potassium_mg",
+  sodium: "sodium_mg",
+  zinc: "zinc_mg",
+  copper: "copper_mg",
+  manganese: "manganese_mg",
+  selenium: "selenium_mcg",
+  fluoride: "fluoride_mcg",
+};
+
+/** CSV column → human-readable label map for vitamins */
+export const NUTRITION_VITAMIN_FIELDS = {
+  ascorbic_acid: "vitaminC_mg",
+  thiamin: "vitaminB1_mg",
+  riboflavin: "vitaminB2_mg",
+  niacin: "vitaminB3_mg",
+  pantothenic_acid: "vitaminB5_mg",
+  vitamin_b6: "vitaminB6_mg",
+  folate_total: "folate_mcg",
+  cyanocobalamin: "vitaminB12_mcg",
+  choline: "choline_mg",
+  vitamin_a_rae: "vitaminA_RAE_mcg",
+  vitamin_a_ui: "vitaminA_IU",
+  retinol: "retinol_mcg",
+  beta_carotene: "betaCarotene_mcg",
+  alpha_carotene: "alphaCarotene_mcg",
+  alpha_tocopherol: "vitaminE_mg",
+  vitamin_d: "vitaminD_mcg",
+  ergocalciferol: "vitaminD2_mcg",
+  cholecalciferol: "vitaminD3_mcg",
+  phylloquinone: "vitaminK1_mcg",
+  menaquinone_4: "vitaminK2_mcg",
+  lycopene: "lycopene_mcg",
+  lutein_and_zeaxanthin: "luteinZeaxanthin_mcg",
+  beta_cryptoxanthin: "betaCryptoxanthin_mcg",
+};
+
+/** CSV column → human-readable label map for amino acids (values in g) */
+export const NUTRITION_AMINO_ACID_FIELDS = {
+  tryptophan: "tryptophan_g",
+  threonine: "threonine_g",
+  isoleucine: "isoleucine_g",
+  leucine: "leucine_g",
+  lysine: "lysine_g",
+  methionine: "methionine_g",
+  cystine: "cystine_g",
+  phenylalanine: "phenylalanine_g",
+  tyrosine: "tyrosine_g",
+  valine: "valine_g",
+  arginine: "arginine_g",
+  histidine: "histidine_g",
+  alanine: "alanine_g",
+  aspartic_acid: "asparticAcid_g",
+  glutamic_acid: "glutamicAcid_g",
+  glycine: "glycine_g",
+  proline: "proline_g",
+  serine: "serine_g",
+  hydroxyproline: "hydroxyproline_g",
+};
+
+/** CSV column → human-readable label map for lipid profile (values in g) */
+export const NUTRITION_LIPID_FIELDS = {
+  saturated_fat: "saturatedFat_g",
+  monounsaturated_fat: "monounsaturatedFat_g",
+  polyunsaturated_fat: "polyunsaturatedFat_g",
+  trans_monoenoic_fat: "transMonoenoicFat_g",
+  trans_polyenoic_fat: "transPolyenoicFat_g",
+  c18_d3_n3_cis_cis_cis: "omega3_ALA_g",
+  c20_d5_n3: "omega3_EPA_g",
+  c22_d6_n3_dha: "omega3_DHA_g",
+  c22_d5_n3: "omega3_DPA_g",
+  c18_d2_n6_cis_cis: "omega6_linoleic_g",
+  c20_d4_undifferentiated: "omega6_arachidonic_g",
+};
+
+/** CSV column → human-readable label map for carbohydrate details */
+export const NUTRITION_CARB_DETAIL_FIELDS = {
+  starch: "starch_g",
+  sucrose: "sucrose_g",
+  glucose: "glucose_g",
+  fructose: "fructose_g",
+  lactose: "lactose_g",
+  maltose: "maltose_g",
+  galactose: "galactose_g",
+  fiber: "fiber_g",
+  sugar: "totalSugar_g",
+};
+
+/** CSV column → human-readable label map for sterols (values in mg) */
+export const NUTRITION_STEROL_FIELDS = {
+  cholesterol: "cholesterol_mg",
+  phytosterol: "phytosterol_mg",
+  stigmasterol: "stigmasterol_mg",
+  campesterol: "campesterol_mg",
+  beta_sitosterol: "betaSitosterol_mg",
+};

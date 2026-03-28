@@ -1,0 +1,141 @@
+nutrient_id,nutrient_url,nutrient_name,nutrient_abbreviation,nutrient_name_systematic,nutrient_name_common,nutrient_size,nutrient_type,nutrient_type_id,nutrient_subtype,nutrient_sub_subtype,nutrient_description,nutrient_essential
+alanine,alanine,alanine,,,,,amino acid,amino_acid,,,,FALSE
+arginine,arginine,arginine,,,,,amino acid,amino_acid,,,,trace
+aspartic_acid,aspartic-acid,aspartic acid,,,,,amino acid,amino_acid,,,,FALSE
+betaine,betaine,betaine,,,,,amino acid,amino_acid,,,,FALSE
+cystine,cystine,cystine,,,,,amino acid,amino_acid,,,,trace
+glutamic_acid,glutamic-acid,glutamic acid,,,,,amino acid,amino_acid,,,,trace
+glycine,glycine,glycine,,,,,amino acid,amino_acid,,,,trace
+histidine,histidine,histidine,,,,,amino acid,amino_acid,,,,major
+hydroxyproline,hydroxyproline,hydroxyproline,,,,,amino acid,amino_acid,,,,FALSE
+isoleucine,isoleucine,isoleucine,,,,,amino acid,amino_acid,,,,major
+leucine,leucine,leucine,,,,,amino acid,amino_acid,,,,major
+lysine,lysine,lysine,,,,,amino acid,amino_acid,,,,major
+methionine,methionine,methionine,,,,,amino acid,amino_acid,,,,major
+phenylalanine,phenylalanine,phenylalanine,,,,,amino acid,amino_acid,,,,major
+proline,proline,proline,,,,,amino acid,amino_acid,,,,FALSE
+serine,serine,serine,,,,,amino acid,amino_acid,,,,FALSE
+threonine,threonine,threonine,,,,,amino acid,amino_acid,,,,major
+tryptophan,tryptophan,tryptophan,,,,,amino acid,amino_acid,,,,major
+tyrosine,tyrosine,tyrosine,,,,,amino acid,amino_acid,,,,trace
+valine,valine,valine,,,,,amino acid,amino_acid,,,,major
+fiber,fiber,fiber,,,,,carbohydrate,carbohydrate,,,,
+fructose,fructose,fructose,,,,,carbohydrate,carbohydrate,,,,
+galactose,galactose,galactose,,,,,carbohydrate,carbohydrate,,,,
+glucose,glucose,glucose,,,,,carbohydrate,carbohydrate,,,,
+lactose,lactose,lactose,,,,,carbohydrate,carbohydrate,,,,
+maltose,maltose,maltose,,,,,carbohydrate,carbohydrate,,,,
+starch,starch,starch,,,,,carbohydrate,carbohydrate,,,,
+sucrose,sucrose,sucrose,,,,,carbohydrate,carbohydrate,,,,
+sugar,sugar,sugar,,,,,carbohydrate,carbohydrate,,,,
+saturated_fat,saturated-fat,saturated fat,,,,,fat,fat,,,,
+trans_fat,trans-fat,trans fat,,,,,fat,fat,,,,
+trans_monoenoic_fat,trans-monoenoic-fat,trans monoenoic fat,,,,,fat,fat,,,,
+trans_polyenoic_fat,trans-polyenoic-fat,trans polyenoic fat,,,,,fat,fat,,,,
+c04_d0,butyric-acid,Butyric acid,,Butanoic acid,,,fatty acid,fatty_acid,saturated,,,
+c06_d0,caproic-acid,Caproic acid,,Hexanoic acid,,,fatty acid,fatty_acid,saturated,,,
+c08_d0,caprylic-acid,Caprylic acid,,Octanoic acid,,,fatty acid,fatty_acid,saturated,,,
+c10_d0,capric-acid,capric acid,,Decanoic acid,,,fatty acid,fatty_acid,saturated,,,
+c12_d0,lauric-acid,lauric acid,,Dodecanoic acid,,,fatty acid,fatty_acid,saturated,,,
+c13_d0,tridecylic-acid,Tridecylic acid,,Tridecanoic acid,,,fatty acid,fatty_acid,saturated,,,
+c14_d0,myristic-acid,myristic acid,,Tetradecanoic acid,,,fatty acid,fatty_acid,saturated,,,
+c14_d1,myristoleic-acid,Myristoleic Acid,,9-cis-Tetradecenoic acid,,,fatty acid,fatty_acid,polyunsaturated,,,
+c15_d0,pentadecylic-acid,Pentadecylic acid,,Pentadecanoic acid,,,fatty acid,fatty_acid,saturated,,,
+c15_d1,ginkgolic-acid,Ginkgolic acid ,,,,,fatty acid,fatty_acid,polyunsaturated,,,
+c16_d0,palmitic-acid,palmitic acid,,,,,fatty acid,fatty_acid,saturated,,,
+c16_d1_cis,palmitoleic-acid,palmitoleic acid,,,,,fatty acid,fatty_acid,polyunsaturated,,,
+c16_d1_trans,palmitelaidic-acid,palmitelaidic acid ,,,,,fatty acid,fatty_acid,polyunsaturated,,,
+c16_d1_undifferentiated,hexadecenoic-acid,hexadecenoic acid,,hexadecenoic acid,,,fatty acid,fatty_acid,polyunsaturated,,,
+c17_d0,margaric-acid,margaric acid,,,,,fatty acid,fatty_acid,saturated,,,
+c17_d1,heptadecenoic-acid,heptadecenoic acid,,,,,fatty acid,fatty_acid,polyunsaturated,,,
+c18_d4,stearidonic-acid,Stearidonic acid,SDA,,,,fatty acid,fatty_acid,polyunsaturated,,,
+c18_d0,stearic-acid,stearic acid,,,,,fatty acid,fatty_acid,saturated,,,
+c18_d1_undifferentiated,octadecenoic-acid,octadecenoic acid,,octadecenoic acid,,,fatty acid,fatty_acid,polyunsaturated,,,
+c18_d1_cis,oleic-acid,oleic acid,,,,,fatty acid,fatty_acid,polyunsaturated,,,
+c18_d1_trans,elaidic-acid,elaidic acid,,,,,fatty acid,fatty_acid,polyunsaturated,,,
+c18_d2_cla,conjugated-linoleic-acid,conjugated linoleic acid,CLA,,,,fatty acid,fatty_acid,polyunsaturated,,,
+c18_d2_mixed,octadecadienoic-acid-mixed-isomers,octadecadienoic acid (mixed isomers),,,,,fatty acid,fatty_acid,polyunsaturated,,,
+c18_d2_n6_cis_cis,linoleic-acid,linoleic acid,LA,"all-cis-9,12-octadecadienoic acid",,,fatty acid,fatty_acid,polyunsaturated,omega6,,major
+c18_d2_trans,rumenic-acid,rumenic acid,,"cis-9,trans-11-octadecadienoic acid",bovinic acid,,fatty acid,fatty_acid,polyunsaturated,,,
+c18_d2_trans_trans,linolelaidic-acid,linolelaidic acid,,"all-trans-9,12-octadecadienoic acid",,,fatty acid,fatty_acid,polyunsaturated,,,
+c18_d2_undifferentiated,octadecadienoic-acid,octadecadienoic acid,,octadecadienoic acid,,,fatty acid,fatty_acid,polyunsaturated,,,
+c18_d3_i,octadecatrienoic-acid-mixed-isomers,octadecatrienoic acid (mixed isomers),,,,,fatty acid,fatty_acid,polyunsaturated,,,
+c18_d3_n3_cis_cis_cis,alpha-linolenic-acid,alpha-linolenic acid,ALA,"all-cis-9,12,15-octadecatrienoic acid",,,fatty acid,fatty_acid,polyunsaturated,omega3,,major
+c18_d3_n6_cis_cis_cis,gamma-linolenic-acid,gamma-linolenic acid,GLA,,,,fatty acid,fatty_acid,polyunsaturated,omega6,,
+c18_d3_undifferentiated,octadecatrienoic-acid,octadecatrienoic acid,,octadecatrienoic acid,,,fatty acid,fatty_acid,polyunsaturated,,,
+c20_d0,arachidic-acid,arachidic acid,,,,,fatty acid,fatty_acid,saturated,,,trace
+c20_d1,eicosenoic-acid,Eicosenoic acid,,,,,fatty acid,fatty_acid,polyunsaturated,,,
+c20_d2_n6_cis_cis,eicosadienoic-acid,Eicosadienoic acid,,"all-cis-11,14-eicosadienoic acid",,,fatty acid,fatty_acid,polyunsaturated,omega6,,
+c20_d3_n3,eicosatrienoic-acid,Eicosatrienoic acid,ETE,"all-cis-11,14,17-eicosatrienoic acid",,,fatty acid,fatty_acid,polyunsaturated,omega3,,
+c20_d3_n6,dihomo-gamma-linolenic-acid,Dihomo-gamma-linolenic acid,DGLA,"all-cis-8,11,14-eicosatrienoic acid",,,fatty acid,fatty_acid,polyunsaturated,omega6,,
+c20_d3_undifferentiated,eicosatrienoic-acid,eicosatrienoic acid,,eicosatrienoic acid,,,fatty acid,fatty_acid,polyunsaturated,,,
+c20_d4_n6,arachidonic-acid-,Arachidonic acid ,AA,"all-cis-5,8,11,14-eicosatetraenoic acid",,,fatty acid,fatty_acid,polyunsaturated,omega6,,
+c20_d4_undifferentiated,eicosatetraenoic-acid,eicosatetraenoic acid,,eicosatetraenoic acid,,,fatty acid,fatty_acid,polyunsaturated,,,
+c20_d5_n3,eicosapentaenoic-acid,Eicosapentaenoic acid,EPA,"all-cis-5,8,11,14,17-eicosapentaenoic acid",timnodonic acid,,fatty acid,fatty_acid,polyunsaturated,omega3,,
+c21_d5_n3,heneicosapentaenoic-acid,Heneicosapentaenoic acid,HPA,"all-cis-6,9,12,15,18-heneicosapentaenoic acid",,,fatty acid,fatty_acid,polyunsaturated,omega3,,
+c22_d0,behenic-acid,behenic acid,,,,,fatty acid,fatty_acid,saturated,,,
+c22_d1_cis,erucic-acid,erucic acid,,cis-13-docosenoic acid,,,fatty acid,fatty_acid,polyunsaturated,,,
+c22_d1_trans,brassidic-acid,brassidic acid,,,,,fatty acid,fatty_acid,polyunsaturated,,,
+c22_d1_undifferentiated,docosenoic-acid,docosenoic acid,,docosenoic acid,,,fatty acid,fatty_acid,polyunsaturated,,,
+c22_d4,adrenic-acid,Adrenic acid,,"all-cis-7,10,13,16-docosatetraenoic acid",,,fatty acid,fatty_acid,polyunsaturated,,,
+c22_d5_n3,docosapentaenoic-acid,Docosapentaenoic acid,DPA,"all-cis-7,10,13,16,19-docosapentaenoic acid",clupanodonic acid,,fatty acid,fatty_acid,polyunsaturated,omega3,,
+c22_d6_n3,docosahexaenoic-acid,Docosahexaenoic acid,DHA,"all-cis-4,7,10,13,16,19-docosahexaenoic acid",,,fatty acid,fatty_acid,polyunsaturated,omega3,,
+c24_d0,lignoceric-acid,lignoceric acid,,Tetracosanoic acid,,,fatty acid,fatty_acid,saturated,,,
+c24_d1_cis,nervonic-acid,Nervonic acid,,cis-15-tetracosenoic acid,,,fatty acid,fatty_acid,polyunsaturated,,,
+monounsaturated_fat,monounsaturated-fat,monounsaturated fat,,,,,fat,fat,,,,
+polyunsaturated_fat,polyunsaturated-fat,polyunsaturated fat,,,,,fat,fat,,,,
+carbohydrate,carbohydrate,carbohydrate,,,,macronutrient,general,general,,,,
+ethanol,ethanol,ethanol,,,,,general,general,,,,
+lipid,lipid,lipid,,,,macronutrient,general,general,,,,
+mineral,mineral,mineral,,,,macronutrient,general,general,,,,
+protein,protein,protein,,,,macronutrient,general,general,,,,
+calcium,calcium,calcium,Ca,,,micronutrient,mineral,mineral,,,,major
+copper,copper,copper,Cu,,,,mineral,mineral,,,,trace
+fluoride,fluoride,fluoride,F,,,micronutrient,mineral,mineral,,,,FALSE
+iron,iron,iron,Fe,,,micronutrient,mineral,mineral,,,,trace
+magnesium,magnesium,magnesium,Mg,,,micronutrient,mineral,mineral,,,,major
+manganese,manganese,manganese,Mn,,,micronutrient,mineral,mineral,,,,trace
+phosphorus,phosphorus,phosphorus,P,,,micronutrient,mineral,mineral,,,,major
+potassium,potassium,potassium,K,,,micronutrient,mineral,mineral,,,,major
+selenium,selenium,selenium,Se,,,micronutrient,mineral,mineral,,,,trace
+sodium,sodium,sodium,Na,,,micronutrient,mineral,mineral,,,,major
+zinc,zinc,zinc,Zn,,,micronutrient,mineral,mineral,,,,trace
+caffeine,caffeine,caffeine,,,,,other,other,,,,
+theobromine,theobromine,theobromine,,,,,other,other,,,,
+beta_sitosterol,beta-sitosterol,beta sitosterol,,,,,sterol,sterol,,,,
+campesterol,campesterol,campesterol,,,,,sterol,sterol,,,,
+cholesterol,cholesterol,cholesterol,,,,,sterol,sterol,,,,
+phytosterol,phytosterol,phytosterol,,,,,sterol,sterol,,,,
+stigmasterol,stigmasterol,stigmasterol,,,,,sterol,sterol,,,,
+alpha_carotene,vitamin-a-alpha-carotene,vitamin a (alpha carotene),,,,,vitamin,vitamin,,,,
+alpha_tocopherol,vitamin-e-alpha-tocopherol,vitamin e (alpha tocopherol),,,,,vitamin,vitamin,,,,
+alpha_tocotrienol,vitamin-e-alpha-tocotrienol,vitamin e (alpha tocotrienol),,,,,vitamin,vitamin,,,,
+ascorbic_acid,vitamin-c-ascorbic-acid,vitamin c (ascorbic acid),,,,,vitamin,vitamin,,,,
+beta_carotene,vitamin-a-beta-carotene,vitamin a (beta carotene),,,,,vitamin,vitamin,,,,
+beta_cryptoxanthin,vitamin-a-beta-cryptoxanthin,vitamin a (beta cryptoxanthin),,,,,vitamin,vitamin,,,,
+beta_tocopherol,vitamin-e-beta-tocopherol,vitamin e (beta tocopherol),,,,,vitamin,vitamin,,,,
+beta_tocotrienol,vitamin-e-beta-tocotrienol,vitamin e (beta tocotrienol),,,,,vitamin,vitamin,,,,
+cholecalciferol,vitamin-d3-cholecalciferol,vitamin d3 (cholecalciferol),,,,,vitamin,vitamin,,,,
+choline,vitamin-b4-choline,vitamin b4 (choline),,,,,vitamin,vitamin,,,,
+cyanocobalamin,vitamin-b12-cyanocobalamin,vitamin b12 (cyanocobalamin),,,vitamin b12,micronutrient,vitamin,vitamin,,,,
+delta_tocopherol,vitamin-e-delta-tocopherol,vitamin e (delta tocopherol),,,,,vitamin,vitamin,,,,
+delta_tocotrienol,vitamin-e-delta-tocotrienol,vitamin e (delta tocotrienol),,,,,vitamin,vitamin,,,,
+dihydrophylloquinone,vitamin-k-hydrogenated-dihydrophylloquinone,vitamin k hydrogenated (dihydrophylloquinone),,,,,vitamin,vitamin,,,,
+ergocalciferol,vitamin-d2-ergocalciferol,vitamin d2 (ergocalciferol),,,,,vitamin,vitamin,,,,
+folate,vitamin-b9-folate,vitamin b9 (folate),,,,,vitamin,vitamin,,,,
+folic_acid,vitamin-b9-folic-acid,vitamin b9 (folic acid),,,,,vitamin,vitamin,,,,
+gamma_tocopherol,vitamin-e-gamma-tocopherol,vitamin e (gamma tocopherol),,,,,vitamin,vitamin,,,,
+gamma_tocotrienol,vitamin-e-gamma-tocotrienol,vitamin e (gamma tocotrienol),,,,,vitamin,vitamin,,,,
+lutein_and_zeaxanthin,lutein-and-zeaxanthin,lutein and zeaxanthin,,,,,vitamin,vitamin,,,,
+lycopene,lycopene,lycopene,,,,,vitamin,vitamin,,,,
+menaquinone_4,vitamin-k2-menaquinone-4,vitamin k2 (menaquinone-4),,,,,vitamin,vitamin,,,,
+phylloquinone,vitamin-k1-phylloquinone,vitamin k1 (phylloquinone),,,,,vitamin,vitamin,,,,
+retinol,vitamin-a-retinol,vitamin a (retinol),,,,,vitamin,vitamin,,,,
+riboflavin,vitamin-b2-riboflavin,vitamin b2 (riboflavin),,,vitamin b2,,vitamin,vitamin,,,,
+thiamin,vitamin-b1-thiamin,vitamin b1 (thiamin),,,vitamin b1,,vitamin,vitamin,,,,
+vitamin_a,vitamin-a-all-vitamers,vitamin a (all vitamers),,,,,vitamin,vitamin,,,,
+niacin,vitamin-b3-niacin,vitamin b3 (niacin),,,niacin,,vitamin,vitamin,,,,
+vitamin_b5,vitamin-b5-pantothenic-acid,vitamin b5 (pantothenic acid),,,pantothenic_acid,,vitamin,vitamin,,,,
+vitamin_b6,vitamin-b6-all-vitamers,vitamin b6 (all vitamers),,,"pyridoxine, pyridoxal, pyridoxamine",,vitamin,vitamin,,,,
+vitamin_d,vitamin-d-all-vitamers,vitamin d (all vitamers),,,,micronutrient,vitamin,vitamin,,,,
+water,water,water,,,,,general,general,,,,

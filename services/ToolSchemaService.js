@@ -817,6 +817,43 @@ const FIELDS = {
     "distribution",
   ],
 
+  // USDA Nutrition: from NutritionFetcher (raw whole foods)
+  USDA_NUTRITION: [
+    "name",
+    "description",
+    "kingdom",
+    "foodType",
+    "foodSubtype",
+    "part",
+    "form",
+    "state",
+    "taxonomy.taxon",
+    "taxonomy.genus",
+    "taxonomy.species",
+    "taxonomy.family",
+    "taxonomy.binomial",
+    "perHundredGrams.macros",
+    "perHundredGrams.minerals",
+    "perHundredGrams.vitamins",
+    "perHundredGrams.aminoAcids",
+    "perHundredGrams.lipidProfile",
+    "perHundredGrams.carbDetails",
+    "perHundredGrams.sterols",
+  ],
+
+  // USDA Nutrient Ranking: from NutritionFetcher.rankByNutrient()
+  USDA_NUTRIENT_RANKING: [
+    "nutrient",
+    "nutrientName",
+    "type",
+    "count",
+    "foods.name",
+    "foods.description",
+    "foods.kingdom",
+    "foods.foodType",
+    "foods.value",
+  ],
+
   // ── Transit Domain ────────────────────────────────────────────
 
   // Next Bus: from TransLinkFetcher
@@ -2410,6 +2447,132 @@ const TOOL_DEFINITIONS = [
         },
         ...fieldsParam(FIELDS.DRUG_RECALLS),
       },
+    },
+  },
+
+  // ── USDA Nutrition (Raw Whole Foods) ────────────────────────────
+  {
+    name: "search_usda_nutrition",
+    description:
+      "Search USDA's curated database of ~1,346 raw whole foods (fruits, vegetables, meats, fish, nuts, grains, fungi) for detailed nutritional information. Returns per-100g nutrient values including macros, minerals, vitamins, amino acids, lipid profiles, and more. Use nutrientTypes parameter to request specific nutrient categories. This is for raw/unprocessed foods — for packaged products, use search_food_nutrition instead.",
+    endpoint: {
+      path: "/health/nutrition/search",
+      queryParams: ["q", "limit", "kingdom", "foodType", "nutrientTypes"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "Food name to search (e.g. 'chicken', 'spinach', 'salmon', 'almond')",
+        },
+        limit: {
+          type: "number",
+          description: "Max results (default: 10)",
+        },
+        kingdom: {
+          type: "string",
+          description:
+            "Filter by biological kingdom: animalia, plantae, or fungi",
+          enum: ["animalia", "plantae", "fungi"],
+        },
+        foodType: {
+          type: "string",
+          description: "Filter by food type: animal, plant, or fungus",
+        },
+        nutrientTypes: {
+          type: "string",
+          description:
+            "Comma-separated nutrient categories to include: macros, minerals, vitamins, amino_acids, lipids, carbs, sterols. Omit for all.",
+        },
+        ...fieldsParam(FIELDS.USDA_NUTRITION),
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "rank_foods_by_nutrient",
+    description:
+      "Rank raw whole foods by a specific nutrient content (highest first). Great for answering questions like 'what foods are highest in iron?' or 'best sources of vitamin C'. Supports ~1,346 USDA foods with ~150 nutrient columns.",
+    endpoint: {
+      path: "/health/nutrition/rank",
+      queryParams: ["nutrient", "limit", "kingdom", "foodType"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        nutrient: {
+          type: "string",
+          description:
+            "Nutrient column name (e.g. 'protein', 'calcium', 'iron', 'vitamin_b6', 'ascorbic_acid', 'potassium', 'fiber', 'kilocalories', 'c22_d6_n3_dha')",
+        },
+        limit: {
+          type: "number",
+          description: "Max results (default: 10)",
+        },
+        kingdom: {
+          type: "string",
+          description: "Filter by kingdom: animalia, plantae, fungi",
+          enum: ["animalia", "plantae", "fungi"],
+        },
+        foodType: {
+          type: "string",
+          description: "Filter by food type: animal, plant, fungus",
+        },
+        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
+      },
+      required: ["nutrient"],
+    },
+  },
+  {
+    name: "compare_food_nutrition",
+    description:
+      "Compare nutritional profiles side-by-side between 2+ raw whole foods. Example: compare chicken vs salmon vs tofu. Returns matched foods with their per-100g nutrient values.",
+    endpoint: {
+      path: "/health/nutrition/compare",
+      queryParams: ["foods", "nutrientTypes"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        foods: {
+          type: "string",
+          description:
+            "Comma-separated food names to compare (e.g. 'chicken,salmon,tofu')",
+        },
+        nutrientTypes: {
+          type: "string",
+          description:
+            "Comma-separated nutrient categories: macros, minerals, vitamins, amino_acids, lipids, carbs, sterols. Omit for all.",
+        },
+        ...fieldsParam(FIELDS.USDA_NUTRITION),
+      },
+      required: ["foods"],
+    },
+  },
+  {
+    name: "get_food_categories",
+    description:
+      "List all available food categories, kingdoms, types, and parts in the USDA nutrition database. Useful for discovering what filters are available before searching.",
+    endpoint: {
+      path: "/health/nutrition/categories",
+    },
+    parameters: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    name: "get_nutrient_types",
+    description:
+      "List all available nutrient type categories (macros, minerals, vitamins, amino_acids, lipids, carbs, sterols) and database stats. Use this to understand what nutrient data is available.",
+    endpoint: {
+      path: "/health/nutrition/nutrient-types",
+    },
+    parameters: {
+      type: "object",
+      properties: {},
     },
   },
 
