@@ -759,33 +759,6 @@ const FIELDS = {
     "episodes.voteAverage",
   ],
 
-  // ── Health Domain ─────────────────────────────────────────────
-
-  // Food Products: from OpenFoodFactsFetcher
-  FOOD_PRODUCT: [
-    "code",
-    "name",
-    "brand",
-    "categories",
-    "imageUrl",
-    "quantity",
-    "nutriScore",
-    "novaGroup",
-    "ecoScore",
-    "nutrition.calories",
-    "nutrition.fat",
-    "nutrition.saturatedFat",
-    "nutrition.carbohydrates",
-    "nutrition.sugars",
-    "nutrition.fiber",
-    "nutrition.proteins",
-    "nutrition.salt",
-    "allergens",
-    "ingredients",
-    "servingSize",
-    "url",
-  ],
-
   // Drug Labels: from OpenFdaFetcher
   DRUG_LABEL: [
     "brandName",
@@ -2340,50 +2313,6 @@ const TOOL_DEFINITIONS = [
 
   // ── Health ─────────────────────────────────────────────────────
   {
-    name: "search_food_nutrition",
-    description:
-      "Search for food products and get nutritional information including calories, macros (fat, carbs, protein, fiber, sugar), Nutri-Score, allergens, and ingredients from Open Food Facts (3M+ products).",
-    endpoint: {
-      path: "/health/food/search",
-      queryParams: ["q", "limit"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        q: {
-          type: "string",
-          description: "Food product name to search for",
-        },
-        limit: {
-          type: "number",
-          description: "Max results (default: 10)",
-        },
-        ...fieldsParam(FIELDS.FOOD_PRODUCT),
-      },
-      required: ["q"],
-    },
-  },
-  {
-    name: "get_food_by_barcode",
-    description:
-      "Look up a specific food product by its barcode (EAN/UPC). Returns full nutritional data, Nutri-Score, allergens, and ingredients.",
-    endpoint: {
-      path: "/health/food/barcode/:barcode",
-      pathParams: ["barcode"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        barcode: {
-          type: "string",
-          description: "Product barcode (EAN-13 or UPC-A)",
-        },
-        ...fieldsParam(FIELDS.FOOD_PRODUCT),
-      },
-      required: ["barcode"],
-    },
-  },
-  {
     name: "search_drug_info",
     description:
       "Search FDA drug labels by brand or generic name. Returns indications, warnings, side effects, dosage, contraindications, and drug interactions.",
@@ -2461,7 +2390,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "search_usda_nutrition",
     description:
-      "Search USDA's curated database of ~1,346 raw whole foods (fruits, vegetables, meats, fish, nuts, grains, fungi) for detailed nutritional information. Returns per-100g nutrient values including macros, minerals, vitamins, amino acids, lipid profiles, and more. Use nutrientTypes parameter to request specific nutrient categories. This is for raw/unprocessed foods — for packaged products, use search_food_nutrition instead.",
+      "Search USDA's curated database of ~1,346 raw whole foods (fruits, vegetables, meats, fish, nuts, grains, fungi) for detailed nutritional information. Returns per-100g nutrient values including macros, minerals, vitamins, amino acids, lipid profiles, and more. Use nutrientTypes parameter to request specific nutrient categories. For ranking foods by a specific nutrient (e.g. 'highest iron'), use the top_foods_by_* tools instead.",
     endpoint: {
       path: "/health/nutrition/search",
       queryParams: ["q", "limit", "kingdom", "foodType", "nutrientTypes"],
@@ -2580,6 +2509,316 @@ const TOOL_DEFINITIONS = [
     parameters: {
       type: "object",
       properties: {},
+    },
+  },
+  {
+    name: "list_category_nutrients",
+    description:
+      "List all available nutrients within a specific category (e.g. all minerals, all vitamins). Returns column names and human-readable labels. Use this to discover which nutrients you can query with the top_foods_by_* tools.",
+    endpoint: {
+      path: "/health/nutrition/nutrients/:category",
+      pathParams: ["category"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        category: {
+          type: "string",
+          description: "Nutrient category to list",
+          enum: [
+            "macros",
+            "minerals",
+            "vitamins",
+            "amino_acids",
+            "lipids",
+            "carbs",
+            "sterols",
+          ],
+        },
+      },
+      required: ["category"],
+    },
+  },
+  {
+    name: "top_foods_by_macro",
+    description:
+      "Find foods highest in a specific macronutrient — protein, fat, carbs, calories, fiber, sugar, water, or alcohol. Example: 'what foods have the most protein?' → nutrient='protein'.",
+    endpoint: {
+      path: "/health/nutrition/top",
+      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        category: { type: "string", const: "macros" },
+        nutrient: {
+          type: "string",
+          description: "Which macronutrient to rank by",
+          enum: [
+            "protein",
+            "lipid",
+            "carbohydrate",
+            "kilocalories",
+            "fiber",
+            "sugar",
+            "water",
+            "ethanol",
+          ],
+        },
+        limit: { type: "number", description: "Max results (default: 10)" },
+        kingdom: {
+          type: "string",
+          enum: ["animalia", "plantae", "fungi"],
+        },
+        foodType: { type: "string" },
+        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
+      },
+      required: ["category", "nutrient"],
+    },
+  },
+  {
+    name: "top_foods_by_mineral",
+    description:
+      "Find foods highest in a specific mineral — calcium, iron, magnesium, potassium, zinc, selenium, etc. Example: 'what foods are high in iron?' → nutrient='iron'.",
+    endpoint: {
+      path: "/health/nutrition/top",
+      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        category: { type: "string", const: "minerals" },
+        nutrient: {
+          type: "string",
+          description: "Which mineral to rank by",
+          enum: [
+            "calcium",
+            "iron",
+            "magnesium",
+            "phosphorus",
+            "potassium",
+            "sodium",
+            "zinc",
+            "copper",
+            "manganese",
+            "selenium",
+            "fluoride",
+          ],
+        },
+        limit: { type: "number", description: "Max results (default: 10)" },
+        kingdom: {
+          type: "string",
+          enum: ["animalia", "plantae", "fungi"],
+        },
+        foodType: { type: "string" },
+        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
+      },
+      required: ["category", "nutrient"],
+    },
+  },
+  {
+    name: "top_foods_by_vitamin",
+    description:
+      "Find foods highest in a specific vitamin — vitamin A, B1-B12, C, D, E, K, folate, choline, carotenoids, etc. Example: 'best sources of vitamin C?' → nutrient='ascorbic_acid'.",
+    endpoint: {
+      path: "/health/nutrition/top",
+      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        category: { type: "string", const: "vitamins" },
+        nutrient: {
+          type: "string",
+          description: "Which vitamin to rank by",
+          enum: [
+            "ascorbic_acid",
+            "thiamin",
+            "riboflavin",
+            "niacin",
+            "pantothenic_acid",
+            "vitamin_b6",
+            "folate_total",
+            "cyanocobalamin",
+            "choline",
+            "vitamin_a_rae",
+            "retinol",
+            "beta_carotene",
+            "alpha_tocopherol",
+            "vitamin_d",
+            "phylloquinone",
+            "lycopene",
+            "lutein_and_zeaxanthin",
+          ],
+        },
+        limit: { type: "number", description: "Max results (default: 10)" },
+        kingdom: {
+          type: "string",
+          enum: ["animalia", "plantae", "fungi"],
+        },
+        foodType: { type: "string" },
+        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
+      },
+      required: ["category", "nutrient"],
+    },
+  },
+  {
+    name: "top_foods_by_amino_acid",
+    description:
+      "Find foods highest in a specific amino acid — tryptophan, leucine, lysine, methionine, etc. Essential for protein quality analysis. Example: 'foods with most leucine?' → nutrient='leucine'.",
+    endpoint: {
+      path: "/health/nutrition/top",
+      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        category: { type: "string", const: "amino_acids" },
+        nutrient: {
+          type: "string",
+          description: "Which amino acid to rank by",
+          enum: [
+            "tryptophan",
+            "threonine",
+            "isoleucine",
+            "leucine",
+            "lysine",
+            "methionine",
+            "cystine",
+            "phenylalanine",
+            "tyrosine",
+            "valine",
+            "arginine",
+            "histidine",
+            "alanine",
+            "aspartic_acid",
+            "glutamic_acid",
+            "glycine",
+            "proline",
+            "serine",
+          ],
+        },
+        limit: { type: "number", description: "Max results (default: 10)" },
+        kingdom: {
+          type: "string",
+          enum: ["animalia", "plantae", "fungi"],
+        },
+        foodType: { type: "string" },
+        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
+      },
+      required: ["category", "nutrient"],
+    },
+  },
+  {
+    name: "top_foods_by_lipid",
+    description:
+      "Find foods highest in a specific fat/lipid — saturated fat, omega-3 (DHA, EPA, ALA), omega-6, monounsaturated, polyunsaturated, or trans fats. Example: 'best omega-3 DHA sources?' → nutrient='c22_d6_n3_dha'.",
+    endpoint: {
+      path: "/health/nutrition/top",
+      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        category: { type: "string", const: "lipids" },
+        nutrient: {
+          type: "string",
+          description: "Which lipid/fat to rank by",
+          enum: [
+            "saturated_fat",
+            "monounsaturated_fat",
+            "polyunsaturated_fat",
+            "trans_monoenoic_fat",
+            "trans_polyenoic_fat",
+            "c18_d3_n3_cis_cis_cis",
+            "c20_d5_n3",
+            "c22_d6_n3_dha",
+            "c22_d5_n3",
+            "c18_d2_n6_cis_cis",
+            "c20_d4_undifferentiated",
+          ],
+        },
+        limit: { type: "number", description: "Max results (default: 10)" },
+        kingdom: {
+          type: "string",
+          enum: ["animalia", "plantae", "fungi"],
+        },
+        foodType: { type: "string" },
+        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
+      },
+      required: ["category", "nutrient"],
+    },
+  },
+  {
+    name: "top_foods_by_carb",
+    description:
+      "Find foods highest in a specific carbohydrate type — starch, glucose, fructose, sucrose, lactose, maltose, fiber, or total sugar. Example: 'foods highest in fiber?' → nutrient='fiber'.",
+    endpoint: {
+      path: "/health/nutrition/top",
+      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        category: { type: "string", const: "carbs" },
+        nutrient: {
+          type: "string",
+          description: "Which carbohydrate type to rank by",
+          enum: [
+            "starch",
+            "sucrose",
+            "glucose",
+            "fructose",
+            "lactose",
+            "maltose",
+            "galactose",
+            "fiber",
+            "sugar",
+          ],
+        },
+        limit: { type: "number", description: "Max results (default: 10)" },
+        kingdom: {
+          type: "string",
+          enum: ["animalia", "plantae", "fungi"],
+        },
+        foodType: { type: "string" },
+        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
+      },
+      required: ["category", "nutrient"],
+    },
+  },
+  {
+    name: "top_foods_by_sterol",
+    description:
+      "Find foods highest in a specific sterol — cholesterol, phytosterol, stigmasterol, campesterol, or beta-sitosterol. Example: 'foods highest in cholesterol?' → nutrient='cholesterol'.",
+    endpoint: {
+      path: "/health/nutrition/top",
+      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        category: { type: "string", const: "sterols" },
+        nutrient: {
+          type: "string",
+          description: "Which sterol to rank by",
+          enum: [
+            "cholesterol",
+            "phytosterol",
+            "stigmasterol",
+            "campesterol",
+            "beta_sitosterol",
+          ],
+        },
+        limit: { type: "number", description: "Max results (default: 10)" },
+        kingdom: {
+          type: "string",
+          enum: ["animalia", "plantae", "fungi"],
+        },
+        foodType: { type: "string" },
+        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
+      },
+      required: ["category", "nutrient"],
     },
   },
 

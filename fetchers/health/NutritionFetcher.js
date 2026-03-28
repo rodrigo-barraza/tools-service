@@ -492,3 +492,159 @@ export function compareFoods(foodNames, nutrientTypes = null) {
     comparison: results,
   };
 }
+
+// ─── Category → Field Map Lookup ───────────────────────────────
+
+const CATEGORY_FIELD_MAP = {
+  macros: NUTRITION_MACRO_FIELDS,
+  minerals: NUTRITION_MINERAL_FIELDS,
+  vitamins: NUTRITION_VITAMIN_FIELDS,
+  amino_acids: NUTRITION_AMINO_ACID_FIELDS,
+  lipids: NUTRITION_LIPID_FIELDS,
+  carbs: NUTRITION_CARB_DETAIL_FIELDS,
+  sterols: NUTRITION_STEROL_FIELDS,
+};
+
+/**
+ * Resolve a human-friendly nutrient name to its CSV column name.
+ * Accepts: CSV column name, human label, or partial match.
+ * @param {string} category - Nutrient category key
+ * @param {string} nutrient - Human-friendly or CSV column name
+ * @returns {{ column: string, label: string } | null}
+ */
+function resolveNutrientColumn(category, nutrient) {
+  const fields = CATEGORY_FIELD_MAP[category];
+  if (!fields) return null;
+
+  const lower = nutrient.toLowerCase().replace(/[\s-]+/g, "_");
+
+  // Direct CSV column match
+  if (lower in fields) {
+    return { column: lower, label: fields[lower] };
+  }
+
+  // Match by label value (e.g. "calcium_mg" → "calcium")
+  for (const [col, label] of Object.entries(fields)) {
+    if (label.toLowerCase() === lower) {
+      return { column: col, label };
+    }
+  }
+
+  // Partial match on column or label
+  for (const [col, label] of Object.entries(fields)) {
+    if (col.includes(lower) || label.toLowerCase().includes(lower)) {
+      return { column: col, label };
+    }
+  }
+
+  return null;
+}
+
+// ─── Top Foods by Category ─────────────────────────────────────
+
+/**
+ * Get top foods ranked by a specific nutrient within a category.
+ * Accepts human-friendly nutrient names (e.g. "calcium", "omega3", "vitamin C").
+ * @param {string} category - One of: macros, minerals, vitamins, amino_acids, lipids, carbs, sterols
+ * @param {string} nutrient - Nutrient name (flexible: column name, label, or partial)
+ * @param {object} opts
+ * @param {number} [opts.limit=10] - Max results
+ * @param {string} [opts.kingdom] - Filter by kingdom
+ * @param {string} [opts.foodType] - Filter by food type
+ * @returns {object} Ranked results
+ */
+export function getTopFoodsByCategory(category, nutrient, opts = {}) {
+  ensureLoaded();
+
+  const fields = CATEGORY_FIELD_MAP[category];
+  if (!fields) {
+    return {
+      error: `Unknown category: "${category}"`,
+      availableCategories: Object.keys(CATEGORY_FIELD_MAP),
+    };
+  }
+
+  const resolved = resolveNutrientColumn(category, nutrient);
+  if (!resolved) {
+    return {
+      error: `Unknown nutrient "${nutrient}" in category "${category}"`,
+      availableNutrients: Object.entries(fields).map(([col, label]) => ({
+        column: col,
+        label,
+      })),
+    };
+  }
+
+  const { limit = 10, kingdom, foodType } = opts;
+  let candidates = FOOD_DB;
+
+  if (kingdom) {
+    const k = kingdom.toLowerCase();
+    candidates = candidates.filter(
+      (f) => f.kingdom && f.kingdom.toLowerCase() === k,
+    );
+  }
+  if (foodType) {
+    const ft = foodType.toLowerCase();
+    candidates = candidates.filter(
+      (f) => f.food_type && f.food_type.toLowerCase() === ft,
+    );
+  }
+
+  const ranked = candidates
+    .filter((f) => f[resolved.column] !== null && f[resolved.column] > 0)
+    .sort((a, b) => b[resolved.column] - a[resolved.column])
+    .slice(0, limit);
+
+  // Find unit from nutrient metadata
+  const nutrientMeta = NUTRIENT_DB.find(
+    (n) => n.nutrient_id === resolved.column,
+  );
+
+  return {
+    category,
+    nutrient: resolved.column,
+    nutrientLabel: resolved.label,
+    nutrientName: nutrientMeta?.nutrient_name || resolved.column,
+    unit: nutrientMeta?.unit || null,
+    count: ranked.length,
+    note: "All values per 100g edible portion. Source: USDA National Nutrient Database.",
+    foods: ranked.map((f) => ({
+      name: f.food_name,
+      description: f.description_long,
+      kingdom: f.kingdom,
+      foodType: f.food_type,
+      value: f[resolved.column],
+    })),
+  };
+}
+
+/**
+ * List available nutrients within a specific category.
+ * @param {string} category - One of: macros, minerals, vitamins, amino_acids, lipids, carbs, sterols
+ * @returns {object} Available nutrients with column names and labels
+ */
+export function listCategoryNutrients(category) {
+  ensureLoaded();
+
+  const fields = CATEGORY_FIELD_MAP[category];
+  if (!fields) {
+    return {
+      error: `Unknown category: "${category}"`,
+      availableCategories: Object.keys(CATEGORY_FIELD_MAP),
+    };
+  }
+
+  const typeMeta = NUTRITION_NUTRIENT_TYPES.find((t) => t.key === category);
+
+  return {
+    category,
+    label: typeMeta?.label || category,
+    description: typeMeta?.description || null,
+    nutrients: Object.entries(fields).map(([column, label]) => ({
+      column,
+      label,
+    })),
+  };
+}
+

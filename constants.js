@@ -2022,7 +2022,7 @@ export const ARXIV_CATEGORIES = [
 //  HEALTH DOMAIN
 // ═══════════════════════════════════════════════════════════════
 
-export const OPEN_FOOD_FACTS_BASE_URL = "https://world.openfoodfacts.org";
+
 export const OPEN_FDA_BASE_URL = "https://api.fda.gov";
 
 // ═══════════════════════════════════════════════════════════════
@@ -2083,12 +2083,7 @@ export const NEW_API_RATE_LIMITS = {
   },
 
   // ─── Health Domain ────────────────────────────────────────────────
-  OPEN_FOOD_FACTS: {
-    qps: null,
-    qpm: 100,
-    qpd: null,
-    requestDelayMs: 600,
-  },
+
   OPEN_FDA: {
     qps: 4,
     qpm: 240,

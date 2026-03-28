@@ -1,9 +1,5 @@
 import { Router } from "express";
 import {
-  searchFoodProducts,
-  getProductByBarcode,
-} from "../fetchers/health/OpenFoodFactsFetcher.js";
-import {
   searchDrugLabels,
   getDrugAdverseEvents,
   getDrugRecalls,
@@ -14,34 +10,12 @@ import {
   compareFoods,
   getNutrientTypes,
   getFoodCategories,
+  getTopFoodsByCategory,
+  listCategoryNutrients,
 } from "../fetchers/health/NutritionFetcher.js";
 import { parseIntParam } from "../utilities.js";
 
 const router = Router();
-
-// ─── Food / Nutrition (Open Food Facts — packaged products) ───
-
-router.get("/food/search", async (req, res) => {
-  const { q, limit } = req.query;
-  if (!q) {
-    return res.status(400).json({ error: "Query parameter 'q' is required" });
-  }
-  try {
-    const result = await searchFoodProducts(q, parseIntParam(limit, 10));
-    res.json(result);
-  } catch (err) {
-    res.status(502).json({ error: `Food search failed: ${err.message}` });
-  }
-});
-
-router.get("/food/barcode/:barcode", async (req, res) => {
-  try {
-    const result = await getProductByBarcode(req.params.barcode);
-    res.json(result);
-  } catch (err) {
-    res.status(502).json({ error: `Barcode lookup failed: ${err.message}` });
-  }
-});
 
 // ─── USDA Nutrition (raw whole foods — in-memory database) ────
 
@@ -132,6 +106,45 @@ router.get("/nutrition/nutrient-types", (_req, res) => {
   }
 });
 
+router.get("/nutrition/top", (req, res) => {
+  const { category, nutrient, limit, kingdom, foodType } = req.query;
+  if (!category || !nutrient) {
+    return res.status(400).json({
+      error:
+        "Query parameters 'category' and 'nutrient' are required. Categories: macros, minerals, vitamins, amino_acids, lipids, carbs, sterols.",
+    });
+  }
+  try {
+    const result = getTopFoodsByCategory(category, nutrient, {
+      limit: parseIntParam(limit, 10),
+      kingdom,
+      foodType,
+    });
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Top foods lookup failed: ${err.message}` });
+  }
+});
+
+router.get("/nutrition/nutrients/:category", (req, res) => {
+  try {
+    const result = listCategoryNutrients(req.params.category);
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: `Category nutrients lookup failed: ${err.message}` });
+  }
+});
+
 // ─── Drug Info (openFDA) ───────────────────────────────────────────
 
 router.get("/drugs/search", async (req, res) => {
@@ -180,7 +193,6 @@ router.get("/drugs/recalls", async (req, res) => {
 
 export function getHealthDomainHealth() {
   return {
-    openFoodFacts: "on-demand",
     openFda: "on-demand",
     usdaNutrition: "on-demand (in-memory, ~1346 raw whole foods)",
   };

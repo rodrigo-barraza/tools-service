@@ -22,6 +22,8 @@ const ARRAY_WRAPPER_KEYS = new Set([
   "commodities",
   "predictions",
   "requests",
+  "foods",
+  "comparison",
 ]);
 
 /**
