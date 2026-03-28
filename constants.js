@@ -701,13 +701,51 @@ export const BESTBUY_CA_AVAILABILITY_BASE_URL =
 export const BESTBUY_CA_MAX_SKUS_PER_REQUEST = 100;
 export const BESTBUY_CA_REQUEST_DELAY_MS = 2_000; // 2 seconds between batches
 export const BESTBUY_CA_DEFAULT_SKUS = {
-  18931348: { name: "RTX 5090", brand: "NVIDIA", category: "gpu" },
-  18931347: { name: "RTX 5080", brand: "NVIDIA", category: "gpu" },
-  18934178: { name: "RTX 5080", brand: "PNY", category: "gpu" },
-  18931628: { name: "RTX 5080", brand: "ZOTAC", category: "gpu" },
-  18934180: { name: "RTX 5070 Ti", brand: "PNY", category: "gpu" },
-  18934179: { name: "RTX 5070 Ti", brand: "PNY", category: "gpu" },
-  19183867: { name: "RTX 5070 Ti", brand: "MSI", category: "gpu" },
+  // ─── GPUs ────────────────────────────────────────────────────────
+  18931348: { name: "GeForce RTX 5090 32GB", brand: "NVIDIA", category: "gpu" },
+  18931347: { name: "GeForce RTX 5080 16GB", brand: "NVIDIA", category: "gpu" },
+  18934178: { name: "GeForce RTX 5080 16GB", brand: "PNY", category: "gpu" },
+  18931628: { name: "GeForce RTX 5080 Solid 16GB", brand: "ZOTAC", category: "gpu" },
+  19193219: { name: "GeForce RTX 5070 12GB", brand: "NVIDIA", category: "gpu" },
+  18934180: { name: "GeForce RTX 5070 Ti OC 16GB", brand: "PNY", category: "gpu" },
+  18934179: { name: "GeForce RTX 5070 Ti ARGB 16GB", brand: "PNY", category: "gpu" },
+  19183867: { name: "GeForce RTX 5070 Ti Ventus 3X OC 16GB", brand: "MSI", category: "gpu" },
+
+  // ─── Consoles ────────────────────────────────────────────────────
+  11028232: { name: "PlayStation 5 Pro Console", brand: "Sony", category: "console" },
+  17477495: { name: "PlayStation 5 Slim Digital Edition", brand: "Sony", category: "console" },
+  19422128: { name: "Xbox Series X 1TB Console", brand: "Microsoft", category: "console" },
+
+  // ─── Phones ──────────────────────────────────────────────────────
+  18925575: { name: "Galaxy S25 Ultra 256GB Titanium Black", brand: "Samsung", category: "phone" },
+  18925576: { name: "Galaxy S25 Ultra 256GB Titanium Grey", brand: "Samsung", category: "phone" },
+  18925577: { name: "Galaxy S25 Ultra 256GB Titanium Silverblue", brand: "Samsung", category: "phone" },
+  18925578: { name: "Galaxy S25 Ultra 256GB Titanium Silverwhite", brand: "Samsung", category: "phone" },
+  18925580: { name: "Galaxy S25 Ultra 512GB Titanium Grey", brand: "Samsung", category: "phone" },
+  19321527: { name: "Pixel 9 Pro XL 256GB Obsidian", brand: "Google", category: "phone" },
+
+  // ─── Laptops ─────────────────────────────────────────────────────
+  15952669: { name: "MacBook Pro 16\" M4 Max 36GB/1TB", brand: "Apple", category: "laptop" },
+  18619913: { name: "MacBook Pro 14\" M4 Pro 24GB/512GB", brand: "Apple", category: "laptop" },
+  18619927: { name: "MacBook Pro 16\" M4 Pro 24GB/512GB", brand: "Apple", category: "laptop" },
+
+  // ─── Tablets ─────────────────────────────────────────────────────
+  17978053: { name: "iPad Pro 13\" M4 256GB Wi-Fi+5G", brand: "Apple", category: "tablet" },
+
+  // ─── Headphones & Audio ──────────────────────────────────────────
+  16162187: { name: "WH-1000XM5 Over-Ear NC Black", brand: "Sony", category: "audio" },
+  16162186: { name: "WH-1000XM5 Over-Ear NC Silver", brand: "Sony", category: "audio" },
+  17543757: { name: "AirPods Pro 2nd Gen USB-C", brand: "Apple", category: "audio" },
+
+  // ─── VR ──────────────────────────────────────────────────────────
+  18473493: { name: "Quest 3 512GB VR Headset", brand: "Meta", category: "vr" },
+  17162202: { name: "Quest 3 128GB VR Headset", brand: "Meta", category: "vr" },
+
+  // ─── Monitors & TVs ──────────────────────────────────────────────
+  10924894: { name: "32\" Odyssey OLED G8 4K 240Hz", brand: "Samsung", category: "monitor" },
+
+  // ─── Gaming Accessories ──────────────────────────────────────────
+  17668451: { name: "DualSense Wireless Controller White", brand: "Sony", category: "gaming-accessory" },
 };
 
 export const PRODUCT_CATEGORIES = {
