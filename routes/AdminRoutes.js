@@ -3,8 +3,30 @@ import {
   queryRequestLogs,
   getRequestStats,
 } from "../middleware/RequestLoggerMiddleware.js";
+import {
+  getToolSchemas,
+  getToolSchemasForAI,
+} from "../services/ToolSchemaService.js";
 
 const router = Router();
+
+// ─── Tool Schema Endpoints ────────────────────────────────────────
+
+/**
+ * GET /admin/tool-schemas
+ * Full tool schemas with endpoint metadata for dynamic clients.
+ */
+router.get("/tool-schemas", (_req, res) => {
+  res.json(getToolSchemas());
+});
+
+/**
+ * GET /admin/tool-schemas/ai
+ * Clean schemas for LLM consumption (no endpoint metadata).
+ */
+router.get("/tool-schemas/ai", (_req, res) => {
+  res.json(getToolSchemasForAI());
+});
 
 // ─── Request Log Endpoints ─────────────────────────────────────────
 
