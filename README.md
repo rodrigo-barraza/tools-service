@@ -2,7 +2,7 @@
 
 A consolidated Node.js API that continuously collects and serves data from multiple domains — events, finance, market, products, trends, weather, knowledge, health, transit, and utility — through a single unified service. All ingested data is cached in-memory, persisted to MongoDB, and exposed through an aggregated REST API designed for LLM function calling and cross-app synchronization within the Sun ecosystem.
 
-## Domains
+## ✨ Features
 
 | Domain        | Route        | Description                                                                         |
 | ------------- | ------------ | ----------------------------------------------------------------------------------- |
@@ -18,20 +18,30 @@ A consolidated Node.js API that continuously collects and serves data from multi
 | **Utility**   | `/utility`   | Currency conversion, timezone lookup, IP geolocation, Google Places search, interactive map embeds, airport database (~4,555 airports) |
 | **Admin**     | `/admin`     | Tool schemas for LLM function calling, request log analytics |
 
-## Prerequisites
+## ⚙️ Prerequisites
 
 - **Node.js** v20+ (ES Modules)
 - **MongoDB** — single `tools` database for all domain collections
 
-## Setup
+## 🛠️ Tech Stack
 
-### 1. Install dependencies
+| Package          | Purpose                                   |
+| ---------------- | ----------------------------------------- |
+| `express`        | HTTP framework (v5)                       |
+| `mongodb`        | MongoDB native driver                     |
+| `yahoo-finance2` | Real-time market & commodity data         |
+| `cheerio`        | HTML scraping (Craigslist, Costco, etc.)  |
+| `xml2js`         | XML parsing (RSS feeds, Environment Canada) |
+
+## 🚀 Setup
+
+### 1️⃣ Install dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Configure secrets
+### 2️⃣ Configure secrets
 
 ```bash
 cp secrets.example.js secrets.js
@@ -69,7 +79,7 @@ Edit `secrets.js` and fill in your API keys:
 | `TRANSLINK_API_KEY`        | Transit  | Yes      | TransLink RTTI API                          |
 | `IPINFO_TOKEN`             | Utility  | Yes      | IPinfo geolocation (50K req/mo free)        |
 
-### 3. Run
+### 3️⃣ Run
 
 ```bash
 # Development (hot-reload)
@@ -83,9 +93,9 @@ Default port: **5590**
 
 ---
 
-## API Endpoints
+## 📡 API Endpoints
 
-### Event — `/event`
+### 🎟️ Event — `/event`
 
 | Method | Endpoint               | Description                     |
 | ------ | ---------------------- | ------------------------------- |
@@ -97,7 +107,7 @@ Default port: **5590**
 | GET    | `/cached`              | In-memory cached events         |
 | GET    | `/:source/:id`         | Single event by source + ID     |
 
-### Finance — `/finance`
+### 💸 Finance — `/finance`
 
 | Method | Endpoint                              | Description                          |
 | ------ | ------------------------------------- | ------------------------------------ |
@@ -112,7 +122,7 @@ Default port: **5590**
 | GET    | `/macro/series/:seriesId`             | FRED series metadata                 |
 | GET    | `/macro/series/:seriesId/observations` | FRED series data points             |
 
-### Market — `/market`
+### 📈 Market — `/market`
 
 | Method | Endpoint                           | Description                         |
 | ------ | ---------------------------------- | ----------------------------------- |
@@ -123,7 +133,7 @@ Default port: **5590**
 | GET    | `/commodities/ticker/:ticker`      | Single commodity by ticker          |
 | GET    | `/commodities/history/:ticker?hours` | Price history from MongoDB        |
 
-### Product — `/product`
+### 🛒 Product — `/product`
 
 | Method | Endpoint                                | Description                          |
 | ------ | --------------------------------------- | ------------------------------------ |
@@ -144,7 +154,7 @@ Default port: **5590**
 | POST   | `/products/availability/watchlist`      | Add SKUs to watchlist                |
 | DELETE | `/products/availability/watchlist/:sku` | Remove SKU from watchlist            |
 
-### Trend — `/trend`
+### 🚀 Trend — `/trend`
 
 | Method | Endpoint                              | Description                         |
 | ------ | ------------------------------------- | ----------------------------------- |
@@ -157,7 +167,7 @@ Default port: **5590**
 | GET    | `/trends/top?hours&limit`             | Top trends by engagement            |
 | GET    | `/trends/db/search?q&limit`           | Full-text MongoDB search            |
 
-### Weather — `/weather`
+### ⛅ Weather — `/weather`
 
 | Method | Endpoint                             | Description                          |
 | ------ | ------------------------------------ | ------------------------------------ |
@@ -203,7 +213,7 @@ Default port: **5590**
 | GET    | `/warnings/count`                    | Warning count                        |
 | GET    | `/avalanche`                         | Avalanche conditions                 |
 
-### Knowledge — `/knowledge`
+### 🧠 Knowledge — `/knowledge`
 
 | Method | Endpoint                                | Description                           |
 | ------ | --------------------------------------- | ------------------------------------- |
@@ -247,7 +257,7 @@ Default port: **5590**
 | GET    | `/exoplanets/stats`                     | Discovery statistics                  |
 | GET    | `/exoplanets/habitable?limit`           | Habitable zone planets                |
 
-### Health — `/health`
+### 🩺 Health — `/health`
 
 | Method | Endpoint                                     | Description                          |
 | ------ | -------------------------------------------- | ------------------------------------ |
@@ -269,7 +279,7 @@ Default port: **5590**
 | GET    | `/drugs/ndc/ingredient?q&limit`               | Search by active ingredient          |
 | GET    | `/drugs/ndc/pharm-class?q&limit`              | Search by pharmacological class      |
 
-### Transit — `/transit`
+### 🚌 Transit — `/transit`
 
 | Method | Endpoint                        | Description                          |
 | ------ | ------------------------------- | ------------------------------------ |
@@ -278,7 +288,7 @@ Default port: **5590**
 | GET    | `/stops/nearby?lat&lng&radius`  | Find nearby stops                    |
 | GET    | `/routes/:routeNo`              | Route information                    |
 
-### Utility — `/utility`
+### 🛠️ Utility — `/utility`
 
 | Method | Endpoint                             | Description                          |
 | ------ | ------------------------------------ | ------------------------------------ |
@@ -298,7 +308,7 @@ Default port: **5590**
 | GET    | `/airports/country/:code`            | Airports by country                  |
 | GET    | `/airports/nearest?lat&lng&limit`    | Nearest airports                     |
 
-### Admin — `/admin`
+### 🛡️ Admin — `/admin`
 
 | Method | Endpoint                   | Description                          |
 | ------ | -------------------------- | ------------------------------------ |
@@ -307,7 +317,7 @@ Default port: **5590**
 | GET    | `/requests?method&path&status&since&until&limit&skip` | Query request logs |
 | GET    | `/requests/stats?since`    | Aggregated request statistics        |
 
-### Global
+### 🌐 Global
 
 | Method | Endpoint  | Description                                      |
 | ------ | --------- | ------------------------------------------------ |
@@ -315,7 +325,7 @@ Default port: **5590**
 
 ---
 
-## Global Query Parameters
+## 🔍 Global Query Parameters
 
 All endpoints support these cross-cutting query parameters:
 
@@ -325,9 +335,9 @@ All endpoints support these cross-cutting query parameters:
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
-### Data Flow
+### 🔄 Data Flow
 
 ```
 External APIs / Scrapers
@@ -357,7 +367,7 @@ External APIs / Scrapers
                                               HTTP Client
 ```
 
-### In-Memory Static Datasets
+### 💾 In-Memory Static Datasets
 
 Several domains load curated CSV digests at startup for zero-latency queries:
 
@@ -378,7 +388,7 @@ Several domains load curated CSV digests at startup for zero-latency queries:
 
 ---
 
-## Project Structure
+## 🗂️ Project Structure
 
 ```
 tools-api/
@@ -494,7 +504,7 @@ tools-api/
 └── .vscode/                       # VS Code settings (format on save)
 ```
 
-## Scripts
+## 📜 Scripts
 
 | Script                 | Description                              |
 | ---------------------- | ---------------------------------------- |
@@ -520,16 +530,8 @@ tools-api/
 | `npm run format`       | Format all files with Prettier           |
 | `npm run format:check` | Check formatting                         |
 
-## Dependencies
+| `npm run format:check` | Check formatting                         |
 
-| Package          | Purpose                                   |
-| ---------------- | ----------------------------------------- |
-| `express`        | HTTP framework (v5)                       |
-| `mongodb`        | MongoDB native driver                     |
-| `yahoo-finance2` | Real-time market & commodity data         |
-| `cheerio`        | HTML scraping (Craigslist, Costco, etc.)  |
-| `xml2js`         | XML parsing (RSS feeds, Environment Canada) |
-
-## Part of [Sun](https://github.com/rodrigo-barraza)
+## ☀️ Part of [Sun](https://github.com/rodrigo-barraza)
 
 Tools API is one service in the Sun ecosystem — a collection of composable backend services and frontends designed to be mixed and matched.
