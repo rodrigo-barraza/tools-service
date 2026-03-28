@@ -373,18 +373,7 @@ const FIELDS = {
   PRODUCT_AVAILABILITY: ["count", "lastCheck", "inStockCount", "results"],
 
   // Finnhub quote: from FinnhubFetcher.fetchStockQuote()
-  STOCK_QUOTE: [
-    "symbol",
-    "c",
-    "d",
-    "dp",
-    "h",
-    "l",
-    "o",
-    "pc",
-    "t",
-    "cached",
-  ],
+  STOCK_QUOTE: ["symbol", "c", "d", "dp", "h", "l", "o", "pc", "t", "cached"],
 
   // Finnhub company profile: from Finnhub API /stock/profile2
   COMPANY_PROFILE: [
@@ -458,6 +447,241 @@ const FIELDS = {
     "metric.debtEquityAnnual",
     "metric.10DayAverageTradingVolume",
     "metric.3MonthAverageTradingVolume",
+  ],
+
+  // ── Knowledge Domain ──────────────────────────────────────────
+
+  // Dictionary: from DictionaryFetcher.fetchDefinition()
+  DICTIONARY: [
+    "word",
+    "found",
+    "phonetic",
+    "phonetics",
+    "meanings",
+    "sourceUrls",
+  ],
+
+  // Books: from OpenLibraryFetcher.searchBooks()
+  BOOKS: [
+    "key",
+    "title",
+    "authors",
+    "firstPublishYear",
+    "coverUrl",
+    "subjects",
+    "editionCount",
+    "rating",
+    "ratingCount",
+    "isbn",
+  ],
+
+  // Book Details: from OpenLibraryFetcher.getBookDetails()
+  BOOK_DETAILS: [
+    "key",
+    "title",
+    "description",
+    "subjects",
+    "coverUrl",
+    "firstPublishDate",
+    "links",
+  ],
+
+  // Author: from OpenLibraryFetcher.getAuthorInfo()
+  AUTHOR: [
+    "key",
+    "name",
+    "bio",
+    "birthDate",
+    "deathDate",
+    "photoUrl",
+    "wikipedia",
+    "alternateNames",
+  ],
+
+  // Countries: from RestCountriesFetcher
+  COUNTRIES: [
+    "name",
+    "officialName",
+    "cca2",
+    "cca3",
+    "capital",
+    "region",
+    "subregion",
+    "population",
+    "area",
+    "languages",
+    "currencies",
+    "timezones",
+    "borders",
+    "flag",
+    "flagPng",
+    "continent",
+    "callingCodes",
+    "independent",
+    "landlocked",
+  ],
+
+  // Papers: from ArxivFetcher.searchPapers()
+  PAPERS: [
+    "arxivId",
+    "title",
+    "abstract",
+    "authors",
+    "published",
+    "updated",
+    "primaryCategory",
+    "categories",
+    "pdfUrl",
+    "abstractUrl",
+    "doi",
+    "comment",
+  ],
+
+  // Wikipedia Summary: from WikipediaSummaryFetcher
+  WIKIPEDIA_SUMMARY: [
+    "found",
+    "title",
+    "displayTitle",
+    "extract",
+    "description",
+    "thumbnail",
+    "originalImage",
+    "pageUrl",
+    "lastModified",
+  ],
+
+  // On This Day: from WikipediaSummaryFetcher.getOnThisDay()
+  ON_THIS_DAY: [
+    "date",
+    "type",
+    "count",
+    "events",
+  ],
+
+  // ── Health Domain ─────────────────────────────────────────────
+
+  // Food Products: from OpenFoodFactsFetcher
+  FOOD_PRODUCT: [
+    "code",
+    "name",
+    "brand",
+    "categories",
+    "imageUrl",
+    "quantity",
+    "nutriScore",
+    "novaGroup",
+    "ecoScore",
+    "nutrition.calories",
+    "nutrition.fat",
+    "nutrition.saturatedFat",
+    "nutrition.carbohydrates",
+    "nutrition.sugars",
+    "nutrition.fiber",
+    "nutrition.proteins",
+    "nutrition.salt",
+    "allergens",
+    "ingredients",
+    "servingSize",
+    "url",
+  ],
+
+  // Drug Labels: from OpenFdaFetcher
+  DRUG_LABEL: [
+    "brandName",
+    "genericName",
+    "manufacturer",
+    "route",
+    "substanceName",
+    "indications",
+    "warnings",
+    "adverseReactions",
+    "dosage",
+    "contraindications",
+    "drugInteractions",
+  ],
+
+  // Drug Adverse Events: from OpenFdaFetcher
+  DRUG_ADVERSE_EVENTS: [
+    "safetyReportId",
+    "receiveDate",
+    "serious",
+    "seriousnessDetails",
+    "reactions",
+    "patientAge",
+    "patientSex",
+  ],
+
+  // Drug Recalls: from OpenFdaFetcher
+  DRUG_RECALLS: [
+    "recallNumber",
+    "status",
+    "classification",
+    "reportDate",
+    "recallingFirm",
+    "reason",
+    "productDescription",
+    "distribution",
+  ],
+
+  // ── Transit Domain ────────────────────────────────────────────
+
+  // Next Bus: from TransLinkFetcher
+  NEXT_BUS: [
+    "stopNo",
+    "count",
+    "routes",
+  ],
+
+  // Stop Info: from TransLinkFetcher
+  STOP_INFO: [
+    "stopNo",
+    "name",
+    "city",
+    "onStreet",
+    "atStreet",
+    "latitude",
+    "longitude",
+    "wheelchairAccess",
+    "routes",
+  ],
+
+  // Nearby Stops: from TransLinkFetcher
+  NEARBY_STOPS: [
+    "count",
+    "stops",
+  ],
+
+  // Route Info: from TransLinkFetcher
+  ROUTE_INFO: [
+    "routeNo",
+    "name",
+    "operatingCompany",
+    "patterns",
+  ],
+
+  // ── Utility Domain ────────────────────────────────────────────
+
+  // Currency Conversion: from CurrencyFetcher
+  CURRENCY_CONVERT: [
+    "from",
+    "to",
+    "amount",
+    "rate",
+    "converted",
+    "lastUpdate",
+  ],
+
+  // Timezone: from TimezoneFetcher
+  TIMEZONE: [
+    "found",
+    "timezone",
+    "datetime",
+    "abbreviation",
+    "utcOffset",
+    "dayOfWeek",
+    "isDst",
+    "dstFrom",
+    "dstUntil",
   ],
 };
 
@@ -1152,6 +1376,479 @@ const TOOL_DEFINITIONS = [
         ...fieldsParam(FIELDS.FINANCIALS),
       },
       required: ["symbol", "fields"],
+    },
+  },
+
+  // ── Knowledge ──────────────────────────────────────────────────
+  {
+    name: "define_word",
+    description:
+      "Look up a word's definition, pronunciation, phonetics (with audio URLs), synonyms, antonyms, etymology, and usage examples using the Free Dictionary API.",
+    endpoint: {
+      path: "/knowledge/dictionary/:word",
+      pathParams: ["word"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        word: {
+          type: "string",
+          description: "The word to look up",
+        },
+        ...fieldsParam(FIELDS.DICTIONARY),
+      },
+      required: ["word"],
+    },
+  },
+  {
+    name: "search_books",
+    description:
+      "Search for books by title, author, or query. Returns book metadata, cover images, ratings, author names, publication year, and edition count from Open Library (3M+ books).",
+    endpoint: {
+      path: "/knowledge/books/search",
+      queryParams: ["q", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Search query (title, author, or keywords)",
+        },
+        limit: {
+          type: "number",
+          description: "Max results (default: 10)",
+        },
+        ...fieldsParam(FIELDS.BOOKS),
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "get_book_details",
+    description:
+      "Get detailed information about a specific book by its Open Library work key. Returns description, subjects, cover image, links, and publication date.",
+    endpoint: {
+      path: "/knowledge/books/work/:workKey",
+      pathParams: ["workKey"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        workKey: {
+          type: "string",
+          description: "Open Library work key (e.g. 'OL45883W')",
+        },
+        ...fieldsParam(FIELDS.BOOK_DETAILS),
+      },
+      required: ["workKey"],
+    },
+  },
+  {
+    name: "get_author_info",
+    description:
+      "Get author biography, birth/death dates, photo, and Wikipedia link from Open Library.",
+    endpoint: {
+      path: "/knowledge/books/author/:authorKey",
+      pathParams: ["authorKey"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        authorKey: {
+          type: "string",
+          description: "Open Library author key (e.g. 'OL23919A')",
+        },
+        ...fieldsParam(FIELDS.AUTHOR),
+      },
+      required: ["authorKey"],
+    },
+  },
+  {
+    name: "get_country_info",
+    description:
+      "Get detailed information about a country by name. Returns population, capital, languages, currencies, timezones, borders, flag, continent, calling codes, and more.",
+    endpoint: {
+      path: "/knowledge/countries/search/:name",
+      pathParams: ["name"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "Country name (partial match supported, e.g. 'Canada', 'Japan')",
+        },
+        ...fieldsParam(FIELDS.COUNTRIES),
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "get_country_by_code",
+    description:
+      "Get country information by ISO country code (2 or 3 letter). Returns full country details.",
+    endpoint: {
+      path: "/knowledge/countries/code/:code",
+      pathParams: ["code"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        code: {
+          type: "string",
+          description: "ISO 3166-1 alpha-2 or alpha-3 code (e.g. 'CA', 'CAN', 'US', 'JP')",
+        },
+        ...fieldsParam(FIELDS.COUNTRIES),
+      },
+      required: ["code"],
+    },
+  },
+  {
+    name: "search_papers",
+    description:
+      "Search academic papers on arXiv. Returns titles, abstracts, authors, publication dates, PDF links, and category classifications. Covers CS, physics, math, biology, economics, and more.",
+    endpoint: {
+      path: "/knowledge/papers/search",
+      queryParams: ["q", "category", "limit", "sortBy"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Search query for paper titles/abstracts",
+        },
+        category: {
+          type: "string",
+          description:
+            "arXiv category filter (e.g. cs.AI, cs.LG, cs.CL, cs.CV, cs.SE, physics, math, econ, stat)",
+        },
+        limit: {
+          type: "number",
+          description: "Max results (default: 10, max: 30)",
+        },
+        sortBy: {
+          type: "string",
+          description: "Sort order: relevance, lastUpdatedDate, submittedDate",
+          enum: ["relevance", "lastUpdatedDate", "submittedDate"],
+        },
+        ...fieldsParam(FIELDS.PAPERS),
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "get_wikipedia_summary",
+    description:
+      "Get a summary of any Wikipedia article including extract text, thumbnail image, description, and page URL. Good for quick factual lookups.",
+    endpoint: {
+      path: "/knowledge/wikipedia/summary/:title",
+      pathParams: ["title"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        title: {
+          type: "string",
+          description: "Wikipedia article title (e.g. 'Albert Einstein', 'Machine learning')",
+        },
+        ...fieldsParam(FIELDS.WIKIPEDIA_SUMMARY),
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "get_on_this_day",
+    description:
+      "Get historical events, births, deaths, or holidays that happened on a specific date from Wikipedia. Defaults to today if no date specified.",
+    endpoint: {
+      path: "/knowledge/wikipedia/onthisday",
+      queryParams: ["type", "month", "day"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        type: {
+          type: "string",
+          description: "Type of events: selected, births, deaths, events, holidays",
+          enum: ["selected", "births", "deaths", "events", "holidays"],
+        },
+        month: {
+          type: "number",
+          description: "Month (1-12), defaults to today",
+        },
+        day: {
+          type: "number",
+          description: "Day (1-31), defaults to today",
+        },
+        ...fieldsParam(FIELDS.ON_THIS_DAY),
+      },
+    },
+  },
+
+  // ── Health ─────────────────────────────────────────────────────
+  {
+    name: "search_food_nutrition",
+    description:
+      "Search for food products and get nutritional information including calories, macros (fat, carbs, protein, fiber, sugar), Nutri-Score, allergens, and ingredients from Open Food Facts (3M+ products).",
+    endpoint: {
+      path: "/health/food/search",
+      queryParams: ["q", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Food product name to search for",
+        },
+        limit: {
+          type: "number",
+          description: "Max results (default: 10)",
+        },
+        ...fieldsParam(FIELDS.FOOD_PRODUCT),
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "get_food_by_barcode",
+    description:
+      "Look up a specific food product by its barcode (EAN/UPC). Returns full nutritional data, Nutri-Score, allergens, and ingredients.",
+    endpoint: {
+      path: "/health/food/barcode/:barcode",
+      pathParams: ["barcode"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        barcode: {
+          type: "string",
+          description: "Product barcode (EAN-13 or UPC-A)",
+        },
+        ...fieldsParam(FIELDS.FOOD_PRODUCT),
+      },
+      required: ["barcode"],
+    },
+  },
+  {
+    name: "search_drug_info",
+    description:
+      "Search FDA drug labels by brand or generic name. Returns indications, warnings, side effects, dosage, contraindications, and drug interactions.",
+    endpoint: {
+      path: "/health/drugs/search",
+      queryParams: ["q", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Drug name (brand or generic, e.g. 'Tylenol', 'Acetaminophen')",
+        },
+        limit: {
+          type: "number",
+          description: "Max results (default: 5)",
+        },
+        ...fieldsParam(FIELDS.DRUG_LABEL),
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "get_drug_adverse_events",
+    description:
+      "Get FDA adverse event reports for a drug, including reported reactions, seriousness (death, hospitalization, life-threatening), and patient demographics.",
+    endpoint: {
+      path: "/health/drugs/adverse-events",
+      queryParams: ["drug", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        drug: {
+          type: "string",
+          description: "Drug name (brand or generic)",
+        },
+        limit: {
+          type: "number",
+          description: "Max results (default: 10)",
+        },
+        ...fieldsParam(FIELDS.DRUG_ADVERSE_EVENTS),
+      },
+      required: ["drug"],
+    },
+  },
+  {
+    name: "get_drug_recalls",
+    description:
+      "Get FDA drug recall and enforcement actions. Returns recall classification, reason, affected products, and recalling firm.",
+    endpoint: {
+      path: "/health/drugs/recalls",
+      queryParams: ["q", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Optional search term for recalls (drug name or keyword)",
+        },
+        limit: {
+          type: "number",
+          description: "Max results (default: 10)",
+        },
+        ...fieldsParam(FIELDS.DRUG_RECALLS),
+      },
+    },
+  },
+
+  // ── Transit (TransLink Vancouver) ──────────────────────────────
+  {
+    name: "get_next_bus",
+    description:
+      "Get real-time bus arrival estimates for a TransLink (Vancouver) bus stop. Shows route, direction, expected arrival time, countdown, schedule status, and whether the trip is cancelled.",
+    endpoint: {
+      path: "/transit/nextbus/:stopNo",
+      pathParams: ["stopNo"],
+      queryParams: ["route"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        stopNo: {
+          type: "number",
+          description: "5-digit TransLink bus stop number (e.g. 51479)",
+        },
+        route: {
+          type: "string",
+          description: "Optional route number filter (e.g. '99', '014')",
+        },
+        ...fieldsParam(FIELDS.NEXT_BUS),
+      },
+      required: ["stopNo"],
+    },
+  },
+  {
+    name: "get_transit_stop_info",
+    description:
+      "Get details about a TransLink bus stop including name, street intersection, city, coordinates, wheelchair access, and which routes serve it.",
+    endpoint: {
+      path: "/transit/stops/:stopNo",
+      pathParams: ["stopNo"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        stopNo: {
+          type: "number",
+          description: "5-digit TransLink bus stop number",
+        },
+        ...fieldsParam(FIELDS.STOP_INFO),
+      },
+      required: ["stopNo"],
+    },
+  },
+  {
+    name: "find_transit_stops_nearby",
+    description:
+      "Find TransLink bus stops near a location. Returns nearby stops with names, distances, and route numbers. Defaults to Vancouver downtown if no coordinates provided.",
+    endpoint: {
+      path: "/transit/stops/nearby",
+      queryParams: ["lat", "lng", "radius"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        lat: {
+          type: "number",
+          description: "Latitude (default: Vancouver downtown)",
+        },
+        lng: {
+          type: "number",
+          description: "Longitude (default: Vancouver downtown)",
+        },
+        radius: {
+          type: "number",
+          description: "Search radius in meters (default: 500, max: 2000)",
+        },
+        ...fieldsParam(FIELDS.NEARBY_STOPS),
+      },
+    },
+  },
+  {
+    name: "get_transit_route_info",
+    description:
+      "Get details about a TransLink bus/SkyTrain route including name, operating company, and pattern destinations.",
+    endpoint: {
+      path: "/transit/routes/:routeNo",
+      pathParams: ["routeNo"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        routeNo: {
+          type: "string",
+          description: "Route number (e.g. '99', '014', 'R4')",
+        },
+        ...fieldsParam(FIELDS.ROUTE_INFO),
+      },
+      required: ["routeNo"],
+    },
+  },
+
+  // ── Utilities ──────────────────────────────────────────────────
+  {
+    name: "convert_currency",
+    description:
+      "Convert an amount between any two currencies using real-time exchange rates. Supports 161 currencies including USD, CAD, EUR, GBP, JPY, etc.",
+    endpoint: {
+      path: "/utility/currency/convert",
+      queryParams: ["amount", "from", "to"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        amount: {
+          type: "number",
+          description: "Amount to convert (default: 1)",
+        },
+        from: {
+          type: "string",
+          description: "Source currency code (e.g. 'USD', 'CAD', 'EUR')",
+        },
+        to: {
+          type: "string",
+          description: "Target currency code (e.g. 'CAD', 'JPY', 'GBP')",
+        },
+        ...fieldsParam(FIELDS.CURRENCY_CONVERT),
+      },
+      required: ["from", "to"],
+    },
+  },
+  {
+    name: "get_time_in_timezone",
+    description:
+      "Get the current time in any timezone worldwide. Returns datetime, UTC offset, DST status, abbreviation, and day of week.",
+    endpoint: {
+      path: "/utility/timezone/:area/:location",
+      pathParams: ["area", "location"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        area: {
+          type: "string",
+          description: "Timezone area (e.g. 'America', 'Europe', 'Asia', 'Pacific')",
+        },
+        location: {
+          type: "string",
+          description: "Timezone location (e.g. 'Vancouver', 'Tokyo', 'London', 'New_York')",
+        },
+        ...fieldsParam(FIELDS.TIMEZONE),
+      },
+      required: ["area", "location"],
     },
   },
 ];

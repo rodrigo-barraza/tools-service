@@ -24,6 +24,12 @@ import marketRoutes, { getMarketHealth } from "./routes/MarketRoutes.js";
 import productRoutes, { getProductHealth } from "./routes/ProductRoutes.js";
 import trendRoutes, { getTrendHealth } from "./routes/TrendRoutes.js";
 import weatherRoutes, { getWeatherHealth } from "./routes/WeatherRoutes.js";
+import knowledgeRoutes, {
+  getKnowledgeHealth,
+} from "./routes/KnowledgeRoutes.js";
+import healthRoutes, { getHealthDomainHealth } from "./routes/HealthRoutes.js";
+import transitRoutes, { getTransitHealth } from "./routes/TransitRoutes.js";
+import utilityRoutes, { getUtilityHealth } from "./routes/UtilityRoutes.js";
 import adminRoutes from "./routes/AdminRoutes.js";
 
 // ─── Collectors ────────────────────────────────────────────────────
@@ -57,6 +63,10 @@ app.use("/market", marketRoutes);
 app.use("/product", productRoutes);
 app.use("/trend", trendRoutes);
 app.use("/weather", weatherRoutes);
+app.use("/knowledge", knowledgeRoutes);
+app.use("/health", healthRoutes);
+app.use("/transit", transitRoutes);
+app.use("/utility", utilityRoutes);
 app.use("/admin", adminRoutes);
 
 // ─── Unified Health ────────────────────────────────────────────────
@@ -72,6 +82,10 @@ app.get("/health", (_req, res) => {
       product: getProductHealth(),
       trend: getTrendHealth(),
       weather: getWeatherHealth(),
+      knowledge: getKnowledgeHealth(),
+      health: getHealthDomainHealth(),
+      transit: getTransitHealth(),
+      utility: getUtilityHealth(),
     },
   });
 });
@@ -109,9 +123,11 @@ async function start() {
   app.listen(port, () => {
     console.log(`🔧 Tools API running on port ${port}`);
     console.log(`   Database: ${CONFIG.MONGODB_URI}`);
-    console.log("   Domains: event, finance, market, product, trend, weather");
     console.log(
-      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*",
+      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility",
+    );
+    console.log(
+      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*",
     );
   });
 }

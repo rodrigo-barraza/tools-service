@@ -142,9 +142,7 @@ export function getOutOfStock() {
 
 export function getAvailabilityHealth() {
   const statusCount = Object.keys(store.statuses).length;
-  const inStock = Object.values(store.statuses).filter(
-    (r) => r.inStock,
-  ).length;
+  const inStock = Object.values(store.statuses).filter((r) => r.inStock).length;
 
   return {
     watchlistSize: Object.keys(store.watchlist).length,

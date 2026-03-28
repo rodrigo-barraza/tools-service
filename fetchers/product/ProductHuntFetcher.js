@@ -7,18 +7,15 @@ const GRAPHQL_URL = "https://api.producthunt.com/v2/api/graphql";
 // ─── OAuth2 Token Management ──────────────────────────────────────
 
 const phTokenManager = new TokenManager(async () => {
-  const response = await fetch(
-    "https://api.producthunt.com/v2/oauth/token",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id: CONFIG.PRODUCTHUNT_API_KEY,
-        client_secret: CONFIG.PRODUCTHUNT_API_SECRET,
-        grant_type: "client_credentials",
-      }),
-    },
-  );
+  const response = await fetch("https://api.producthunt.com/v2/oauth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id: CONFIG.PRODUCTHUNT_API_KEY,
+      client_secret: CONFIG.PRODUCTHUNT_API_SECRET,
+      grant_type: "client_credentials",
+    }),
+  });
 
   if (!response.ok) {
     const text = await response.text();

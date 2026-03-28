@@ -1,24 +1,16 @@
 import js from "@eslint/js";
 import prettierConfig from "eslint-config-prettier";
+import globals from "globals";
 
 export default [
   js.configs.recommended,
   prettierConfig,
   {
     languageOptions: {
-      ecmaVersion: 2022,
+      ecmaVersion: "latest",
       sourceType: "module",
       globals: {
-        process: "readonly",
-        console: "readonly",
-        Buffer: "readonly",
-        URL: "readonly",
-        fetch: "readonly",
-        URLSearchParams: "readonly",
-        setInterval: "readonly",
-        clearInterval: "readonly",
-        setTimeout: "readonly",
-        clearTimeout: "readonly",
+        ...globals.node,
       },
     },
     rules: {

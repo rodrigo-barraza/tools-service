@@ -60,9 +60,7 @@ export async function fetchAvalancheForecast() {
         title: report.title || product.area?.name || areaId,
         dateIssued: report.dateIssued || null,
         validUntil: report.validUntil || null,
-        highlights: report.highlights
-          ? stripHtml(report.highlights)
-          : null,
+        highlights: report.highlights ? stripHtml(report.highlights) : null,
         confidence: report.confidence?.rating?.display || null,
         dangerRatings: (report.dangerRatings || []).map((dr) => ({
           date: dr.date?.display || null,
@@ -90,9 +88,7 @@ export async function fetchAvalancheForecast() {
         title: report.title || product.area?.name || "Unknown Region",
         dateIssued: report.dateIssued || null,
         validUntil: report.validUntil || null,
-        highlights: report.highlights
-          ? stripHtml(report.highlights)
-          : null,
+        highlights: report.highlights ? stripHtml(report.highlights) : null,
         confidence: report.confidence?.rating?.display || null,
         dangerRatings: (report.dangerRatings || []).map((dr) => ({
           date: dr.date?.display || null,

@@ -38,6 +38,9 @@ import {
   TOMORROWIO_API_KEY,
   NASA_API_KEY,
   GOOGLE_API_KEY,
+
+  // Transit
+  TRANSLINK_API_KEY,
 } from "./secrets.js";
 
 const CONFIG = {
@@ -80,6 +83,9 @@ const CONFIG = {
   TOMORROWIO_API_KEY,
   NASA_API_KEY: NASA_API_KEY || "DEMO_KEY",
   GOOGLE_API_KEY,
+
+  // ─── Transit ─────────────────────────────────────────────────────
+  TRANSLINK_API_KEY,
 };
 
 export default CONFIG;

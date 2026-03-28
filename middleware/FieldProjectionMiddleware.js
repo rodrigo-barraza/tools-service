@@ -28,12 +28,7 @@ const ARRAY_WRAPPER_KEYS = new Set([
  * Internal/MongoDB fields to always strip from API responses,
  * regardless of whether field projection is active.
  */
-const INTERNAL_FIELDS = new Set([
-  "_id",
-  "__v",
-  "firstSeen",
-  "lastSeen",
-]);
+const INTERNAL_FIELDS = new Set(["_id", "__v", "firstSeen", "lastSeen"]);
 
 /**
  * Pick only the specified field paths from an object.
@@ -153,7 +148,10 @@ function projectResponse(data, fields) {
 export function fieldProjectionMiddleware(req, res, next) {
   const fieldsParam = req.query.fields;
   const fields = fieldsParam
-    ? fieldsParam.split(",").map((f) => f.trim()).filter(Boolean)
+    ? fieldsParam
+        .split(",")
+        .map((f) => f.trim())
+        .filter(Boolean)
     : null;
 
   // Override res.json to intercept the response

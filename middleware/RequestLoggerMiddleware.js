@@ -102,10 +102,8 @@ export async function queryRequestLogs(filters = {}) {
   if (filters.status) query.status = parseInt(filters.status, 10);
   if (filters.minStatus || filters.maxStatus) {
     query.status = query.status || {};
-    if (filters.minStatus)
-      query.status.$gte = parseInt(filters.minStatus, 10);
-    if (filters.maxStatus)
-      query.status.$lte = parseInt(filters.maxStatus, 10);
+    if (filters.minStatus) query.status.$gte = parseInt(filters.minStatus, 10);
+    if (filters.maxStatus) query.status.$lte = parseInt(filters.maxStatus, 10);
   }
   if (filters.since || filters.until) {
     query.timestamp = {};

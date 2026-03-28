@@ -1,7 +1,4 @@
-import {
-  TREND_SOURCES as SOURCES,
-  TREND_CATEGORIES,
-} from "../../constants.js";
+import { TREND_SOURCES as SOURCES, TREND_CATEGORIES } from "../../constants.js";
 import { stripHtml, randomUserAgent } from "../../utilities.js";
 
 const GITHUB_TRENDING_URL = "https://github.com/trending";
@@ -57,9 +54,7 @@ function parseGitHubTrending(html) {
 
     // Extract description
     const descMatch = article.match(/<p class="[^"]*">([\s\S]*?)<\/p>/);
-    const description = descMatch
-      ? stripHtml(descMatch[1])
-      : null;
+    const description = descMatch ? stripHtml(descMatch[1]) : null;
 
     // Extract programming language
     const langMatch = article.match(

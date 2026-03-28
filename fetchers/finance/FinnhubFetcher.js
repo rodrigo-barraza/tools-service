@@ -121,7 +121,5 @@ export async function fetchRecommendationTrends(symbol) {
  * Fetch basic financial metrics (PE, EPS, 52w high/low, beta, etc.).
  */
 export async function fetchBasicFinancials(symbol) {
-  return get(
-    `/stock/metric?symbol=${encodeURIComponent(symbol)}&metric=all`,
-  );
+  return get(`/stock/metric?symbol=${encodeURIComponent(symbol)}&metric=all`);
 }

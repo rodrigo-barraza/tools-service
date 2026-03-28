@@ -90,7 +90,9 @@ async function scrapeCategory(
     html.includes("robot") ||
     html.length < 5000
   ) {
-    throw new Error(`Costco blocked request for ${categoryName} (bot detection)`);
+    throw new Error(
+      `Costco blocked request for ${categoryName} (bot detection)`,
+    );
   }
 
   const $ = cheerio.load(html);
@@ -117,9 +119,7 @@ async function scrapeCategory(
       : `${baseUrl}${href.startsWith("/") ? "" : "/"}${href}`;
 
     // Price — find dollar amounts in the tile
-    const priceMatch = tileText.match(
-      /\$\s*([\d,]+(?:\.\d{2})?)/,
-    );
+    const priceMatch = tileText.match(/\$\s*([\d,]+(?:\.\d{2})?)/);
     const price = priceMatch ? parsePrice(priceMatch[0]) : null;
 
     // Image
@@ -155,60 +155,61 @@ async function scrapeCategory(
 
   // ── Strategy 2: Legacy Costco layout (fallback) ───────────────
   if (products.length === 0) {
-    $(".product-tile, .product, .col-xs-6.col-lg-4.col-xl-3").each(
-      (_i, el) => {
-        if (products.length >= COSTCO_MAX_PRODUCTS_PER_CATEGORY) return false;
+    $(".product-tile, .product, .col-xs-6.col-lg-4.col-xl-3").each((_i, el) => {
+      if (products.length >= COSTCO_MAX_PRODUCTS_PER_CATEGORY) return false;
 
-        const $el = $(el);
+      const $el = $(el);
 
-        // Title & URL
-        const $link = $el.find("a[href*='.product.'], a[href*='product.']").first();
-        const href = $link.attr("href") || "";
-        const name =
-          $el.find(".description, .product-title").text().trim() ||
-          $link.text().trim();
-        if (!name) return;
+      // Title & URL
+      const $link = $el
+        .find("a[href*='.product.'], a[href*='product.']")
+        .first();
+      const href = $link.attr("href") || "";
+      const name =
+        $el.find(".description, .product-title").text().trim() ||
+        $link.text().trim();
+      if (!name) return;
 
-        const productId = extractProductId(href);
-        const productUrl = href.startsWith("http")
-          ? href
-          : `${baseUrl}${href.startsWith("/") ? "" : "/"}${href}`;
+      const productId = extractProductId(href);
+      const productUrl = href.startsWith("http")
+        ? href
+        : `${baseUrl}${href.startsWith("/") ? "" : "/"}${href}`;
 
-        // Price
-        const priceText = $el.find(".price, [class*='price']").first().text();
-        const price = parsePrice(priceText);
+      // Price
+      const priceText = $el.find(".price, [class*='price']").first().text();
+      const price = parsePrice(priceText);
 
-        // Image
-        const imageUrl =
-          $el.find("img.product-img, img").first().attr("src") || null;
+      // Image
+      const imageUrl =
+        $el.find("img.product-img, img").first().attr("src") || null;
 
-        // Rating
-        const ratingText = $el.find(".stars, [class*='star']").attr("aria-label") || "";
-        const rating = extractRating(ratingText);
-        const reviewText = $el.find(".reviews, [class*='review']").text();
-        const reviewCount = extractReviewCount(reviewText);
+      // Rating
+      const ratingText =
+        $el.find(".stars, [class*='star']").attr("aria-label") || "";
+      const rating = extractRating(ratingText);
+      const reviewText = $el.find(".reviews, [class*='review']").text();
+      const reviewCount = extractReviewCount(reviewText);
 
-        const product = {
-          sourceId: productId || `costco-${products.length}`,
-          source,
-          name,
-          category: unifiedCategory,
-          sourceCategory: categoryName,
-          rank: products.length + 1,
-          price,
-          currency,
-          rating,
-          reviewCount,
-          imageUrl,
-          productUrl,
-          description: null,
-          trendingScore: 0,
-          fetchedAt: new Date(),
-        };
-        product.trendingScore = computeTrendingScore(product);
-        products.push(product);
-      },
-    );
+      const product = {
+        sourceId: productId || `costco-${products.length}`,
+        source,
+        name,
+        category: unifiedCategory,
+        sourceCategory: categoryName,
+        rank: products.length + 1,
+        price,
+        currency,
+        rating,
+        reviewCount,
+        imageUrl,
+        productUrl,
+        description: null,
+        trendingScore: 0,
+        fetchedAt: new Date(),
+      };
+      product.trendingScore = computeTrendingScore(product);
+      products.push(product);
+    });
   }
 
   return products;

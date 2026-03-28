@@ -58,3 +58,8 @@ export const X_BEARER_TOKEN = "";
 export const TOMORROWIO_API_KEY = "";
 export const NASA_API_KEY = "DEMO_KEY";
 export const GOOGLE_API_KEY = "";
+
+// ─── Transit Domain ───────────────────────────────────────────────
+//    Register at https://developer.translink.ca/ for a free key.
+
+export const TRANSLINK_API_KEY = "";

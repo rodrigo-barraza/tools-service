@@ -29,23 +29,19 @@ function normalizeAvailability(availability, metadata = null) {
     shipping: {
       purchasable: availability.shipping?.purchasable ?? false,
       status: availability.shipping?.status || null,
-      quantityRemaining:
-        availability.shipping?.quantityRemaining ?? null,
+      quantityRemaining: availability.shipping?.quantityRemaining ?? null,
       orderLimit: availability.shipping?.orderLimit ?? null,
       isFreeShippingEligible:
         availability.shipping?.isFreeShippingEligible ?? false,
-      isBackorderable:
-        availability.shipping?.isBackorderable ?? false,
-      hasActiveCountdown:
-        availability.shipping?.hasActiveCountdown ?? false,
+      isBackorderable: availability.shipping?.isBackorderable ?? false,
+      hasActiveCountdown: availability.shipping?.hasActiveCountdown ?? false,
     },
     pickup: {
       purchasable: availability.pickup?.purchasable ?? false,
       status: availability.pickup?.status || null,
     },
     sellerId: availability.sellerId || null,
-    saleChannelExclusivity:
-      availability.saleChannelExclusivity || null,
+    saleChannelExclusivity: availability.saleChannelExclusivity || null,
     inStock:
       availability.shipping?.purchasable === true ||
       availability.pickup?.purchasable === true,
@@ -61,10 +57,7 @@ function normalizeAvailability(availability, metadata = null) {
  * @param {object} skuMetadata - Map of SKU → { name, brand, category }
  * @returns {{ results: object[], errors: string[] }}
  */
-export async function fetchBestBuyCAAvailability(
-  skus,
-  skuMetadata = {},
-) {
+export async function fetchBestBuyCAAvailability(skus, skuMetadata = {}) {
   if (!skus.length) return { results: [], errors: [] };
 
   const batches = chunk(skus, BESTBUY_CA_MAX_SKUS_PER_REQUEST);
@@ -97,14 +90,10 @@ export async function fetchBestBuyCAAvailability(
       const availabilities = data.availabilities || [];
 
       for (const avail of availabilities) {
-        allResults.push(
-          normalizeAvailability(avail, skuMetadata[avail.sku]),
-        );
+        allResults.push(normalizeAvailability(avail, skuMetadata[avail.sku]));
       }
     } catch (error) {
-      errors.push(
-        `Batch ${i + 1}/${batches.length}: ${error.message}`,
-      );
+      errors.push(`Batch ${i + 1}/${batches.length}: ${error.message}`);
     }
   }
 

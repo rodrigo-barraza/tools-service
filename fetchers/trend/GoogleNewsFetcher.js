@@ -2,7 +2,11 @@ import {
   TREND_SOURCES as SOURCES,
   GOOGLE_NEWS_ARTICLE_LIMIT,
 } from "../../constants.js";
-import { extractXmlTag, extractXmlItems, normalizeName } from "../../utilities.js";
+import {
+  extractXmlTag,
+  extractXmlItems,
+  normalizeName,
+} from "../../utilities.js";
 
 const GOOGLE_NEWS_RSS_URL = "https://news.google.com/rss";
 

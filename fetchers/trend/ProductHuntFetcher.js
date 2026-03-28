@@ -1,7 +1,4 @@
-import {
-  TREND_SOURCES as SOURCES,
-  TREND_CATEGORIES,
-} from "../../constants.js";
+import { TREND_SOURCES as SOURCES, TREND_CATEGORIES } from "../../constants.js";
 import { normalizeName, randomUserAgent } from "../../utilities.js";
 
 const PRODUCT_HUNT_URL = "https://www.producthunt.com";

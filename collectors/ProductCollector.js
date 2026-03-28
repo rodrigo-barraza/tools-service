@@ -14,7 +14,10 @@ import { fetchProductHuntTrending } from "../fetchers/product/ProductHuntFetcher
 import { fetchAllEbayTrending } from "../fetchers/product/EbayFetcher.js";
 import { fetchEtsyTrending } from "../fetchers/product/EtsyFetcher.js";
 import { fetchBestBuyCAAvailability } from "../fetchers/product/BestBuyCAAvailabilityFetcher.js";
-import { fetchAllCostcoUS, fetchAllCostcoCA } from "../fetchers/product/CostcoFetcher.js";
+import {
+  fetchAllCostcoUS,
+  fetchAllCostcoCA,
+} from "../fetchers/product/CostcoFetcher.js";
 import { updateProducts, setProductError } from "../caches/ProductCache.js";
 import {
   getWatchedSkus,
@@ -49,13 +52,37 @@ function createProductCollector(label, source, fetchFn) {
 
 // ─── Collectors ────────────────────────────────────────────────────
 
-const collectBestBuy = createProductCollector("BestBuy", "bestbuy", fetchAllBestBuyTrending);
-const collectAmazon = createProductCollector("Amazon", "amazon", fetchAllAmazonBestSellers);
-const collectProductHunt = createProductCollector("ProductHunt", "producthunt", fetchProductHuntTrending);
-const collectEbay = createProductCollector("eBay", "ebay", fetchAllEbayTrending);
+const collectBestBuy = createProductCollector(
+  "BestBuy",
+  "bestbuy",
+  fetchAllBestBuyTrending,
+);
+const collectAmazon = createProductCollector(
+  "Amazon",
+  "amazon",
+  fetchAllAmazonBestSellers,
+);
+const collectProductHunt = createProductCollector(
+  "ProductHunt",
+  "producthunt",
+  fetchProductHuntTrending,
+);
+const collectEbay = createProductCollector(
+  "eBay",
+  "ebay",
+  fetchAllEbayTrending,
+);
 const collectEtsy = createProductCollector("Etsy", "etsy", fetchEtsyTrending);
-const collectCostcoUS = createProductCollector("Costco US", "costco_us", fetchAllCostcoUS);
-const collectCostcoCA = createProductCollector("Costco CA", "costco_ca", fetchAllCostcoCA);
+const collectCostcoUS = createProductCollector(
+  "Costco US",
+  "costco_us",
+  fetchAllCostcoUS,
+);
+const collectCostcoCA = createProductCollector(
+  "Costco CA",
+  "costco_ca",
+  fetchAllCostcoCA,
+);
 
 // Best Buy CA Availability — unique pattern (watchlist-driven, not standard product flow)
 async function collectBestBuyCAAvailability() {

@@ -704,115 +704,391 @@ export const BESTBUY_CA_MAX_SKUS_PER_REQUEST = 100;
 export const BESTBUY_CA_REQUEST_DELAY_MS = 2_000; // 2 seconds between batches
 export const BESTBUY_CA_DEFAULT_SKUS = {
   // ─── GPUs (Current Gen — RTX 50 Series) ──────────────────────────
-  18931348: { name: "GeForce RTX 5090 32GB FE", brand: "NVIDIA", category: "gpu" },
-  18931347: { name: "GeForce RTX 5080 16GB FE", brand: "NVIDIA", category: "gpu" },
+  18931348: {
+    name: "GeForce RTX 5090 32GB FE",
+    brand: "NVIDIA",
+    category: "gpu",
+  },
+  18931347: {
+    name: "GeForce RTX 5080 16GB FE",
+    brand: "NVIDIA",
+    category: "gpu",
+  },
   18934178: { name: "GeForce RTX 5080 16GB", brand: "PNY", category: "gpu" },
-  18931628: { name: "GeForce RTX 5080 Solid 16GB", brand: "ZOTAC", category: "gpu" },
-  19193219: { name: "GeForce RTX 5070 12GB FE", brand: "NVIDIA", category: "gpu" },
-  18934180: { name: "GeForce RTX 5070 Ti OC 16GB", brand: "PNY", category: "gpu" },
-  18934179: { name: "GeForce RTX 5070 Ti ARGB 16GB", brand: "PNY", category: "gpu" },
-  19183867: { name: "GeForce RTX 5070 Ti Ventus 3X OC", brand: "MSI", category: "gpu" },
-  6632193: { name: "GeForce RTX 5060 8GB PRIME", brand: "ASUS", category: "gpu" },
+  18931628: {
+    name: "GeForce RTX 5080 Solid 16GB",
+    brand: "ZOTAC",
+    category: "gpu",
+  },
+  19193219: {
+    name: "GeForce RTX 5070 12GB FE",
+    brand: "NVIDIA",
+    category: "gpu",
+  },
+  18934180: {
+    name: "GeForce RTX 5070 Ti OC 16GB",
+    brand: "PNY",
+    category: "gpu",
+  },
+  18934179: {
+    name: "GeForce RTX 5070 Ti ARGB 16GB",
+    brand: "PNY",
+    category: "gpu",
+  },
+  19183867: {
+    name: "GeForce RTX 5070 Ti Ventus 3X OC",
+    brand: "MSI",
+    category: "gpu",
+  },
+  6632193: {
+    name: "GeForce RTX 5060 8GB PRIME",
+    brand: "ASUS",
+    category: "gpu",
+  },
 
   // ─── GPUs (Previous Gen) ─────────────────────────────────────────
-  6548653: { name: "GeForce RTX 4060 Ventus 2X OC 8GB", brand: "MSI", category: "gpu" },
+  6548653: {
+    name: "GeForce RTX 4060 Ventus 2X OC 8GB",
+    brand: "MSI",
+    category: "gpu",
+  },
   6562422: { name: "GeForce RTX 4060 OC 8GB", brand: "PNY", category: "gpu" },
-  6528730: { name: "Radeon RX 7900 XTX 24GB", brand: "Gigabyte", category: "gpu" },
+  6528730: {
+    name: "Radeon RX 7900 XTX 24GB",
+    brand: "Gigabyte",
+    category: "gpu",
+  },
 
   // ─── CPUs ────────────────────────────────────────────────────────
   12339550: { name: "Ryzen 9 9950X 16-Core", brand: "AMD", category: "cpu" },
-  6602200: { name: "Core Ultra 9 285K 24-Core", brand: "Intel", category: "cpu" },
+  6602200: {
+    name: "Core Ultra 9 285K 24-Core",
+    brand: "Intel",
+    category: "cpu",
+  },
 
   // ─── Consoles ────────────────────────────────────────────────────
-  11028232: { name: "PlayStation 5 Pro Console", brand: "Sony", category: "console" },
-  17477495: { name: "PlayStation 5 Slim Digital Edition", brand: "Sony", category: "console" },
-  19422128: { name: "Xbox Series X 1TB Console", brand: "Microsoft", category: "console" },
+  11028232: {
+    name: "PlayStation 5 Pro Console",
+    brand: "Sony",
+    category: "console",
+  },
+  17477495: {
+    name: "PlayStation 5 Slim Digital Edition",
+    brand: "Sony",
+    category: "console",
+  },
+  19422128: {
+    name: "Xbox Series X 1TB Console",
+    brand: "Microsoft",
+    category: "console",
+  },
 
   // ─── Phones ──────────────────────────────────────────────────────
-  18925575: { name: "Galaxy S25 Ultra 256GB Titanium Black", brand: "Samsung", category: "phone" },
-  18925576: { name: "Galaxy S25 Ultra 256GB Titanium Grey", brand: "Samsung", category: "phone" },
-  18925577: { name: "Galaxy S25 Ultra 256GB Titanium Silverblue", brand: "Samsung", category: "phone" },
-  18925578: { name: "Galaxy S25 Ultra 256GB Titanium Silverwhite", brand: "Samsung", category: "phone" },
-  18925580: { name: "Galaxy S25 Ultra 512GB Titanium Grey", brand: "Samsung", category: "phone" },
-  17906300: { name: "Galaxy S24 128GB Onyx Black", brand: "Samsung", category: "phone" },
-  19321527: { name: "Pixel 9 Pro XL 256GB Obsidian", brand: "Google", category: "phone" },
+  18925575: {
+    name: "Galaxy S25 Ultra 256GB Titanium Black",
+    brand: "Samsung",
+    category: "phone",
+  },
+  18925576: {
+    name: "Galaxy S25 Ultra 256GB Titanium Grey",
+    brand: "Samsung",
+    category: "phone",
+  },
+  18925577: {
+    name: "Galaxy S25 Ultra 256GB Titanium Silverblue",
+    brand: "Samsung",
+    category: "phone",
+  },
+  18925578: {
+    name: "Galaxy S25 Ultra 256GB Titanium Silverwhite",
+    brand: "Samsung",
+    category: "phone",
+  },
+  18925580: {
+    name: "Galaxy S25 Ultra 512GB Titanium Grey",
+    brand: "Samsung",
+    category: "phone",
+  },
+  17906300: {
+    name: "Galaxy S24 128GB Onyx Black",
+    brand: "Samsung",
+    category: "phone",
+  },
+  19321527: {
+    name: "Pixel 9 Pro XL 256GB Obsidian",
+    brand: "Google",
+    category: "phone",
+  },
   17306965: { name: "Pixel 8 128GB Hazel", brand: "Google", category: "phone" },
-  18911504: { name: "OnePlus 13 512GB Black Eclipse", brand: "OnePlus", category: "phone" },
-  19659711: { name: "OnePlus 12R 256GB Iron Grey", brand: "OnePlus", category: "phone" },
+  18911504: {
+    name: "OnePlus 13 512GB Black Eclipse",
+    brand: "OnePlus",
+    category: "phone",
+  },
+  19659711: {
+    name: "OnePlus 12R 256GB Iron Grey",
+    brand: "OnePlus",
+    category: "phone",
+  },
 
   // ─── Laptops (Apple) ─────────────────────────────────────────────
-  15952669: { name: "MacBook Pro 16\" M4 Max 36GB/1TB", brand: "Apple", category: "laptop" },
-  18619913: { name: "MacBook Pro 14\" M4 Pro 24GB/512GB", brand: "Apple", category: "laptop" },
-  18619927: { name: "MacBook Pro 16\" M4 Pro 24GB/512GB", brand: "Apple", category: "laptop" },
-  16556743: { name: "MacBook Air 13\" M4 16GB/256GB Sky Blue", brand: "Apple", category: "laptop" },
-  19205126: { name: "MacBook Air 15\" M4 24GB/512GB Silver", brand: "Apple", category: "laptop" },
-  19205151: { name: "MacBook Air 15\" M4 16GB/256GB Midnight", brand: "Apple", category: "laptop" },
-  19205116: { name: "MacBook Air 13\" M4 16GB/512GB Silver", brand: "Apple", category: "laptop" },
-  19205135: { name: "MacBook Air 15\" M4 16GB/512GB Sky Blue", brand: "Apple", category: "laptop" },
+  15952669: {
+    name: 'MacBook Pro 16" M4 Max 36GB/1TB',
+    brand: "Apple",
+    category: "laptop",
+  },
+  18619913: {
+    name: 'MacBook Pro 14" M4 Pro 24GB/512GB',
+    brand: "Apple",
+    category: "laptop",
+  },
+  18619927: {
+    name: 'MacBook Pro 16" M4 Pro 24GB/512GB',
+    brand: "Apple",
+    category: "laptop",
+  },
+  16556743: {
+    name: 'MacBook Air 13" M4 16GB/256GB Sky Blue',
+    brand: "Apple",
+    category: "laptop",
+  },
+  19205126: {
+    name: 'MacBook Air 15" M4 24GB/512GB Silver',
+    brand: "Apple",
+    category: "laptop",
+  },
+  19205151: {
+    name: 'MacBook Air 15" M4 16GB/256GB Midnight',
+    brand: "Apple",
+    category: "laptop",
+  },
+  19205116: {
+    name: 'MacBook Air 13" M4 16GB/512GB Silver',
+    brand: "Apple",
+    category: "laptop",
+  },
+  19205135: {
+    name: 'MacBook Air 15" M4 16GB/512GB Sky Blue',
+    brand: "Apple",
+    category: "laptop",
+  },
 
   // ─── Laptops (Windows) ───────────────────────────────────────────
-  19350687: { name: "Galaxy Book4 Pro 16\" AMOLED i7/16GB/1TB", brand: "Samsung", category: "laptop" },
-  19186485: { name: "Zenbook DUO 14\" OLED Ultra 9/16GB/1TB", brand: "ASUS", category: "laptop" },
-  17721198: { name: "Swift Go 16\" OLED Ultra 7/16GB/1TB", brand: "Acer", category: "laptop" },
-  17862174: { name: "Inspiron 16\" Core 7/16GB/1TB", brand: "Dell", category: "laptop" },
+  19350687: {
+    name: 'Galaxy Book4 Pro 16" AMOLED i7/16GB/1TB',
+    brand: "Samsung",
+    category: "laptop",
+  },
+  19186485: {
+    name: 'Zenbook DUO 14" OLED Ultra 9/16GB/1TB',
+    brand: "ASUS",
+    category: "laptop",
+  },
+  17721198: {
+    name: 'Swift Go 16" OLED Ultra 7/16GB/1TB',
+    brand: "Acer",
+    category: "laptop",
+  },
+  17862174: {
+    name: 'Inspiron 16" Core 7/16GB/1TB',
+    brand: "Dell",
+    category: "laptop",
+  },
 
   // ─── Tablets ─────────────────────────────────────────────────────
-  17978053: { name: "iPad Pro 13\" M4 256GB Wi-Fi+5G", brand: "Apple", category: "tablet" },
-  19204241: { name: "iPad Air 11\" M3 128GB Wi-Fi Space Grey", brand: "Apple", category: "tablet" },
-  19204243: { name: "iPad Air 11\" M3 128GB Wi-Fi Blue", brand: "Apple", category: "tablet" },
-  17933203: { name: "iPad Air 11\" 256GB Wi-Fi Blue (6th Gen)", brand: "Apple", category: "tablet" },
-  17167495: { name: "Galaxy Tab S9 11\" 256GB", brand: "Samsung", category: "tablet" },
+  17978053: {
+    name: 'iPad Pro 13" M4 256GB Wi-Fi+5G',
+    brand: "Apple",
+    category: "tablet",
+  },
+  19204241: {
+    name: 'iPad Air 11" M3 128GB Wi-Fi Space Grey',
+    brand: "Apple",
+    category: "tablet",
+  },
+  19204243: {
+    name: 'iPad Air 11" M3 128GB Wi-Fi Blue',
+    brand: "Apple",
+    category: "tablet",
+  },
+  17933203: {
+    name: 'iPad Air 11" 256GB Wi-Fi Blue (6th Gen)',
+    brand: "Apple",
+    category: "tablet",
+  },
+  17167495: {
+    name: 'Galaxy Tab S9 11" 256GB',
+    brand: "Samsung",
+    category: "tablet",
+  },
 
   // ─── Headphones ──────────────────────────────────────────────────
-  16162187: { name: "WH-1000XM5 Over-Ear NC Black", brand: "Sony", category: "audio" },
-  16162186: { name: "WH-1000XM5 Over-Ear NC Silver", brand: "Sony", category: "audio" },
-  17543757: { name: "AirPods Pro 2nd Gen USB-C", brand: "Apple", category: "audio" },
-  18885243: { name: "QuietComfort Ultra Earbuds White Smoke", brand: "Bose", category: "audio" },
-  18189367: { name: "QuietComfort Ultra Over-Ear Lunar Blue", brand: "Bose", category: "audio" },
+  16162187: {
+    name: "WH-1000XM5 Over-Ear NC Black",
+    brand: "Sony",
+    category: "audio",
+  },
+  16162186: {
+    name: "WH-1000XM5 Over-Ear NC Silver",
+    brand: "Sony",
+    category: "audio",
+  },
+  17543757: {
+    name: "AirPods Pro 2nd Gen USB-C",
+    brand: "Apple",
+    category: "audio",
+  },
+  18885243: {
+    name: "QuietComfort Ultra Earbuds White Smoke",
+    brand: "Bose",
+    category: "audio",
+  },
+  18189367: {
+    name: "QuietComfort Ultra Over-Ear Lunar Blue",
+    brand: "Bose",
+    category: "audio",
+  },
 
   // ─── Speakers ────────────────────────────────────────────────────
-  19185706: { name: "Charge 5 Portable Bluetooth Speaker", brand: "JBL", category: "speaker" },
-  16688928: { name: "Era 300 Spatial Audio Speaker Black", brand: "Sonos", category: "speaker" },
-  17064533: { name: "Stanmore III Bluetooth Speaker Black", brand: "Marshall", category: "speaker" },
-  17064532: { name: "Acton III Bluetooth Speaker Black", brand: "Marshall", category: "speaker" },
+  19185706: {
+    name: "Charge 5 Portable Bluetooth Speaker",
+    brand: "JBL",
+    category: "speaker",
+  },
+  16688928: {
+    name: "Era 300 Spatial Audio Speaker Black",
+    brand: "Sonos",
+    category: "speaker",
+  },
+  17064533: {
+    name: "Stanmore III Bluetooth Speaker Black",
+    brand: "Marshall",
+    category: "speaker",
+  },
+  17064532: {
+    name: "Acton III Bluetooth Speaker Black",
+    brand: "Marshall",
+    category: "speaker",
+  },
 
   // ─── Wearables ───────────────────────────────────────────────────
-  18470943: { name: "Apple Watch Ultra 2 49mm Tan Alpine", brand: "Apple", category: "wearable" },
-  19399851: { name: "Galaxy Watch Ultra 47mm LTE Silver", brand: "Samsung", category: "wearable" },
-  18245819: { name: "fēnix 8 43mm Sapphire AMOLED", brand: "Garmin", category: "wearable" },
-  18245812: { name: "fēnix 8 51mm Sapphire AMOLED Black", brand: "Garmin", category: "wearable" },
+  18470943: {
+    name: "Apple Watch Ultra 2 49mm Tan Alpine",
+    brand: "Apple",
+    category: "wearable",
+  },
+  19399851: {
+    name: "Galaxy Watch Ultra 47mm LTE Silver",
+    brand: "Samsung",
+    category: "wearable",
+  },
+  18245819: {
+    name: "fēnix 8 43mm Sapphire AMOLED",
+    brand: "Garmin",
+    category: "wearable",
+  },
+  18245812: {
+    name: "fēnix 8 51mm Sapphire AMOLED Black",
+    brand: "Garmin",
+    category: "wearable",
+  },
 
   // ─── VR ──────────────────────────────────────────────────────────
   18473493: { name: "Quest 3 512GB VR Headset", brand: "Meta", category: "vr" },
   17162202: { name: "Quest 3 128GB VR Headset", brand: "Meta", category: "vr" },
 
   // ─── Monitors ────────────────────────────────────────────────────
-  10924894: { name: "32\" Odyssey OLED G8 4K 240Hz", brand: "Samsung", category: "monitor" },
+  10924894: {
+    name: '32" Odyssey OLED G8 4K 240Hz',
+    brand: "Samsung",
+    category: "monitor",
+  },
 
   // ─── TVs ─────────────────────────────────────────────────────────
-  17921979: { name: "C4 65\" 4K OLED evo Smart TV (2024)", brand: "LG", category: "tv" },
-  17921980: { name: "C4 77\" 4K OLED evo Smart TV (2024)", brand: "LG", category: "tv" },
-  17729155: { name: "S95D 65\" 4K OLED Smart TV (2024)", brand: "Samsung", category: "tv" },
-  17230339: { name: "A95L 65\" 4K QD-OLED Smart TV", brand: "Sony", category: "tv" },
-  17230341: { name: "A95L 77\" 4K QD-OLED Smart TV", brand: "Sony", category: "tv" },
+  17921979: {
+    name: 'C4 65" 4K OLED evo Smart TV (2024)',
+    brand: "LG",
+    category: "tv",
+  },
+  17921980: {
+    name: 'C4 77" 4K OLED evo Smart TV (2024)',
+    brand: "LG",
+    category: "tv",
+  },
+  17729155: {
+    name: 'S95D 65" 4K OLED Smart TV (2024)',
+    brand: "Samsung",
+    category: "tv",
+  },
+  17230339: {
+    name: 'A95L 65" 4K QD-OLED Smart TV',
+    brand: "Sony",
+    category: "tv",
+  },
+  17230341: {
+    name: 'A95L 77" 4K QD-OLED Smart TV',
+    brand: "Sony",
+    category: "tv",
+  },
 
   // ─── Cameras & Drones ────────────────────────────────────────────
-  18622226: { name: "HERO13 Black Essential Bundle", brand: "GoPro", category: "camera" },
-  19741372: { name: "Mini 4 Pro Drone with RC2", brand: "DJI", category: "drone" },
-  19457080: { name: "Mavic 3 Cine Premium Combo", brand: "DJI", category: "drone" },
+  18622226: {
+    name: "HERO13 Black Essential Bundle",
+    brand: "GoPro",
+    category: "camera",
+  },
+  19741372: {
+    name: "Mini 4 Pro Drone with RC2",
+    brand: "DJI",
+    category: "drone",
+  },
+  19457080: {
+    name: "Mavic 3 Cine Premium Combo",
+    brand: "DJI",
+    category: "drone",
+  },
 
   // ─── E-Readers ───────────────────────────────────────────────────
-  18596809: { name: "Kindle Scribe 16GB 10.2\"", brand: "Amazon", category: "e-reader" },
-  18596812: { name: "Kindle Scribe 32GB 10.2\"", brand: "Amazon", category: "e-reader" },
-  19377032: { name: "reMarkable 2 Paper Tablet + Marker Plus", brand: "reMarkable", category: "e-reader" },
+  18596809: {
+    name: 'Kindle Scribe 16GB 10.2"',
+    brand: "Amazon",
+    category: "e-reader",
+  },
+  18596812: {
+    name: 'Kindle Scribe 32GB 10.2"',
+    brand: "Amazon",
+    category: "e-reader",
+  },
+  19377032: {
+    name: "reMarkable 2 Paper Tablet + Marker Plus",
+    brand: "reMarkable",
+    category: "e-reader",
+  },
 
   // ─── Home & Appliances ───────────────────────────────────────────
-  17183862: { name: "V15 Detect Cordless Stick Vacuum", brand: "Dyson", category: "appliance" },
+  17183862: {
+    name: "V15 Detect Cordless Stick Vacuum",
+    brand: "Dyson",
+    category: "appliance",
+  },
 
   // ─── Gaming Accessories ──────────────────────────────────────────
-  17668451: { name: "DualSense Wireless Controller White", brand: "Sony", category: "gaming-accessory" },
-  16571772: { name: "DualSense Edge Wireless Controller", brand: "Sony", category: "gaming-accessory" },
-  13702316: { name: "Elite Series 2 Wireless Controller Black", brand: "Xbox", category: "gaming-accessory" },
+  17668451: {
+    name: "DualSense Wireless Controller White",
+    brand: "Sony",
+    category: "gaming-accessory",
+  },
+  16571772: {
+    name: "DualSense Edge Wireless Controller",
+    brand: "Sony",
+    category: "gaming-accessory",
+  },
+  13702316: {
+    name: "Elite Series 2 Wireless Controller Black",
+    brand: "Xbox",
+    category: "gaming-accessory",
+  },
 };
 
 export const PRODUCT_CATEGORIES = {
@@ -950,34 +1226,130 @@ export const PRODUCT_SOURCES = {
 
 // Costco US — category page slugs
 export const COSTCO_US_CATEGORIES = [
-  { slug: "laptops.html", name: "Laptops", unified: PRODUCT_CATEGORIES.COMPUTERS },
-  { slug: "desktop-computers.html", name: "Desktops", unified: PRODUCT_CATEGORIES.COMPUTERS },
-  { slug: "computer-monitors.html", name: "Monitors", unified: PRODUCT_CATEGORIES.ELECTRONICS },
-  { slug: "tvs.html", name: "TVs", unified: PRODUCT_CATEGORIES.TV_HOME_THEATER },
-  { slug: "cell-phones.html", name: "Cell Phones", unified: PRODUCT_CATEGORIES.PHONES },
-  { slug: "tablets.html", name: "Tablets", unified: PRODUCT_CATEGORIES.COMPUTERS },
-  { slug: "headphones.html", name: "Headphones", unified: PRODUCT_CATEGORIES.AUDIO },
-  { slug: "speakers.html", name: "Speakers", unified: PRODUCT_CATEGORIES.AUDIO },
-  { slug: "cameras-camcorders.html", name: "Cameras", unified: PRODUCT_CATEGORIES.CAMERAS },
-  { slug: "video-games.html", name: "Video Games", unified: PRODUCT_CATEGORIES.GAMING },
-  { slug: "major-appliances.html", name: "Major Appliances", unified: PRODUCT_CATEGORIES.APPLIANCES },
-  { slug: "small-appliances.html", name: "Small Appliances", unified: PRODUCT_CATEGORIES.APPLIANCES },
+  {
+    slug: "laptops.html",
+    name: "Laptops",
+    unified: PRODUCT_CATEGORIES.COMPUTERS,
+  },
+  {
+    slug: "desktop-computers.html",
+    name: "Desktops",
+    unified: PRODUCT_CATEGORIES.COMPUTERS,
+  },
+  {
+    slug: "computer-monitors.html",
+    name: "Monitors",
+    unified: PRODUCT_CATEGORIES.ELECTRONICS,
+  },
+  {
+    slug: "tvs.html",
+    name: "TVs",
+    unified: PRODUCT_CATEGORIES.TV_HOME_THEATER,
+  },
+  {
+    slug: "cell-phones.html",
+    name: "Cell Phones",
+    unified: PRODUCT_CATEGORIES.PHONES,
+  },
+  {
+    slug: "tablets.html",
+    name: "Tablets",
+    unified: PRODUCT_CATEGORIES.COMPUTERS,
+  },
+  {
+    slug: "headphones.html",
+    name: "Headphones",
+    unified: PRODUCT_CATEGORIES.AUDIO,
+  },
+  {
+    slug: "speakers.html",
+    name: "Speakers",
+    unified: PRODUCT_CATEGORIES.AUDIO,
+  },
+  {
+    slug: "cameras-camcorders.html",
+    name: "Cameras",
+    unified: PRODUCT_CATEGORIES.CAMERAS,
+  },
+  {
+    slug: "video-games.html",
+    name: "Video Games",
+    unified: PRODUCT_CATEGORIES.GAMING,
+  },
+  {
+    slug: "major-appliances.html",
+    name: "Major Appliances",
+    unified: PRODUCT_CATEGORIES.APPLIANCES,
+  },
+  {
+    slug: "small-appliances.html",
+    name: "Small Appliances",
+    unified: PRODUCT_CATEGORIES.APPLIANCES,
+  },
 ];
 
 // Costco CA — category page slugs (same products, Canadian pricing)
 export const COSTCO_CA_CATEGORIES = [
-  { slug: "laptops.html", name: "Laptops", unified: PRODUCT_CATEGORIES.COMPUTERS },
-  { slug: "desktop-computers.html", name: "Desktops", unified: PRODUCT_CATEGORIES.COMPUTERS },
-  { slug: "computer-monitors.html", name: "Monitors", unified: PRODUCT_CATEGORIES.ELECTRONICS },
-  { slug: "tvs.html", name: "TVs", unified: PRODUCT_CATEGORIES.TV_HOME_THEATER },
-  { slug: "cell-phones.html", name: "Cell Phones", unified: PRODUCT_CATEGORIES.PHONES },
-  { slug: "tablets.html", name: "Tablets", unified: PRODUCT_CATEGORIES.COMPUTERS },
-  { slug: "headphones-earbuds.html", name: "Headphones", unified: PRODUCT_CATEGORIES.AUDIO },
-  { slug: "speakers.html", name: "Speakers", unified: PRODUCT_CATEGORIES.AUDIO },
-  { slug: "cameras-camcorders-drones.html", name: "Cameras", unified: PRODUCT_CATEGORIES.CAMERAS },
-  { slug: "video-games.html", name: "Video Games", unified: PRODUCT_CATEGORIES.GAMING },
-  { slug: "major-appliances.html", name: "Major Appliances", unified: PRODUCT_CATEGORIES.APPLIANCES },
-  { slug: "small-appliances.html", name: "Small Appliances", unified: PRODUCT_CATEGORIES.APPLIANCES },
+  {
+    slug: "laptops.html",
+    name: "Laptops",
+    unified: PRODUCT_CATEGORIES.COMPUTERS,
+  },
+  {
+    slug: "desktop-computers.html",
+    name: "Desktops",
+    unified: PRODUCT_CATEGORIES.COMPUTERS,
+  },
+  {
+    slug: "computer-monitors.html",
+    name: "Monitors",
+    unified: PRODUCT_CATEGORIES.ELECTRONICS,
+  },
+  {
+    slug: "tvs.html",
+    name: "TVs",
+    unified: PRODUCT_CATEGORIES.TV_HOME_THEATER,
+  },
+  {
+    slug: "cell-phones.html",
+    name: "Cell Phones",
+    unified: PRODUCT_CATEGORIES.PHONES,
+  },
+  {
+    slug: "tablets.html",
+    name: "Tablets",
+    unified: PRODUCT_CATEGORIES.COMPUTERS,
+  },
+  {
+    slug: "headphones-earbuds.html",
+    name: "Headphones",
+    unified: PRODUCT_CATEGORIES.AUDIO,
+  },
+  {
+    slug: "speakers.html",
+    name: "Speakers",
+    unified: PRODUCT_CATEGORIES.AUDIO,
+  },
+  {
+    slug: "cameras-camcorders-drones.html",
+    name: "Cameras",
+    unified: PRODUCT_CATEGORIES.CAMERAS,
+  },
+  {
+    slug: "video-games.html",
+    name: "Video Games",
+    unified: PRODUCT_CATEGORIES.GAMING,
+  },
+  {
+    slug: "major-appliances.html",
+    name: "Major Appliances",
+    unified: PRODUCT_CATEGORIES.APPLIANCES,
+  },
+  {
+    slug: "small-appliances.html",
+    name: "Small Appliances",
+    unified: PRODUCT_CATEGORIES.APPLIANCES,
+  },
 ];
 
 export const AMAZON_REQUEST_DELAY_MS = 3_000;
@@ -1458,7 +1830,15 @@ export const ETSY_CATEGORY_MAP = {
 // ═══════════════════════════════════════════════════════════════
 
 export const GOOGLE_TRENDS_GEOS = [
-  "US", "CA", "GB", "AU", "IN", "DE", "JP", "FR", "BR",
+  "US",
+  "CA",
+  "GB",
+  "AU",
+  "IN",
+  "DE",
+  "JP",
+  "FR",
+  "BR",
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -1473,3 +1853,124 @@ export const USER_AGENTS = [
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
 ];
 
+// ═══════════════════════════════════════════════════════════════
+//  KNOWLEDGE DOMAIN
+// ═══════════════════════════════════════════════════════════════
+
+export const DICTIONARY_BASE_URL =
+  "https://api.dictionaryapi.dev/api/v2/entries/en";
+export const OPEN_LIBRARY_BASE_URL = "https://openlibrary.org";
+export const REST_COUNTRIES_BASE_URL = "https://restcountries.com/v3.1";
+export const ARXIV_BASE_URL = "http://export.arxiv.org/api/query";
+export const WIKIPEDIA_SUMMARY_BASE_URL =
+  "https://en.wikipedia.org/api/rest_v1";
+
+export const ARXIV_CATEGORIES = [
+  { id: "cs.AI", name: "Artificial Intelligence" },
+  { id: "cs.CL", name: "Computation & Language (NLP)" },
+  { id: "cs.CV", name: "Computer Vision" },
+  { id: "cs.LG", name: "Machine Learning" },
+  { id: "cs.SE", name: "Software Engineering" },
+  { id: "cs.CR", name: "Cryptography & Security" },
+  { id: "cs.DC", name: "Distributed Computing" },
+  { id: "cs.RO", name: "Robotics" },
+  { id: "physics", name: "Physics" },
+  { id: "math", name: "Mathematics" },
+  { id: "q-bio", name: "Quantitative Biology" },
+  { id: "econ", name: "Economics" },
+  { id: "stat", name: "Statistics" },
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  HEALTH DOMAIN
+// ═══════════════════════════════════════════════════════════════
+
+export const OPEN_FOOD_FACTS_BASE_URL = "https://world.openfoodfacts.org";
+export const OPEN_FDA_BASE_URL = "https://api.fda.gov";
+
+// ═══════════════════════════════════════════════════════════════
+//  TRANSIT DOMAIN
+// ═══════════════════════════════════════════════════════════════
+
+export const TRANSLINK_BASE_URL = "https://api.translink.ca/rttiapi/v1";
+
+// ═══════════════════════════════════════════════════════════════
+//  UTILITY DOMAIN
+// ═══════════════════════════════════════════════════════════════
+
+export const EXCHANGE_RATE_BASE_URL = "https://open.er-api.com/v6/latest";
+export const TIMEZONE_BASE_URL = "https://worldtimeapi.org/api";
+
+// ═══════════════════════════════════════════════════════════════
+//  API RATE LIMITS — New Domains
+// ═══════════════════════════════════════════════════════════════
+
+export const NEW_API_RATE_LIMITS = {
+  // ─── Knowledge Domain ─────────────────────────────────────────────
+  DICTIONARY: {
+    qps: null,
+    qpm: null,
+    qpd: null, // fully open, no documented limits
+    requestDelayMs: 500,
+  },
+  OPEN_LIBRARY: {
+    qps: null,
+    qpm: 100,
+    qpd: null, // ~100 req/min recommended
+    requestDelayMs: 600,
+  },
+  REST_COUNTRIES: {
+    qps: null,
+    qpm: null,
+    qpd: null, // fully open
+    requestDelayMs: 200,
+  },
+  ARXIV: {
+    qps: null,
+    qpm: 20,
+    qpd: null, // 3-second wait between requests
+    requestDelayMs: 3_000,
+  },
+  WIKIPEDIA_SUMMARY: {
+    qps: 200,
+    qpm: null,
+    qpd: null, // REST API, very generous
+    requestDelayMs: 100,
+  },
+
+  // ─── Health Domain ────────────────────────────────────────────────
+  OPEN_FOOD_FACTS: {
+    qps: null,
+    qpm: 100,
+    qpd: null,
+    requestDelayMs: 600,
+  },
+  OPEN_FDA: {
+    qps: 4,
+    qpm: 240,
+    qpd: null, // 240/min with key, 40/min without
+    requestDelayMs: 250,
+  },
+
+  // ─── Transit Domain ───────────────────────────────────────────────
+  TRANSLINK: {
+    qps: null,
+    qpm: null,
+    qpd: 1_000, // ~1000 req/day
+    requestDelayMs: 500,
+  },
+
+  // ─── Utility Domain ───────────────────────────────────────────────
+  EXCHANGE_RATE: {
+    qps: null,
+    qpm: null,
+    qpd: 1_500, // 1500/month on free tier ≈ 50/day
+    requestDelayMs: 1_000,
+  },
+  TIMEZONE: {
+    qps: 1,
+    qpm: null,
+    qpd: null,
+    requestDelayMs: 1_000,
+  },
+};

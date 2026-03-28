@@ -44,12 +44,36 @@ function createEventCollector(label, source, fetchFn) {
 
 // ─── Simple Collectors (factory-generated) ─────────────────────────
 
-const collectTicketmaster = createEventCollector("Ticketmaster", EVENT_SOURCES.TICKETMASTER, fetchTicketmasterEvents);
-const collectSeatGeek = createEventCollector("SeatGeek", EVENT_SOURCES.SEATGEEK, fetchSeatGeekEvents);
-const collectCraigslist = createEventCollector("Craigslist", EVENT_SOURCES.CRAIGSLIST, fetchCraigslistEvents);
-const collectCityOfVancouver = createEventCollector("City of Vancouver", EVENT_SOURCES.CITY_OF_VANCOUVER, fetchCityOfVancouverEvents);
-const collectMovies = createEventCollector("Movies", EVENT_SOURCES.TMDB, fetchMovieEvents);
-const collectGooglePlaces = createEventCollector("Google Places", EVENT_SOURCES.GOOGLE_PLACES, fetchGooglePlacesEvents);
+const collectTicketmaster = createEventCollector(
+  "Ticketmaster",
+  EVENT_SOURCES.TICKETMASTER,
+  fetchTicketmasterEvents,
+);
+const collectSeatGeek = createEventCollector(
+  "SeatGeek",
+  EVENT_SOURCES.SEATGEEK,
+  fetchSeatGeekEvents,
+);
+const collectCraigslist = createEventCollector(
+  "Craigslist",
+  EVENT_SOURCES.CRAIGSLIST,
+  fetchCraigslistEvents,
+);
+const collectCityOfVancouver = createEventCollector(
+  "City of Vancouver",
+  EVENT_SOURCES.CITY_OF_VANCOUVER,
+  fetchCityOfVancouverEvents,
+);
+const collectMovies = createEventCollector(
+  "Movies",
+  EVENT_SOURCES.TMDB,
+  fetchMovieEvents,
+);
+const collectGooglePlaces = createEventCollector(
+  "Google Places",
+  EVENT_SOURCES.GOOGLE_PLACES,
+  fetchGooglePlacesEvents,
+);
 
 // ─── Multi-Source Collectors (custom logic) ────────────────────────
 

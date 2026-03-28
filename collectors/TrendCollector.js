@@ -52,17 +52,70 @@ function createTrendCollector(label, source, fetchFn, noun = "trends") {
 
 // ─── Collectors ────────────────────────────────────────────────────
 
-const collectGoogleTrends = createTrendCollector("Google Trends", "google-trends", fetchGoogleTrends);
-const collectWikipedia = createTrendCollector("Wikipedia", "wikipedia", fetchWikipediaTrends, "articles");
-const collectHackerNews = createTrendCollector("Hacker News", "hackernews", fetchHackerNewsTrends, "stories");
-const collectReddit = createTrendCollector("Reddit", "reddit", fetchRedditTrends);
-const collectXTrends = createTrendCollector("X", "x", fetchAllXTrends, "trending topics");
-const collectGoogleNews = createTrendCollector("Google News", "google-news", fetchGoogleNews, "articles");
-const collectMastodon = createTrendCollector("Mastodon", "mastodon", fetchMastodonTrends, "trending items");
-const collectTVMaze = createTrendCollector("TVMaze", "tvmaze", fetchTVMazeTrends, "shows");
-const collectBluesky = createTrendCollector("Bluesky", "bluesky", fetchBlueskyTrends, "trending items");
-const collectGitHubTrending = createTrendCollector("GitHub Trending", "github", fetchGitHubTrending, "repos");
-const collectProductHunt = createTrendCollector("Product Hunt", "producthunt", fetchProductHuntTrends, "products");
+const collectGoogleTrends = createTrendCollector(
+  "Google Trends",
+  "google-trends",
+  fetchGoogleTrends,
+);
+const collectWikipedia = createTrendCollector(
+  "Wikipedia",
+  "wikipedia",
+  fetchWikipediaTrends,
+  "articles",
+);
+const collectHackerNews = createTrendCollector(
+  "Hacker News",
+  "hackernews",
+  fetchHackerNewsTrends,
+  "stories",
+);
+const collectReddit = createTrendCollector(
+  "Reddit",
+  "reddit",
+  fetchRedditTrends,
+);
+const collectXTrends = createTrendCollector(
+  "X",
+  "x",
+  fetchAllXTrends,
+  "trending topics",
+);
+const collectGoogleNews = createTrendCollector(
+  "Google News",
+  "google-news",
+  fetchGoogleNews,
+  "articles",
+);
+const collectMastodon = createTrendCollector(
+  "Mastodon",
+  "mastodon",
+  fetchMastodonTrends,
+  "trending items",
+);
+const collectTVMaze = createTrendCollector(
+  "TVMaze",
+  "tvmaze",
+  fetchTVMazeTrends,
+  "shows",
+);
+const collectBluesky = createTrendCollector(
+  "Bluesky",
+  "bluesky",
+  fetchBlueskyTrends,
+  "trending items",
+);
+const collectGitHubTrending = createTrendCollector(
+  "GitHub Trending",
+  "github",
+  fetchGitHubTrending,
+  "repos",
+);
+const collectProductHunt = createTrendCollector(
+  "Product Hunt",
+  "producthunt",
+  fetchProductHuntTrends,
+  "products",
+);
 
 export function startTrendCollectors() {
   collectGoogleTrends();

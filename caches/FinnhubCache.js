@@ -56,7 +56,11 @@ export function cacheQuote(symbol, data) {
 // ─── Profile (on-demand) ───────────────────────────────────────────
 
 export function getCachedProfile(symbol) {
-  return getCached(cache.profiles, symbol.toUpperCase(), FINNHUB_PROFILE_TTL_MS);
+  return getCached(
+    cache.profiles,
+    symbol.toUpperCase(),
+    FINNHUB_PROFILE_TTL_MS,
+  );
 }
 
 export function cacheProfile(symbol, data) {
