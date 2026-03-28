@@ -3,12 +3,15 @@ import { fetchCommodities } from "../fetchers/market/CommodityFetcher.js";
 import {
   updateCommodities,
   setCommodityError,
+  restoreCommodities,
 } from "../caches/CommodityCache.js";
+import { collectIfStale, saveState } from "../services/FreshnessService.js";
 
 async function collectCommodities() {
   try {
     const quotes = await fetchCommodities();
     const result = await updateCommodities(quotes);
+    await saveState("commodities", quotes);
 
     const topMover = [...quotes]
       .filter((q) => q.changePercent != null)
@@ -26,7 +29,13 @@ async function collectCommodities() {
 }
 
 export function startMarketCollectors() {
-  collectCommodities();
+  collectIfStale(
+    "Commodities",
+    "commodities",
+    COMMODITIES_INTERVAL_MS,
+    collectCommodities,
+    restoreCommodities,
+  );
   setInterval(collectCommodities, COMMODITIES_INTERVAL_MS);
   console.log("💰 Market collectors started");
 }

@@ -57,6 +57,19 @@ export async function updateEvents(source, events) {
 }
 
 /**
+ * Restore events from a DB snapshot into the in-memory cache.
+ * Memory-only — skips geocoding and DB upserts.
+ */
+export function restoreEvents(source, events) {
+  if (!cache[source]) {
+    cache[source] = { events: [], lastFetch: null, error: null };
+  }
+  cache[source].events = events;
+  cache[source].lastFetch = new Date();
+  cache[source].error = null;
+}
+
+/**
  * Record a fetch error for a source.
  */
 export function setError(source, error) {

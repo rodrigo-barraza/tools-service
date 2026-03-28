@@ -44,14 +44,16 @@ import { fetchTwilight } from "../fetchers/weather/TwilightFetcher.js";
 import { fetchEnvironmentCanadaWarnings } from "../fetchers/weather/EnvironmentCanadaFetcher.js";
 import { fetchAvalancheForecast } from "../fetchers/weather/AvalancheFetcher.js";
 import { fetchPollen } from "../fetchers/weather/GooglePollenFetcher.js";
-import { update, setError } from "../caches/WeatherCache.js";
+import { update, restore, setError } from "../caches/WeatherCache.js";
 import {
   updateEarthquakes,
+  restoreEarthquakes,
   setEarthquakeError,
 } from "../caches/EarthquakeCache.js";
-import { updateNeos, setNeoError } from "../caches/NeoCache.js";
+import { updateNeos, restoreNeos, setNeoError } from "../caches/NeoCache.js";
 import {
   updateSpaceWeather,
+  restoreSpaceWeather,
   setSpaceWeatherError,
 } from "../caches/SpaceWeatherCache.js";
 import {
@@ -83,6 +85,7 @@ import {
   updateAvalanche,
   setAvalancheError,
 } from "../caches/AvalancheCache.js";
+import { collectIfStale, saveState } from "../services/FreshnessService.js";
 
 // ─── Individual Collectors ─────────────────────────────────────────
 
@@ -90,6 +93,7 @@ async function collectOpenMeteo() {
   try {
     const data = await fetchOpenMeteoWeather();
     update("openmeteo", data);
+    await saveState("openmeteo", data);
     console.log(
       `[OpenMeteo] ✅ ${data.weatherDescription} | ${data.temperature}°C`,
     );
@@ -103,6 +107,7 @@ async function collectAirQuality() {
   try {
     const data = await fetchAirQuality();
     update("airquality", data);
+    await saveState("air_quality", data);
     console.log(`[AirQuality] ✅ US AQI: ${data.usAqi} | PM2.5: ${data.pm25}`);
   } catch (error) {
     setError("airquality", error);
@@ -114,6 +119,7 @@ async function collectTomorrowIORealtime() {
   try {
     const data = await fetchTomorrowIORealtime();
     update("tomorrowio", data);
+    await saveState("tomorrowio", data);
     console.log(
       `[Tomorrow.io] ✅ ${data.weatherDescription} | Visibility: ${data.visibility}km | UV: ${data.uvIndex}`,
     );
@@ -127,6 +133,7 @@ async function collectTomorrowIODaily() {
   try {
     const data = await fetchTomorrowIODailyForecast();
     update("tomorrowio_daily", data);
+    await saveState("tomorrowio_daily", data);
     console.log(
       `[Tomorrow.io Daily] ✅ Moonrise: ${data.moonrise || "N/A"} | Moonset: ${data.moonset || "N/A"}`,
     );
@@ -140,6 +147,7 @@ async function collectEarthquakes() {
   try {
     const events = await fetchEarthquakes();
     const result = await updateEarthquakes(events);
+    await saveState("earthquakes_cache", events);
     const strongest = events.reduce(
       (max, e) => ((e.magnitude ?? -1) > (max.magnitude ?? -1) ? e : max),
       events[0] || {},
@@ -159,6 +167,7 @@ async function collectNeos() {
   try {
     const neos = await fetchNeos();
     const result = await updateNeos(neos);
+    await saveState("neos_cache", neos);
     const closest = neos[0];
     console.log(
       `[NEO] ✅ ${neos.length} objects | ` +
@@ -175,6 +184,7 @@ async function collectDonki() {
   try {
     const data = await fetchAllDonki();
     const result = await updateSpaceWeather(data);
+    await saveState("space_weather", data);
     console.log(
       `[DONKI] ✅ ${data.flares.length} flares (${result.flares.upserted} new) | ` +
         `${data.cmes.length} CMEs (${result.cmes.upserted} new) | ` +
@@ -190,6 +200,7 @@ async function collectIssPosition() {
   try {
     const position = await fetchIssPosition();
     updateIssPosition(position);
+    await saveState("iss_position", position);
     console.log(
       `[ISS] ✅ Lat: ${position.latitude.toFixed(2)}, Lng: ${position.longitude.toFixed(2)}`,
     );
@@ -203,6 +214,7 @@ async function collectAstronauts() {
   try {
     const data = await fetchAstronauts();
     updateAstronauts(data);
+    await saveState("astronauts", data);
     console.log(`[Astronauts] ✅ ${data.total} people in space`);
   } catch (error) {
     setAstronautsError(error);
@@ -214,6 +226,7 @@ async function collectKpIndex() {
   try {
     const readings = await fetchKpIndex();
     updateKpIndex(readings);
+    await saveState("kp_index", readings);
     const latest = readings[readings.length - 1];
     console.log(
       `[Kp Index] ✅ ${readings.length} readings | Current Kp: ${latest?.kp ?? "?"}`,
@@ -228,6 +241,7 @@ async function collectWildfires() {
   try {
     const events = await fetchWildfires();
     updateWildfires(events);
+    await saveState("wildfires", events);
     const largest = events
       .filter((e) => e.magnitudeValue != null)
       .sort((a, b) => b.magnitudeValue - a.magnitudeValue)[0];
@@ -247,6 +261,7 @@ async function collectTides() {
   try {
     const predictions = await fetchTides();
     updateTides(predictions);
+    await saveState("tide_predictions", predictions);
     const next = predictions.find((t) => new Date(t.time) > new Date());
     console.log(
       `[Tides] ✅ ${predictions.length} predictions` +
@@ -262,6 +277,7 @@ async function collectSolarWind() {
   try {
     const data = await fetchSolarWind();
     updateSolarWind(data);
+    await saveState("solar_wind", data);
     const l = data.latest;
     console.log(
       `[Solar Wind] ✅ ${data.counts.plasma}p/${data.counts.magnetic}m pts | ` +
@@ -277,6 +293,7 @@ async function collectGoogleAirQuality() {
   try {
     const data = await fetchGoogleAirQuality();
     updateGoogleAirQuality(data);
+    await saveState("google_air_quality", data);
     console.log(
       `[Google AQ] ✅ AQI: ${data.usEpaAqi ?? "?"} (${data.usEpaCategory ?? "?"}) | ` +
         `Dominant: ${data.usEpaDominantPollutant ?? "?"}`,
@@ -291,6 +308,7 @@ async function collectPollen() {
   try {
     const data = await fetchPollen();
     updatePollen(data);
+    await saveState("pollen", data);
     const today = data.daily?.[0];
     const grass = today?.grass?.indexInfo?.category ?? "?";
     const tree = today?.tree?.indexInfo?.category ?? "?";
@@ -309,6 +327,7 @@ async function collectApod() {
   try {
     const data = await fetchApod();
     updateApod(data);
+    await saveState("apod", data);
     console.log(`[APOD] ✅ ${data.title}`);
   } catch (error) {
     setApodError(error);
@@ -320,6 +339,7 @@ async function collectLaunches() {
   try {
     const launches = await fetchUpcomingLaunches();
     updateLaunches(launches);
+    await saveState("launches", launches);
     const next = launches[0];
     console.log(
       `[Launches] ✅ ${launches.length} upcoming` +
@@ -335,6 +355,7 @@ async function collectTwilight() {
   try {
     const data = await fetchTwilight();
     updateTwilight(data);
+    await saveState("twilight", data);
     console.log(
       `[Twilight] ✅ Civil: ${data.civilTwilightBegin} → ${data.civilTwilightEnd}`,
     );
@@ -348,6 +369,7 @@ async function collectEnvironmentCanada() {
   try {
     const warnings = await fetchEnvironmentCanadaWarnings();
     updateWarnings(warnings);
+    await saveState("env_canada_warnings", warnings);
     console.log(`[Env Canada] ✅ ${warnings.length} active warnings/watches`);
   } catch (error) {
     setWarningError(error);
@@ -359,6 +381,7 @@ async function collectAvalanche() {
   try {
     const forecasts = await fetchAvalancheForecast();
     updateAvalanche(forecasts);
+    await saveState("avalanche_forecasts", forecasts);
     console.log(`[Avalanche] ✅ ${forecasts.length} forecast regions`);
   } catch (error) {
     setAvalancheError(error);
@@ -366,29 +389,47 @@ async function collectAvalanche() {
   }
 }
 
+// ─── Startup Definitions ──────────────────────────────────────────
+
+const STARTUP_TASKS = [
+  { label: "OpenMeteo", collection: "openmeteo", ttl: OPEN_METEO_INTERVAL_MS, collectFn: collectOpenMeteo, restoreFn: (d) => restore("openmeteo", d), delay: 0 },
+  { label: "AirQuality", collection: "air_quality", ttl: AIR_QUALITY_INTERVAL_MS, collectFn: collectAirQuality, restoreFn: (d) => restore("airquality", d), delay: 2_000 },
+  { label: "Tomorrow.io", collection: "tomorrowio", ttl: TOMORROWIO_REALTIME_INTERVAL_MS, collectFn: collectTomorrowIORealtime, restoreFn: (d) => restore("tomorrowio", d), delay: 4_000 },
+  { label: "Tomorrow.io Daily", collection: "tomorrowio_daily", ttl: TOMORROWIO_FORECAST_INTERVAL_MS, collectFn: collectTomorrowIODaily, restoreFn: (d) => restore("tomorrowio_daily", d), delay: 6_000 },
+  { label: "Earthquake", collection: "earthquakes_cache", ttl: EARTHQUAKE_INTERVAL_MS, collectFn: collectEarthquakes, restoreFn: restoreEarthquakes, delay: 8_000 },
+  { label: "NEO", collection: "neos_cache", ttl: NEO_INTERVAL_MS, collectFn: collectNeos, restoreFn: restoreNeos, delay: 10_000 },
+  { label: "DONKI", collection: "space_weather", ttl: DONKI_INTERVAL_MS, collectFn: collectDonki, restoreFn: restoreSpaceWeather, delay: 12_000 },
+  { label: "ISS Position", collection: "iss_position", ttl: ISS_POSITION_INTERVAL_MS, collectFn: collectIssPosition, restoreFn: updateIssPosition, delay: 14_000 },
+  { label: "Astronauts", collection: "astronauts", ttl: ISS_ASTROS_INTERVAL_MS, collectFn: collectAstronauts, restoreFn: updateAstronauts, delay: 15_000 },
+  { label: "Kp Index", collection: "kp_index", ttl: KP_INDEX_INTERVAL_MS, collectFn: collectKpIndex, restoreFn: updateKpIndex, delay: 16_000 },
+  { label: "Wildfire", collection: "wildfires", ttl: WILDFIRE_INTERVAL_MS, collectFn: collectWildfires, restoreFn: updateWildfires, delay: 18_000 },
+  { label: "Tides", collection: "tide_predictions", ttl: TIDE_INTERVAL_MS, collectFn: collectTides, restoreFn: updateTides, delay: 20_000 },
+  { label: "Solar Wind", collection: "solar_wind", ttl: SOLAR_WIND_INTERVAL_MS, collectFn: collectSolarWind, restoreFn: updateSolarWind, delay: 22_000 },
+  { label: "Google AQ", collection: "google_air_quality", ttl: GOOGLE_AIR_QUALITY_INTERVAL_MS, collectFn: collectGoogleAirQuality, restoreFn: updateGoogleAirQuality, delay: 24_000 },
+  { label: "Pollen", collection: "pollen", ttl: GOOGLE_POLLEN_INTERVAL_MS, collectFn: collectPollen, restoreFn: updatePollen, delay: 26_000 },
+  { label: "APOD", collection: "apod", ttl: APOD_INTERVAL_MS, collectFn: collectApod, restoreFn: updateApod, delay: 28_000 },
+  { label: "Launches", collection: "launches", ttl: LAUNCH_INTERVAL_MS, collectFn: collectLaunches, restoreFn: updateLaunches, delay: 30_000 },
+  { label: "Twilight", collection: "twilight", ttl: TWILIGHT_INTERVAL_MS, collectFn: collectTwilight, restoreFn: updateTwilight, delay: 32_000 },
+  { label: "Env Canada", collection: "env_canada_warnings", ttl: ENV_CANADA_INTERVAL_MS, collectFn: collectEnvironmentCanada, restoreFn: updateWarnings, delay: 34_000 },
+  { label: "Avalanche", collection: "avalanche_forecasts", ttl: AVALANCHE_INTERVAL_MS, collectFn: collectAvalanche, restoreFn: updateAvalanche, delay: 36_000 },
+];
+
 // ─── Start All Weather Collectors ──────────────────────────────────
 
 export function startWeatherCollectors() {
-  collectOpenMeteo();
-  setTimeout(collectAirQuality, 2_000);
-  setTimeout(collectTomorrowIORealtime, 4_000);
-  setTimeout(collectTomorrowIODaily, 6_000);
-  setTimeout(collectEarthquakes, 8_000);
-  setTimeout(collectNeos, 10_000);
-  setTimeout(collectDonki, 12_000);
-  setTimeout(collectIssPosition, 14_000);
-  setTimeout(collectAstronauts, 15_000);
-  setTimeout(collectKpIndex, 16_000);
-  setTimeout(collectWildfires, 18_000);
-  setTimeout(collectTides, 20_000);
-  setTimeout(collectSolarWind, 22_000);
-  setTimeout(collectGoogleAirQuality, 24_000);
-  setTimeout(collectPollen, 26_000);
-  setTimeout(collectApod, 28_000);
-  setTimeout(collectLaunches, 30_000);
-  setTimeout(collectTwilight, 32_000);
-  setTimeout(collectEnvironmentCanada, 34_000);
-  setTimeout(collectAvalanche, 36_000);
+  for (const task of STARTUP_TASKS) {
+    setTimeout(
+      () =>
+        collectIfStale(
+          task.label,
+          task.collection,
+          task.ttl,
+          task.collectFn,
+          task.restoreFn,
+        ),
+      task.delay,
+    );
+  }
 
   setInterval(collectOpenMeteo, OPEN_METEO_INTERVAL_MS);
   setInterval(collectAirQuality, AIR_QUALITY_INTERVAL_MS);

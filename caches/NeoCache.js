@@ -16,6 +16,16 @@ export async function updateNeos(neos) {
   return await upsertNeos(neos);
 }
 
+/**
+ * Restore NEOs from a DB snapshot into the in-memory cache.
+ * Memory-only — no MongoDB upsert.
+ */
+export function restoreNeos(neos) {
+  cache.neos = neos;
+  cache.lastFetch = new Date();
+  cache.error = null;
+}
+
 export function setNeoError(error) {
   cache.error = { message: error.message, time: new Date() };
 }

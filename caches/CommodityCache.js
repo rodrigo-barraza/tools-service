@@ -27,6 +27,16 @@ export async function updateCommodities(quotes) {
 }
 
 /**
+ * Restore commodities from a DB snapshot into the in-memory cache.
+ * Memory-only — no MongoDB snapshot insertion.
+ */
+export function restoreCommodities(quotes) {
+  cache.commodities = quotes;
+  cache.lastFetch = new Date();
+  cache.error = null;
+}
+
+/**
  * Record a fetch error.
  */
 export function setCommodityError(error) {

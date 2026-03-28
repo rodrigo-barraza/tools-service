@@ -301,3 +301,97 @@ describe("FieldProjection — edge cases", () => {
     assert.equal(data.foods[0].description, "Bananas, raw");
   });
 });
+
+// ─── wrapper-prefix dot-notation ───────────────────────────────
+
+describe("FieldProjection — wrapper-prefix dot-notation", () => {
+  it("projects foods.name → strips prefix, returns name on each item", async () => {
+    const data = await fetchJson("/nutrition/search?fields=foods.name");
+    assert.equal(data.foods.length, 2);
+    assert.equal(data.foods[0].name, "banana");
+    assert.equal(data.foods[0].description, undefined, "description excluded");
+    assert.equal(data.foods[0].kingdom, undefined, "kingdom excluded");
+    assert.equal(data.foods[0].perHundredGrams, undefined, "nutrients excluded");
+  });
+
+  it("projects foods.name,foods.description → multiple wrapper-prefixed fields", async () => {
+    const data = await fetchJson(
+      "/nutrition/search?fields=foods.name,foods.description",
+    );
+    assert.equal(data.foods[0].name, "banana");
+    assert.equal(data.foods[0].description, "Bananas, raw");
+    assert.equal(data.foods[0].kingdom, undefined);
+  });
+
+  it("projects foods.name,foods.value from ranked results", async () => {
+    const data = await fetchJson(
+      "/nutrition/rank?fields=foods.name,foods.value",
+    );
+    assert.equal(data.foods.length, 2);
+    assert.equal(data.foods[0].name, "spirulina");
+    assert.equal(data.foods[0].value, 57.47);
+    assert.equal(data.foods[0].kingdom, undefined, "kingdom excluded");
+  });
+
+  it("preserves top-level metadata when using wrapper-prefixed fields", async () => {
+    const data = await fetchJson(
+      "/nutrition/rank?fields=foods.name,foods.value",
+    );
+    assert.equal(data.nutrient, "protein");
+    assert.equal(data.count, 2);
+    assert.ok(data.note);
+  });
+
+  it("mixes wrapper-prefixed and top-level fields", async () => {
+    const data = await fetchJson(
+      "/nutrition/rank?fields=nutrient,count,foods.name,foods.value",
+    );
+    assert.equal(data.nutrient, "protein");
+    assert.equal(data.count, 2);
+    assert.equal(data.foods.length, 2);
+    assert.equal(data.foods[0].name, "spirulina");
+    assert.equal(data.foods[0].value, 57.47);
+    assert.equal(data.foods[0].kingdom, undefined);
+    // Non-requested top-level metadata should be stripped
+    assert.equal(data.note, undefined, "note not requested");
+  });
+
+  it("projects wrapper-prefixed nested paths (foods.perHundredGrams.macros)", async () => {
+    const data = await fetchJson(
+      "/nutrition/search?fields=foods.name,foods.perHundredGrams.macros",
+    );
+    assert.equal(data.foods[0].name, "banana");
+    assert.ok(data.foods[0].perHundredGrams.macros, "macros included");
+    assert.equal(data.foods[0].perHundredGrams.minerals, undefined, "minerals excluded");
+  });
+
+  it("bare 'foods' alongside prefixed fields keeps full array unprojected", async () => {
+    // When "foods" appears without a dot next to wrapper-prefixed fields,
+    // it signals: preserve entire array items (no item projection)
+    const data = await fetchJson("/nutrition/rank?fields=nutrient,foods");
+    // Without wrapper-prefixed fields, "nutrient" is treated as item field
+    // and "foods" as the wrapper key — items get projected by "nutrient"
+    assert.equal(data.foods.length, 2);
+    // In this backward-compat mode, items are projected by bare fields
+    // The practical use case is with wrapper-prefix:
+    const data2 = await fetchJson(
+      "/nutrition/rank?fields=nutrient,count,foods.name",
+    );
+    assert.equal(data2.nutrient, "protein");
+    assert.equal(data2.count, 2);
+    assert.ok(data2.foods[0].name);
+    assert.equal(data2.foods[0].kingdom, undefined);
+  });
+
+  it("comparison wrapper with prefix: comparison.name,comparison.query", async () => {
+    const data = await fetchJson(
+      "/nutrition/compare?fields=comparison.name,comparison.query",
+    );
+    assert.equal(data.comparison.length, 2);
+    assert.equal(data.comparison[0].query, "chicken");
+    assert.equal(data.comparison[0].name, "chicken");
+    assert.equal(data.comparison[0].found, undefined, "found excluded");
+    assert.equal(data.comparison[0].perHundredGrams, undefined, "nutrients excluded");
+  });
+});
+

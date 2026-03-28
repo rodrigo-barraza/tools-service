@@ -27,6 +27,16 @@ export async function updateEarthquakes(events) {
 }
 
 /**
+ * Restore earthquakes from a DB snapshot into the in-memory cache.
+ * Memory-only — no MongoDB upsert.
+ */
+export function restoreEarthquakes(events) {
+  cache.events = events;
+  cache.lastFetch = new Date();
+  cache.error = null;
+}
+
+/**
  * Record a fetch error.
  */
 export function setEarthquakeError(error) {

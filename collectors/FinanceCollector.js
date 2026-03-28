@@ -12,6 +12,7 @@ import {
   updateEarnings,
   setEarningsError,
 } from "../caches/FinnhubCache.js";
+import { collectIfStale, saveState } from "../services/FreshnessService.js";
 
 // ─── News Collector ────────────────────────────────────────────────
 
@@ -20,6 +21,7 @@ async function collectMarketNews() {
     const articles = await fetchMarketNews("general");
     const sliced = Array.isArray(articles) ? articles.slice(0, 50) : [];
     updateMarketNews(sliced);
+    await saveState("market_news", sliced);
     console.log(`[Finnhub/News] ✅ ${sliced.length} articles`);
   } catch (error) {
     setNewsError(error);
@@ -39,6 +41,7 @@ async function collectEarnings() {
     const result = await fetchEarningsCalendar(from, to);
     const earnings = result?.earningsCalendar || [];
     updateEarnings(earnings);
+    await saveState("earnings_calendar", earnings);
     console.log(
       `[Finnhub/Earnings] ✅ ${earnings.length} upcoming (${from} → ${to})`,
     );
@@ -51,11 +54,25 @@ async function collectEarnings() {
 // ─── Start Finance Collectors ──────────────────────────────────────
 
 export function startFinanceCollectors() {
-  // Initial fetch for general data only
-  collectMarketNews();
-  collectEarnings();
+  collectIfStale(
+    "Finnhub/News",
+    "market_news",
+    FINNHUB_NEWS_INTERVAL_MS,
+    collectMarketNews,
+    updateMarketNews,
+  );
+  setTimeout(
+    () =>
+      collectIfStale(
+        "Finnhub/Earnings",
+        "earnings_calendar",
+        FINNHUB_EARNINGS_INTERVAL_MS,
+        collectEarnings,
+        updateEarnings,
+      ),
+    2_000,
+  );
 
-  // Scheduled polling (no symbol-specific polling — all on-demand)
   setInterval(collectMarketNews, FINNHUB_NEWS_INTERVAL_MS);
   setInterval(collectEarnings, FINNHUB_EARNINGS_INTERVAL_MS);
 

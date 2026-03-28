@@ -17,65 +17,61 @@ import { fetchCityOfVancouverEvents } from "../fetchers/event/CityOfVancouverFet
 import { fetchSportsEvents } from "../fetchers/event/SportsFetcher.js";
 import { fetchMovieEvents } from "../fetchers/event/MovieFetcher.js";
 import { fetchGooglePlacesEvents } from "../fetchers/event/GooglePlacesFetcher.js";
-import { updateEvents, setError } from "../caches/EventCache.js";
+import { updateEvents, setError, restoreEvents } from "../caches/EventCache.js";
+import { collectIfStale, saveState } from "../services/FreshnessService.js";
 
 // ─── Collector Factory ─────────────────────────────────────────────
 
-/**
- * Create a standard event collector that fetches, caches, and persists.
- * @param {string} label - Log label (e.g. "Ticketmaster")
- * @param {string} source - EVENT_SOURCES key
- * @param {Function} fetchFn - Async function returning event array
- */
-function createEventCollector(label, source, fetchFn) {
+function createEventCollector(collection, source, fetchFn) {
   return async function () {
     try {
       const events = await fetchFn();
       const result = await updateEvents(source, events);
+      await saveState(collection, events);
       console.log(
-        `[${label}] ✅ ${events.length} events | ${result?.upserted || 0} new, ${result?.modified || 0} updated`,
+        `[${collection}] ✅ ${events.length} events | ${result?.upserted || 0} new, ${result?.modified || 0} updated`,
       );
     } catch (error) {
       setError(source, error);
-      console.error(`[${label}] ❌ ${error.message}`);
+      console.error(`[${collection}] ❌ ${error.message}`);
     }
   };
 }
 
-// ─── Simple Collectors (factory-generated) ─────────────────────────
+// ─── Simple Collectors ─────────────────────────────────────────────
 
 const collectTicketmaster = createEventCollector(
-  "Ticketmaster",
+  "events_ticketmaster",
   EVENT_SOURCES.TICKETMASTER,
   fetchTicketmasterEvents,
 );
 const collectSeatGeek = createEventCollector(
-  "SeatGeek",
+  "events_seatgeek",
   EVENT_SOURCES.SEATGEEK,
   fetchSeatGeekEvents,
 );
 const collectCraigslist = createEventCollector(
-  "Craigslist",
+  "events_craigslist",
   EVENT_SOURCES.CRAIGSLIST,
   fetchCraigslistEvents,
 );
 const collectCityOfVancouver = createEventCollector(
-  "City of Vancouver",
+  "events_city_of_vancouver",
   EVENT_SOURCES.CITY_OF_VANCOUVER,
   fetchCityOfVancouverEvents,
 );
 const collectMovies = createEventCollector(
-  "Movies",
+  "events_tmdb",
   EVENT_SOURCES.TMDB,
   fetchMovieEvents,
 );
 const collectGooglePlaces = createEventCollector(
-  "Google Places",
+  "events_google_places",
   EVENT_SOURCES.GOOGLE_PLACES,
   fetchGooglePlacesEvents,
 );
 
-// ─── Multi-Source Collectors (custom logic) ────────────────────────
+// ─── Multi-Source Collectors ───────────────────────────────────────
 
 async function collectUniversities() {
   try {
@@ -86,22 +82,24 @@ async function collectUniversities() {
     if (ubcEvents.length > 0) {
       const r = await updateEvents(EVENT_SOURCES.UBC, ubcEvents);
       console.log(
-        `[UBC] ✅ ${ubcEvents.length} events | ${r?.upserted || 0} new`,
+        `[events_universities/UBC] ✅ ${ubcEvents.length} events | ${r?.upserted || 0} new`,
       );
     }
     if (sfuEvents.length > 0) {
       const r = await updateEvents(EVENT_SOURCES.SFU, sfuEvents);
       console.log(
-        `[SFU] ✅ ${sfuEvents.length} events | ${r?.upserted || 0} new`,
+        `[events_universities/SFU] ✅ ${sfuEvents.length} events | ${r?.upserted || 0} new`,
       );
     }
     if (ubcEvents.length === 0 && sfuEvents.length === 0) {
-      console.log("[Universities] ✅ 0 events parsed");
+      console.log("[events_universities] ✅ 0 events parsed");
     }
+
+    await saveState("events_universities", { ubcEvents, sfuEvents });
   } catch (error) {
     setError(EVENT_SOURCES.UBC, error);
     setError(EVENT_SOURCES.SFU, error);
-    console.error(`[Universities] ❌ ${error.message}`);
+    console.error(`[events_universities] ❌ ${error.message}`);
   }
 }
 
@@ -114,45 +112,134 @@ async function collectSports() {
 
     if (nhl.length > 0) {
       const r = await updateEvents(EVENT_SOURCES.NHL, nhl);
-      console.log(`[Canucks] ✅ ${nhl.length} games | ${r?.upserted || 0} new`);
+      console.log(
+        `[events_sports/NHL] ✅ ${nhl.length} games | ${r?.upserted || 0} new`,
+      );
     }
     if (caps.length > 0) {
       const r = await updateEvents(EVENT_SOURCES.WHITECAPS, caps);
       console.log(
-        `[Whitecaps] ✅ ${caps.length} games | ${r?.upserted || 0} new`,
+        `[events_sports/Whitecaps] ✅ ${caps.length} games | ${r?.upserted || 0} new`,
       );
     }
     if (lions.length > 0) {
       const r = await updateEvents(EVENT_SOURCES.BC_LIONS, lions);
       console.log(
-        `[BC Lions] ✅ ${lions.length} games | ${r?.upserted || 0} new`,
+        `[events_sports/Lions] ✅ ${lions.length} games | ${r?.upserted || 0} new`,
       );
     }
     if (events.length === 0) {
-      console.log("[Sports] ✅ No upcoming games found");
+      console.log("[events_sports] ✅ No upcoming games found");
     }
+
+    await saveState("events_sports", { nhl, caps, lions });
   } catch (error) {
     setError(EVENT_SOURCES.NHL, error);
     setError(EVENT_SOURCES.WHITECAPS, error);
     setError(EVENT_SOURCES.BC_LIONS, error);
-    console.error(`[Sports] ❌ ${error.message}`);
+    console.error(`[events_sports] ❌ ${error.message}`);
   }
 }
+
+// ─── Startup Definitions ──────────────────────────────────────────
+
+const STARTUP_TASKS = [
+  {
+    label: "Ticketmaster",
+    collection: "events_ticketmaster",
+    source: EVENT_SOURCES.TICKETMASTER,
+    ttl: TICKETMASTER_INTERVAL_MS,
+    collectFn: collectTicketmaster,
+    delay: 0,
+  },
+  {
+    label: "SeatGeek",
+    collection: "events_seatgeek",
+    source: EVENT_SOURCES.SEATGEEK,
+    ttl: SEATGEEK_INTERVAL_MS,
+    collectFn: collectSeatGeek,
+    delay: 3_000,
+  },
+  {
+    label: "Craigslist",
+    collection: "events_craigslist",
+    source: EVENT_SOURCES.CRAIGSLIST,
+    ttl: CRAIGSLIST_INTERVAL_MS,
+    collectFn: collectCraigslist,
+    delay: 6_000,
+  },
+  {
+    label: "Universities",
+    collection: "events_universities",
+    ttl: UNIVERSITY_INTERVAL_MS,
+    collectFn: collectUniversities,
+    restoreFn: (data) => {
+      if (data.ubcEvents?.length)
+        restoreEvents(EVENT_SOURCES.UBC, data.ubcEvents);
+      if (data.sfuEvents?.length)
+        restoreEvents(EVENT_SOURCES.SFU, data.sfuEvents);
+    },
+    delay: 9_000,
+  },
+  {
+    label: "City of Vancouver",
+    collection: "events_city_of_vancouver",
+    source: EVENT_SOURCES.CITY_OF_VANCOUVER,
+    ttl: CITY_OF_VANCOUVER_INTERVAL_MS,
+    collectFn: collectCityOfVancouver,
+    delay: 12_000,
+  },
+  {
+    label: "Sports",
+    collection: "events_sports",
+    ttl: SPORTS_INTERVAL_MS,
+    collectFn: collectSports,
+    restoreFn: (data) => {
+      if (data.nhl?.length) restoreEvents(EVENT_SOURCES.NHL, data.nhl);
+      if (data.caps?.length) restoreEvents(EVENT_SOURCES.WHITECAPS, data.caps);
+      if (data.lions?.length)
+        restoreEvents(EVENT_SOURCES.BC_LIONS, data.lions);
+    },
+    delay: 15_000,
+  },
+  {
+    label: "Movies",
+    collection: "events_tmdb",
+    source: EVENT_SOURCES.TMDB,
+    ttl: MOVIE_INTERVAL_MS,
+    collectFn: collectMovies,
+    delay: 18_000,
+  },
+  {
+    label: "Google Places",
+    collection: "events_google_places",
+    source: EVENT_SOURCES.GOOGLE_PLACES,
+    ttl: GOOGLE_PLACES_INTERVAL_MS,
+    collectFn: collectGooglePlaces,
+    delay: 21_000,
+  },
+];
 
 // ─── Start All Event Collectors ────────────────────────────────────
 
 export function startEventCollectors() {
-  // Staggered initial fetch
-  collectTicketmaster();
-  setTimeout(collectSeatGeek, 3_000);
-  setTimeout(collectCraigslist, 6_000);
-  setTimeout(collectUniversities, 9_000);
-  setTimeout(collectCityOfVancouver, 12_000);
-  setTimeout(collectSports, 15_000);
-  setTimeout(collectMovies, 18_000);
-  setTimeout(collectGooglePlaces, 21_000);
+  for (const task of STARTUP_TASKS) {
+    const restoreFn =
+      task.restoreFn || ((data) => restoreEvents(task.source, data));
 
-  // Recurring intervals
+    setTimeout(
+      () =>
+        collectIfStale(
+          task.label,
+          task.collection,
+          task.ttl,
+          task.collectFn,
+          restoreFn,
+        ),
+      task.delay,
+    );
+  }
+
   setInterval(collectTicketmaster, TICKETMASTER_INTERVAL_MS);
   setInterval(collectSeatGeek, SEATGEEK_INTERVAL_MS);
   setInterval(collectCraigslist, CRAIGSLIST_INTERVAL_MS);

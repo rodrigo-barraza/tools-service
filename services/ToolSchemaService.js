@@ -4095,6 +4095,156 @@ const TOOL_DEFINITIONS = [
 ];
 
 // ────────────────────────────────────────────────────────────
+// Domain Taxonomy — groups tools by functional area
+// ────────────────────────────────────────────────────────────
+
+const TOOL_DOMAINS = {
+  // Weather & Environment
+  get_current_weather: "Weather & Environment",
+  get_weather_forecast: "Weather & Environment",
+  get_air_quality: "Weather & Environment",
+  get_earthquakes: "Weather & Environment",
+  get_solar_activity: "Weather & Environment",
+  get_aurora_forecast: "Weather & Environment",
+  get_twilight: "Weather & Environment",
+  get_tides: "Weather & Environment",
+  get_wildfires: "Weather & Environment",
+  get_iss_position: "Weather & Environment",
+  get_near_earth_objects: "Weather & Environment",
+  get_solar_wind: "Weather & Environment",
+  get_pollen: "Weather & Environment",
+  get_apod: "Weather & Environment",
+  get_launches: "Weather & Environment",
+  get_weather_warnings: "Weather & Environment",
+  get_avalanche_forecast: "Weather & Environment",
+  get_google_air_quality: "Weather & Environment",
+
+  // Events
+  search_events: "Events",
+  get_upcoming_events: "Events",
+  get_events_today: "Events",
+  get_event_summary: "Events",
+
+  // Markets & Commodities
+  get_commodities_summary: "Markets & Commodities",
+  get_commodity_by_category: "Markets & Commodities",
+  get_commodity_ticker: "Markets & Commodities",
+  get_commodity_categories: "Markets & Commodities",
+  get_commodity_history: "Markets & Commodities",
+
+  // Trends
+  get_trends: "Trends",
+  get_hot_trends: "Trends",
+  get_top_trends: "Trends",
+
+  // Products
+  search_products: "Products",
+  get_trending_products: "Products",
+  get_product_availability: "Products",
+  check_product_availability: "Products",
+  get_costco_us_products: "Products",
+  get_costco_ca_products: "Products",
+
+  // Finance
+  get_stock_quote: "Finance",
+  get_company_profile: "Finance",
+  get_market_news: "Finance",
+  get_earnings_calendar: "Finance",
+  get_stock_recommendation: "Finance",
+  get_stock_financials: "Finance",
+  get_macro_indicators: "Finance",
+  search_macro_series: "Finance",
+  get_macro_series_info: "Finance",
+  get_macro_observations: "Finance",
+
+  // Knowledge
+  define_word: "Knowledge",
+  search_books: "Knowledge",
+  get_book_details: "Knowledge",
+  get_author_info: "Knowledge",
+  get_country_info: "Knowledge",
+  get_country_by_code: "Knowledge",
+  search_papers: "Knowledge",
+  get_wikipedia_summary: "Knowledge",
+  get_on_this_day: "Knowledge",
+  search_anime: "Knowledge",
+  get_top_anime: "Knowledge",
+  get_current_season_anime: "Knowledge",
+  get_anime_details: "Knowledge",
+  search_elements: "Knowledge",
+  get_element: "Knowledge",
+  rank_elements: "Knowledge",
+  get_element_categories: "Knowledge",
+  get_country_indicators: "Knowledge",
+  rank_countries_by_indicator: "Knowledge",
+  compare_countries: "Knowledge",
+  list_development_indicators: "Knowledge",
+  search_exoplanets: "Knowledge",
+  get_exoplanet: "Knowledge",
+  rank_exoplanets: "Knowledge",
+  exoplanet_discovery_stats: "Knowledge",
+  habitable_zone_exoplanets: "Knowledge",
+
+  // Movies & TV
+  search_movies: "Movies & TV",
+  get_movie_details: "Movies & TV",
+  get_movie_credits: "Movies & TV",
+  get_trending_movies: "Movies & TV",
+  discover_movies: "Movies & TV",
+  get_movie_genres: "Movies & TV",
+  search_tv_shows: "Movies & TV",
+  get_tv_show_details: "Movies & TV",
+  get_tv_show_credits: "Movies & TV",
+  get_tv_season_details: "Movies & TV",
+  get_trending_tv_shows: "Movies & TV",
+  discover_tv_shows: "Movies & TV",
+  get_tv_genres: "Movies & TV",
+
+  // Health
+  search_drug_info: "Health",
+  get_drug_adverse_events: "Health",
+  get_drug_recalls: "Health",
+  search_usda_nutrition: "Health",
+  rank_foods_by_nutrient: "Health",
+  compare_food_nutrition: "Health",
+  get_food_categories: "Health",
+  get_nutrient_types: "Health",
+  list_category_nutrients: "Health",
+  top_foods_by_macro: "Health",
+  top_foods_by_mineral: "Health",
+  top_foods_by_vitamin: "Health",
+  top_foods_by_amino_acid: "Health",
+  top_foods_by_lipid: "Health",
+  top_foods_by_carb: "Health",
+  top_foods_by_sterol: "Health",
+  search_foods_by_taxonomy: "Health",
+  browse_food_taxonomy: "Health",
+  search_fda_drugs: "Health",
+  get_drug_by_ndc: "Health",
+  list_drug_dosage_forms: "Health",
+  search_drugs_by_ingredient: "Health",
+  search_drugs_by_pharm_class: "Health",
+
+  // Transit
+  get_next_bus: "Transit",
+  get_transit_stop_info: "Transit",
+  find_transit_stops_nearby: "Transit",
+  get_transit_route_info: "Transit",
+
+  // Utilities
+  convert_currency: "Utilities",
+  get_time_in_timezone: "Utilities",
+  lookup_ip: "Utilities",
+  search_nearby_places: "Utilities",
+  search_places: "Utilities",
+  generate_map: "Utilities",
+  search_airports: "Utilities",
+  get_airport_by_code: "Utilities",
+  get_airports_by_country: "Utilities",
+  find_nearest_airports: "Utilities",
+};
+
+// ────────────────────────────────────────────────────────────
 // Public API
 // ────────────────────────────────────────────────────────────
 
@@ -4104,7 +4254,10 @@ const TOOL_DEFINITIONS = [
  * @returns {Array} Full tool definitions including endpoint info
  */
 export function getToolSchemas() {
-  return TOOL_DEFINITIONS;
+  return TOOL_DEFINITIONS.map((t) => ({
+    ...t,
+    domain: TOOL_DOMAINS[t.name] || "Other",
+  }));
 }
 
 /**

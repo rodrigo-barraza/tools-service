@@ -77,6 +77,17 @@ export function update(source, data) {
 }
 
 /**
+ * Restore a source's data from a DB snapshot into the cache.
+ * Memory-only — no change-detection or MongoDB persistence.
+ */
+export function restore(source, data) {
+  const { source: _src, ...fields } = data;
+  Object.assign(cache.current, fields);
+  cache.lastFetch[source] = new Date();
+  cache.errors[source] = null;
+}
+
+/**
  * Record a fetch error for a source.
  */
 export function setError(source, error) {

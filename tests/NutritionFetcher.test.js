@@ -288,7 +288,11 @@ describe("getNutrientTypes", () => {
     assert.ok(result.types.length > 0, "should have at least one type");
     assert.ok(result.totalFoods > 0, "should report total foods");
     assert.ok(result.totalNutrients > 0, "should report total nutrients");
-    assert.ok(result.source.includes("USDA"), "should cite USDA source");
+    assert.ok(Array.isArray(result.sources), "should have sources array");
+    assert.ok(
+      result.sources.some((s) => s.name.includes("USDA")),
+      "should cite USDA source",
+    );
   });
 });
 

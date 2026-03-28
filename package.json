@@ -12,7 +12,9 @@
     "format": "prettier --write \"**/*.js\"",
     "format:check": "prettier --check \"**/*.js\"",
     "test": "node --test tests/**/*.test.js",
-    "test:nutrition": "node --test tests/NutritionFetcher.test.js"
+    "test:nutrition": "node --test tests/NutritionFetcher.test.js",
+    "test:projection": "node --test tests/FieldProjectionMiddleware.test.js",
+    "test:endpoints": "node --test tests/NutritionEndpoints.test.js"
   },
   "author": "",
   "license": "ISC",

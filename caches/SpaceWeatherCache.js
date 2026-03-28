@@ -34,6 +34,18 @@ export function setSpaceWeatherError(error) {
   cache.error = { message: error.message, time: new Date() };
 }
 
+/**
+ * Restore space weather data from a DB snapshot.
+ * Memory-only — no MongoDB upserts.
+ */
+export function restoreSpaceWeather({ flares, cmes, storms }) {
+  cache.flares = flares || [];
+  cache.cmes = cmes || [];
+  cache.storms = storms || [];
+  cache.lastFetch = new Date();
+  cache.error = null;
+}
+
 export function getLatestFlares() {
   return [...cache.flares];
 }

@@ -128,11 +128,45 @@ function projectResponse(data, fields) {
 
     // Apply field projection to array items if requested
     if (fields) {
-      cleaned[wrapperKey] = cleaned[wrapperKey].map((item) =>
-        typeof item === "object" && item !== null
-          ? pickFields(item, fields)
-          : item,
-      );
+      const prefix = wrapperKey + ".";
+      const hasWrapperPrefix = fields.some((f) => f.startsWith(prefix));
+
+      // Separate fields targeting wrapper items vs top-level metadata
+      const itemFields = [];
+      const topFields = [];
+
+      for (const f of fields) {
+        if (f.startsWith(prefix)) {
+          // "foods.name" → "name" (strip wrapper key prefix)
+          itemFields.push(f.slice(prefix.length));
+        } else if (f === wrapperKey) {
+          // Just "foods" — keep entire array, no item projection
+        } else if (hasWrapperPrefix) {
+          // When wrapper-prefixed fields exist, non-prefixed fields
+          // are treated as top-level metadata selectors
+          topFields.push(f);
+        } else {
+          // No wrapper-prefixed fields at all — bare fields target items
+          // (backward compatible: "name,value" → project each item)
+          itemFields.push(f);
+        }
+      }
+
+      // Project items only if there are item-level fields
+      if (itemFields.length > 0) {
+        cleaned[wrapperKey] = cleaned[wrapperKey].map((item) =>
+          typeof item === "object" && item !== null
+            ? pickFields(item, itemFields)
+            : item,
+        );
+      }
+
+      // If top-level metadata fields were specified, project those too
+      if (topFields.length > 0) {
+        const projected = pickFields(cleaned, topFields);
+        projected[wrapperKey] = cleaned[wrapperKey];
+        return projected;
+      }
     }
 
     return cleaned;
