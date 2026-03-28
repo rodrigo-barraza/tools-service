@@ -81,6 +81,50 @@ function normalizePlace(place) {
   };
 }
 
+// ─── Static Map URL Builder ───────────────────────────────────────
+
+const STATIC_MAP_URL = "https://maps.googleapis.com/maps/api/staticmap";
+const MARKER_COLORS = ["red", "blue", "green", "purple", "orange", "yellow"];
+
+/**
+ * Build a Google Maps Static API URL with labeled markers for each place.
+ * https://developers.google.com/maps/documentation/maps-static/start
+ *
+ * @param {object[]} places - Array of normalized place objects
+ * @param {object}   center - { latitude, longitude }
+ * @param {object}  [opts]
+ * @param {string}  [opts.size]    - Image dimensions (default: "800x400")
+ * @param {number}  [opts.zoom]    - Zoom level (omit to let Google auto-fit)
+ * @param {string}  [opts.maptype] - roadmap | satellite | terrain | hybrid
+ * @returns {string|null} Static map URL or null if no places
+ */
+export function buildStaticMapUrl(places, center, { size = "800x400", zoom, maptype = "roadmap" } = {}) {
+  if (!places.length || !CONFIG.GOOGLE_API_KEY) return null;
+
+  const params = new URLSearchParams({
+    size,
+    maptype,
+    scale: "2", // Retina/HiDPI
+    key: CONFIG.GOOGLE_API_KEY,
+  });
+
+  if (zoom != null) {
+    params.set("zoom", String(zoom));
+  }
+
+  // Add numbered markers
+  const markerParams = places
+    .filter((p) => p.latitude != null && p.longitude != null)
+    .map((p, i) => {
+      const color = MARKER_COLORS[i % MARKER_COLORS.length];
+      const label = String(i + 1);
+      return `markers=color:${color}|label:${label}|${p.latitude},${p.longitude}`;
+    })
+    .join("&");
+
+  return `${STATIC_MAP_URL}?${params.toString()}&${markerParams}`;
+}
+
 // ─── Nearby Search ────────────────────────────────────────────────
 
 /**
@@ -155,6 +199,7 @@ export async function searchNearbyPlaces({
     type,
     center: { latitude: lat, longitude: lng },
     radiusMeters: rad,
+    staticMapUrl: buildStaticMapUrl(places, { latitude: lat, longitude: lng }),
     places,
     fetchedAt: new Date().toISOString(),
   };
@@ -238,6 +283,7 @@ export async function searchPlacesByText({
     query,
     center: { latitude: lat, longitude: lng },
     radiusMeters: rad,
+    staticMapUrl: buildStaticMapUrl(places, { latitude: lat, longitude: lng }),
     places,
     fetchedAt: new Date().toISOString(),
   };

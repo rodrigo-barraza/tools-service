@@ -11,6 +11,7 @@ import { lookupIp, batchLookupIps } from "../fetchers/utility/IpInfoFetcher.js";
 import {
   searchNearbyPlaces,
   searchPlacesByText,
+  buildStaticMapUrl,
 } from "../fetchers/utility/PlacesFetcher.js";
 
 const router = Router();
@@ -152,6 +153,61 @@ router.get("/places/search", async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(502).json({ error: `Places text search failed: ${err.message}` });
+  }
+});
+
+// ─── Map Generation (Google Maps Static API) ──────────────────────
+
+router.get("/map", async (req, res) => {
+  const { markers, center, zoom, size, maptype } = req.query;
+  if (!markers) {
+    return res
+      .status(400)
+      .json({ error: "Query parameter 'markers' is required (JSON array of {latitude, longitude, label?})" });
+  }
+  try {
+    let markerList;
+    try {
+      markerList = JSON.parse(markers);
+    } catch {
+      return res
+        .status(400)
+        .json({ error: "'markers' must be a valid JSON array" });
+    }
+
+    if (!Array.isArray(markerList) || markerList.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "'markers' must be a non-empty array" });
+    }
+
+    let centerObj = null;
+    if (center) {
+      try {
+        centerObj = JSON.parse(center);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    const mapUrl = buildStaticMapUrl(markerList, centerObj || {}, {
+      size: size || "800x400",
+      zoom: zoom ? parseInt(zoom) : undefined,
+      maptype: maptype || "roadmap",
+    });
+
+    if (!mapUrl) {
+      return res
+        .status(500)
+        .json({ error: "GOOGLE_API_KEY is not configured" });
+    }
+
+    res.json({
+      staticMapUrl: mapUrl,
+      markerCount: markerList.length,
+    });
+  } catch (err) {
+    res.status(502).json({ error: `Map generation failed: ${err.message}` });
   }
 });
 

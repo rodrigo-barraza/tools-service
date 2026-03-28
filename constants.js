@@ -2228,6 +2228,36 @@ export const DATASET_REGISTRY = [
     notes:
       "528 key Indian foods with 151 nutrients. Includes names in 14+ Indian languages. Energy converted from kJ, amino acids from mg to g.",
   },
+  {
+    id: "australia-afcd",
+    name: "Australia AFCD",
+    domain: "nutrition",
+    file: "fetchers/health/data/digest_food_australia.csv",
+    source: "Food Standards Australia New Zealand (FSANZ)",
+    url: "https://www.foodstandards.gov.au/science-data/food-nutrient-databases/afcd/data-files",
+    version: "Release 3",
+    dataYear: 2025,
+    ingestedYear: 2026,
+    foods: 1072,
+    region: "Australia",
+    notes:
+      "1,588 foods with 272 nutrient columns. Filtered to real foods (excludes beverages, confectionery, snack foods, sauces, soups). 79 nutrients mapped to digest schema.",
+  },
+  {
+    id: "japan-mext",
+    name: "Japan MEXT Standard Tables",
+    domain: "nutrition",
+    file: "fetchers/health/data/digest_food_japan.csv",
+    source: "Ministry of Education, Culture, Sports, Science and Technology (MEXT), Japan",
+    url: "https://www.mext.go.jp/a_menu/syokuhinseibun/mext_01110.html",
+    version: "8th Revision (2020)",
+    dataYear: 2020,
+    ingestedYear: 2026,
+    foods: 1758,
+    region: "Japan",
+    notes:
+      "2,490 foods with 65 nutrient columns. Food names in Japanese. INFOODS tagnames used for column mapping. Filtered to exclude confectionery, beverages, condiments, and ready meals.",
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════

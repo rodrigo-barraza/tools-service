@@ -63,6 +63,8 @@ const FOOD_DATA_FILES = [
   { file: "digest_food_fao.csv", source: "FAO/INFOODS BioFoodComp" },
   { file: "digest_food_uk.csv", source: "UK CoFID" },
   { file: "digest_food_india.csv", source: "India IFCT" },
+  { file: "digest_food_australia.csv", source: "Australia AFCD" },
+  { file: "digest_food_japan.csv", source: "Japan MEXT" },
 ];
 
 const SOURCES_NOTE = `All nutrient values per 100g edible portion. Sources: ${FOOD_DATA_FILES.map((f) => f.source).join(", ")}.`;

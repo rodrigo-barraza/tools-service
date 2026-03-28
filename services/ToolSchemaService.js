@@ -935,6 +935,7 @@ const FIELDS = {
     "googleMapsUrl",
     "description",
     "openNow",
+    "staticMapUrl",
   ],
 };
 
@@ -3152,7 +3153,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "search_nearby_places",
     description:
-      "Search for nearby places/businesses by type (e.g. restaurant, cafe, pharmacy, gas_station, grocery_store, gym, hospital, park, shopping_mall, bar, hotel, bank, library). Returns name, address, rating, reviews, price level, phone, website, and whether currently open. Great for finding nearby restaurants, shops, services, and points of interest.",
+      "Search for nearby places/businesses by type (e.g. restaurant, cafe, pharmacy, gas_station, grocery_store, gym, hospital, park, shopping_mall, bar, hotel, bank, library). Returns name, address, rating, reviews, price level, phone, website, and whether currently open. Also returns a staticMapUrl — a Google Maps image with numbered markers for all results. Always include staticMapUrl in fields and render it as an embedded image in your response using ![Map](url) markdown syntax.",
     endpoint: {
       path: "/utility/places/nearby",
       queryParams: ["type", "latitude", "longitude", "radius", "limit"],
@@ -3189,7 +3190,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "search_places",
     description:
-      "Search for places using a natural language text query (e.g. 'best sushi near downtown', 'coffee shops with wifi', '24 hour pharmacy'). More flexible than nearby search — supports descriptive queries. Returns name, address, rating, reviews, price level, phone, website, and whether currently open.",
+      "Search for places using a natural language text query (e.g. 'best sushi near downtown', 'coffee shops with wifi', '24 hour pharmacy'). More flexible than nearby search — supports descriptive queries. Returns name, address, rating, reviews, price level, phone, website, and whether currently open. Also returns a staticMapUrl — a Google Maps image with numbered markers for all results. Always include staticMapUrl in fields and render it as an embedded image in your response using ![Map](url) markdown syntax.",
     endpoint: {
       path: "/utility/places/search",
       queryParams: ["q", "latitude", "longitude", "radius", "limit"],
@@ -3220,6 +3221,44 @@ const TOOL_DEFINITIONS = [
         ...fieldsParam(FIELDS.PLACES),
       },
       required: ["q"],
+    },
+  },
+  {
+    name: "generate_map",
+    description:
+      "Generate a Google Maps image with labeled markers for a set of locations. Use this AFTER a places search, IP lookup, or any query that yields coordinates. Pass the locations as a JSON markers array. The response contains a staticMapUrl that is automatically rendered as an inline map image in the chat.",
+    endpoint: {
+      path: "/utility/map",
+      queryParams: ["markers", "center", "zoom", "size", "maptype"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        markers: {
+          type: "string",
+          description:
+            'JSON array of marker objects. Each marker: { "latitude": number, "longitude": number, "label": "optional string" }. Example: [{"latitude":49.28,"longitude":-123.12,"label":"Miku"},{"latitude":49.27,"longitude":-123.11,"label":"Ramen Danbo"}]',
+        },
+        center: {
+          type: "string",
+          description:
+            'Optional JSON center point: {"latitude": number, "longitude": number}. If omitted, auto-fits to markers.',
+        },
+        zoom: {
+          type: "number",
+          description: "Optional zoom level (1-20). If omitted, auto-fits to markers.",
+        },
+        size: {
+          type: "string",
+          description: "Image dimensions as WxH (default: '800x400')",
+        },
+        maptype: {
+          type: "string",
+          description: "Map type: roadmap, satellite, terrain, hybrid (default: roadmap)",
+          enum: ["roadmap", "satellite", "terrain", "hybrid"],
+        },
+      },
+      required: ["markers"],
     },
   },
 ];
