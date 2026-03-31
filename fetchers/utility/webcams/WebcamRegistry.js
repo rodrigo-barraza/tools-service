@@ -3,9 +3,6 @@ import { refreshSeattleWebcams } from "./sources/seattle.js";
 import { refreshTorontoWebcams } from "./sources/toronto.js";
 import { refreshCalgaryWebcams } from "./sources/calgary.js";
 import { refreshAustinWebcams } from "./sources/austin.js";
-import { refreshChicagoWebcams } from "./sources/chicago.js";
-import { refreshNewYorkWebcams } from "./sources/new_york.js";
-import { refreshLosAngelesWebcams } from "./sources/los_angeles.js";
 
 /**
  * Registry mapping normalized city names to their specific 
@@ -18,9 +15,6 @@ export const WEBCAM_REGISTRY = {
   toronto: refreshTorontoWebcams,
   calgary: refreshCalgaryWebcams,
   austin: refreshAustinWebcams,
-  chicago: refreshChicagoWebcams,
-  "new york": refreshNewYorkWebcams,
-  "los angeles": refreshLosAngelesWebcams,
 };
 
 export function getSupportedCities() {
