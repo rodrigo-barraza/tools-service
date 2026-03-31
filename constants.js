@@ -2128,6 +2128,138 @@ export const NEW_API_RATE_LIMITS = {
     qpd: 1_666, // 50000/month ≈ 1666/day
     requestDelayMs: 200,
   },
+
+  // ─── Maritime Domain (AIS Stream) ─────────────────────────────────
+  AIS_STREAM: {
+    qps: 1,
+    qpm: null,
+    qpd: null, // WebSocket — 1 subscription update/second; persistent connection
+    requestDelayMs: 1_000, // only applies to subscription updates
+  },
+
+  // ─── Energy Domain (EIA) ──────────────────────────────────────────
+  EIA: {
+    qps: null,
+    qpm: null,
+    qpd: null, // undocumented; key auto-suspended if exceeded
+    requestDelayMs: 500, // conservative pacing
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  MARITIME DOMAIN (AIS Stream)
+// ═══════════════════════════════════════════════════════════════
+
+export const AIS_STREAM_WS_URL = "wss://stream.aisstream.io/v0/stream";
+export const AIS_STREAM_MAX_BUFFER_SIZE = 5_000; // ring buffer of recent messages
+export const AIS_STREAM_RECONNECT_DELAY_MS = 10_000; // 10s between reconnect attempts
+export const AIS_STREAM_BBOX_RADIUS_DEG = 2; // ~220km radius around configured lat/lng
+
+// Default message types to subscribe to
+export const AIS_STREAM_MESSAGE_TYPES = [
+  "PositionReport",
+  "ShipStaticData",
+  "StandardClassBPositionReport",
+  "ExtendedClassBPositionReport",
+  "SafetyBroadcastMessage",
+  "StandardSearchAndRescueAircraftReport",
+  "BaseStationReport",
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  ENERGY DOMAIN (EIA — U.S. Energy Information Administration)
+// ═══════════════════════════════════════════════════════════════
+
+export const EIA_BASE_URL = "https://api.eia.gov";
+
+// Curated default series for the key energy indicators snapshot.
+export const EIA_DEFAULT_SERIES = {
+  // ─── Petroleum ────────────────────────────────────────────────
+  GAS_PRICE_REGULAR: {
+    name: "U.S. Regular Gasoline Price",
+    category: "petroleum",
+    route: "petroleum/pri/gnd",
+    dataColumn: "value",
+    facets: { product: ["EPM0"], duoarea: ["NUS"] },
+    frequency: "weekly",
+    unit: "$/gallon",
+    description: "U.S. regular conventional retail gasoline price",
+  },
+  GAS_PRICE_DIESEL: {
+    name: "U.S. No 2 Diesel Price",
+    category: "petroleum",
+    route: "petroleum/pri/gnd",
+    dataColumn: "value",
+    facets: { product: ["EPD2DXL0"], duoarea: ["NUS"] },
+    frequency: "weekly",
+    unit: "$/gallon",
+    description: "U.S. No 2 diesel retail price",
+  },
+  CRUDE_OIL_PRICE: {
+    name: "Crude Oil (WTI) Spot Price",
+    category: "petroleum",
+    route: "petroleum/pri/spt",
+    dataColumn: "value",
+    facets: { product: ["EPCBRENT"] },
+    frequency: "daily",
+    unit: "$/barrel",
+    description: "Europe Brent crude oil spot price FOB",
+  },
+
+  // ─── Natural Gas ──────────────────────────────────────────────
+  NATURAL_GAS_PRICE: {
+    name: "Henry Hub Natural Gas Spot Price",
+    category: "natural_gas",
+    route: "natural-gas/pri/fut",
+    dataColumn: "value",
+    facets: { process: ["FRC"] },
+    frequency: "daily",
+    unit: "$/MMBtu",
+    description: "Henry Hub natural gas futures contract 1 price",
+  },
+  NATURAL_GAS_STORAGE: {
+    name: "U.S. Working Gas in Underground Storage",
+    category: "natural_gas",
+    route: "natural-gas/stor/wkly",
+    dataColumn: "value",
+    frequency: "weekly",
+    unit: "Bcf",
+    description: "Weekly working gas in underground storage",
+  },
+
+  // ─── Electricity ──────────────────────────────────────────────
+  ELECTRICITY_PRICE: {
+    name: "U.S. Average Electricity Price",
+    category: "electricity",
+    route: "electricity/retail-sales",
+    dataColumn: "price",
+    facets: { stateid: ["US"], sectorid: ["ALL"] },
+    frequency: "monthly",
+    unit: "cents/kWh",
+    description: "Average U.S. retail electricity price, all sectors",
+  },
+
+  // ─── Coal ─────────────────────────────────────────────────────
+  COAL_PRODUCTION: {
+    name: "U.S. Coal Production",
+    category: "coal",
+    route: "coal/aggregate-production",
+    dataColumn: "production",
+    frequency: "quarterly",
+    unit: "short tons (thousands)",
+    description: "U.S. quarterly coal production",
+  },
+
+  // ─── Nuclear ──────────────────────────────────────────────────
+  NUCLEAR_OUTAGES: {
+    name: "U.S. Nuclear Outage Percentage",
+    category: "nuclear",
+    route: "nuclear-outages/us-nuclear-outages",
+    dataColumn: "outage",
+    frequency: "daily",
+    unit: "%",
+    description: "Percentage of U.S. nuclear capacity currently offline",
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════

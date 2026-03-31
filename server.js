@@ -31,6 +31,8 @@ import knowledgeRoutes, {
 import healthRoutes, { getHealthDomainHealth } from "./routes/HealthRoutes.js";
 import transitRoutes, { getTransitHealth } from "./routes/TransitRoutes.js";
 import utilityRoutes, { getUtilityHealth } from "./routes/UtilityRoutes.js";
+import maritimeRoutes, { getMaritimeHealth } from "./routes/MaritimeRoutes.js";
+import energyRoutes, { getEnergyHealth } from "./routes/EnergyRoutes.js";
 import adminRoutes from "./routes/AdminRoutes.js";
 
 // ─── Collectors ────────────────────────────────────────────────────
@@ -41,6 +43,7 @@ import { startMarketCollectors } from "./collectors/MarketCollector.js";
 import { startProductCollectors } from "./collectors/ProductCollector.js";
 import { startTrendCollectors } from "./collectors/TrendCollector.js";
 import { startWeatherCollectors } from "./collectors/WeatherCollector.js";
+import { startAisStream } from "./fetchers/maritime/AisStreamFetcher.js";
 
 // ─── Express App ───────────────────────────────────────────────────
 
@@ -68,6 +71,8 @@ app.use("/knowledge", knowledgeRoutes);
 app.use("/health", healthRoutes);
 app.use("/transit", transitRoutes);
 app.use("/utility", utilityRoutes);
+app.use("/maritime", maritimeRoutes);
+app.use("/energy", energyRoutes);
 app.use("/admin", adminRoutes);
 
 // ─── Unified Health ────────────────────────────────────────────────
@@ -87,6 +92,8 @@ app.get("/health", (_req, res) => {
       health: getHealthDomainHealth(),
       transit: getTransitHealth(),
       utility: getUtilityHealth(),
+      maritime: getMaritimeHealth(),
+      energy: getEnergyHealth(),
     },
   });
 });
@@ -131,15 +138,18 @@ async function start() {
   startTrendCollectors();
   startWeatherCollectors();
 
+  // Start AIS Stream WebSocket (if API key is configured)
+  startAisStream();
+
   const port = CONFIG.TOOLS_PORT;
   app.listen(port, () => {
     console.log(`🔧 Tools API running on port ${port}`);
     console.log(`   Database: ${CONFIG.MONGODB_URI}`);
     console.log(
-      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility",
+      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, maritime, energy",
     );
     console.log(
-      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*",
+      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /maritime/*, /energy/*",
     );
   });
 }

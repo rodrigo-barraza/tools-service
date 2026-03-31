@@ -40,6 +40,12 @@ import {
 
   // Utility
   IPINFO_TOKEN,
+
+  // Maritime
+  AIS_STREAM_API_KEY,
+
+  // Energy
+  EIA_API_KEY,
 } from "./secrets.js";
 
 const CONFIG = {
@@ -92,6 +98,12 @@ const CONFIG = {
 
   // ─── Utility ─────────────────────────────────────────────────────
   IPINFO_TOKEN,
+
+  // ─── Maritime ────────────────────────────────────────────────────
+  AIS_STREAM_API_KEY,
+
+  // ─── Energy ──────────────────────────────────────────────────────
+  EIA_API_KEY,
 };
 
 /**

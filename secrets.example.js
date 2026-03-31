@@ -72,3 +72,15 @@ export const TRANSLINK_API_KEY = "";
 //    Free tier: 50,000 requests/month.
 
 export const IPINFO_TOKEN = "";
+
+// ─── Maritime Domain (AIS Stream) ─────────────────────────────────
+//    Register at https://aisstream.io/authenticate (GitHub login).
+//    Free — WebSocket-based. 1 subscription update/second.
+
+export const AIS_STREAM_API_KEY = "";
+
+// ─── Energy Domain (EIA) ──────────────────────────────────────────
+//    Register at https://www.eia.gov/opendata/ for a free key.
+//    Free — undocumented rate limit; key auto-suspended if exceeded.
+
+export const EIA_API_KEY = "";
