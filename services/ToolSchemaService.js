@@ -88,6 +88,10 @@ function staticDataset(name) {
   return { type: "static", provider: "internal", dataset: name };
 }
 
+function compute(name) {
+  return { type: "compute", provider: "internal", runtime: name };
+}
+
 // ────────────────────────────────────────────────────────────
 // Available Fields — per-tool field enums
 // ────────────────────────────────────────────────────────────
@@ -3605,7 +3609,7 @@ const TOOL_DEFINITIONS = [
   // ── Utilities ──────────────────────────────────────────────────
   {
     name: "execute_python",
-    dataSource: onDemand("internal"),
+    dataSource: compute("Python 3 subprocess"),
     description:
       "Execute Python code in a sandboxed interpreter. Use this for complex calculations, data transformations, statistical analysis, string manipulation, date/time operations, or any task that benefits from programmatic computation. The interpreter has access to Python's standard library (math, json, datetime, collections, itertools, statistics, decimal, fractions, re, textwrap, csv, io, etc.) but network access and dangerous modules (subprocess, shutil, ctypes) are blocked. Code runs with a 30-second default timeout (max 60s) and 256 MB memory limit. Print results to stdout — the output is captured and returned.",
     endpoint: {
@@ -3632,7 +3636,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "precise_calculator",
-    dataSource: onDemand("internal"),
+    dataSource: compute("bignumber.js"),
     description:
       "Perform highly precise mathematical calculations using bignumber.js. Supports arbitrary-precision arithmetic. Passed numbers should be strings to prevent precision loss. For sqrt, 'b' is ignored.",
     endpoint: {
@@ -3839,6 +3843,61 @@ const TOOL_DEFINITIONS = [
         },
       },
       required: ["markers"],
+    },
+  },
+
+  // ── Chart Generation ──────────────────────────────────────
+  {
+    name: "generate_chart",
+    dataSource: onDemand("internal"),
+    description:
+      "Generate an interactive chart (bar, line, or pie) from structured data. Use this to visualize comparisons, trends, distributions, or any numeric data the user asks to see as a chart. Pass labels (category names or x-axis values) and one or more datasets (each with a label and numeric data array). The response contains a chartEmbedUrl — you MUST render it in your response using ![Chart](chartEmbedUrl) markdown syntax so the user sees the interactive chart inline.",
+    endpoint: {
+      method: "POST",
+      path: "/utility/chart",
+      bodyParams: ["type", "title", "labels", "datasets"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        type: {
+          type: "string",
+          description: "The chart type to generate",
+          enum: ["bar", "line", "pie"],
+        },
+        title: {
+          type: "string",
+          description: "Optional chart title displayed at the top",
+        },
+        labels: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            'Category labels (bar/pie) or x-axis values (line). Example: ["Jan", "Feb", "Mar", "Apr"]',
+        },
+        datasets: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              label: {
+                type: "string",
+                description: "Dataset name shown in the legend (e.g. \"Revenue\", \"Temperature\")",
+              },
+              data: {
+                type: "array",
+                items: { type: "number" },
+                description:
+                  "Numeric values corresponding to each label. Length must match labels array.",
+              },
+            },
+            required: ["label", "data"],
+          },
+          description:
+            'One or more data series. For pie charts use a single dataset. Example: [{"label": "Sales", "data": [120, 190, 300, 500]}]',
+        },
+      },
+      required: ["type", "labels", "datasets"],
     },
   },
 
@@ -4079,6 +4138,7 @@ const TOOL_DEFINITIONS = [
 
   {
     name: "search_airports",
+    dataSource: staticDataset("OurAirports CSV"),
     description:
       "Search for airports by name, IATA/ICAO code, city, or country. Returns matching airports with codes, location, and type. Use this when the user asks about airports, flight routes, or travel.",
     endpoint: { path: "/utility/airports/search" },
@@ -4101,6 +4161,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_airport_by_code",
+    dataSource: staticDataset("OurAirports CSV"),
     description:
       "Look up a specific airport by its IATA or ICAO code. Returns full details including coordinates.",
     endpoint: { path: "/utility/airports/code/{code}" },
@@ -4118,6 +4179,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_airports_by_country",
+    dataSource: staticDataset("OurAirports CSV"),
     description:
       "List all medium and large airports in a country. Results sorted by size (large airports first).",
     endpoint: { path: "/utility/airports/country/{code}" },
@@ -4136,6 +4198,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "find_nearest_airports",
+    dataSource: staticDataset("OurAirports CSV"),
     description:
       "Find the nearest airports to a given latitude/longitude coordinate. Uses Haversine distance calculation. Great for travel planning.",
     endpoint: { path: "/utility/airports/nearest" },
@@ -4152,6 +4215,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_public_webcams",
+    dataSource: onDemand("Municipal Open Data APIs"),
     description:
       "Get a list of public traffic and scenic webcams for a specific city across North America. Returns camera name, location, coordinates, and the URL to the camera page or image. Covers 33 cities across Canada and the US.",
     endpoint: { path: "/utility/webcams", queryParams: ["city", "limit"] },
@@ -4184,6 +4248,7 @@ const TOOL_DEFINITIONS = [
 
   {
     name: "search_exoplanets",
+    dataSource: staticDataset("NASA Exoplanet Archive"),
     description:
       "Search confirmed exoplanets from the NASA Exoplanet Archive by name or host star. Database contains ~6,100 planets.",
     endpoint: { path: "/knowledge/exoplanets/search" },
@@ -4206,6 +4271,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_exoplanet",
+    dataSource: staticDataset("NASA Exoplanet Archive"),
     description:
       "Get detailed information about a specific exoplanet by exact name.",
     endpoint: { path: "/knowledge/exoplanets/lookup/{name}" },
@@ -4223,6 +4289,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "rank_exoplanets",
+    dataSource: staticDataset("NASA Exoplanet Archive"),
     description:
       "Rank exoplanets by a physical property like mass, radius, temperature, or orbital period.",
     endpoint: { path: "/knowledge/exoplanets/rank" },
@@ -4258,6 +4325,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "exoplanet_discovery_stats",
+    dataSource: staticDataset("NASA Exoplanet Archive"),
     description:
       "Get statistics about exoplanet discoveries: methods, facilities, year ranges, and counts.",
     endpoint: { path: "/knowledge/exoplanets/stats" },
@@ -4270,6 +4338,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "habitable_zone_exoplanets",
+    dataSource: staticDataset("NASA Exoplanet Archive"),
     description:
       "Find exoplanets in the habitable zone (equilibrium temperature 200-320K or appropriate orbit around sun-like stars). Sorted by Earth similarity.",
     endpoint: { path: "/knowledge/exoplanets/habitable" },
@@ -4286,6 +4355,7 @@ const TOOL_DEFINITIONS = [
 
   {
     name: "search_fda_drugs",
+    dataSource: staticDataset("FDA NDC Directory"),
     description:
       "Search FDA-registered drug products by name, brand, ingredient, or manufacturer. Database contains ~26,000 NDC products. For informational use only.",
     endpoint: { path: "/health/drugs/ndc/search" },
@@ -4312,6 +4382,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "get_drug_by_ndc",
+    dataSource: staticDataset("FDA NDC Directory"),
     description:
       "Look up a specific FDA drug product by its NDC (National Drug Code) identifier.",
     endpoint: { path: "/health/drugs/ndc/lookup/{ndc}" },
@@ -4329,6 +4400,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "list_drug_dosage_forms",
+    dataSource: staticDataset("FDA NDC Directory"),
     description:
       "List all available drug dosage forms (tablet, capsule, injection, etc.) with counts. Use for discovery.",
     endpoint: { path: "/health/drugs/ndc/dosage-forms" },
@@ -4341,6 +4413,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "search_drugs_by_ingredient",
+    dataSource: staticDataset("FDA NDC Directory"),
     description:
       "Find all FDA drug products containing a specific active ingredient.",
     endpoint: { path: "/health/drugs/ndc/ingredient" },
@@ -4359,6 +4432,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "search_drugs_by_pharm_class",
+    dataSource: staticDataset("FDA NDC Directory"),
     description:
       "Find FDA drug products by pharmacological class (e.g. 'beta-blocker', 'antibiotic', 'analgesic').",
     endpoint: { path: "/health/drugs/ndc/pharm-class" },
@@ -4877,6 +4951,7 @@ const TOOL_DOMAINS = {
   search_nearby_places: "Utilities",
   search_places: "Utilities",
   generate_map: "Utilities",
+  generate_chart: "Utilities",
   search_airports: "Utilities",
   get_airport_by_code: "Utilities",
   get_airports_by_country: "Utilities",

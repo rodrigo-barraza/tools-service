@@ -26,6 +26,11 @@ import {
   executePython,
   getInterpreterInfo,
 } from "../services/PythonInterpreterService.js";
+import {
+  storeChart,
+  getStoredChart,
+  buildChartEmbedHtml,
+} from "../services/ChartService.js";
 import { asyncHandler } from "../utilities.js";
 
 const router = Router();
@@ -464,6 +469,74 @@ router.get("/python/info", asyncHandler(
   "Python interpreter info",
 ));
 
+// ─── Chart Generation ──────────────────────────────────────────────
+
+const VALID_CHART_TYPES = ["bar", "line", "pie"];
+
+router.post("/chart", (req, res) => {
+  const { type, title, labels, datasets } = req.body;
+
+  if (!type || !VALID_CHART_TYPES.includes(type)) {
+    return res.status(400).json({
+      error: `'type' is required and must be one of: ${VALID_CHART_TYPES.join(", ")}`,
+    });
+  }
+  if (!labels || !Array.isArray(labels) || labels.length === 0) {
+    return res.status(400).json({
+      error: "'labels' is required (non-empty array of category/axis labels)",
+    });
+  }
+  if (!datasets || !Array.isArray(datasets) || datasets.length === 0) {
+    return res.status(400).json({
+      error: "'datasets' is required (non-empty array of { label, data } objects)",
+    });
+  }
+
+  // Validate each dataset has a data array matching labels length
+  for (const ds of datasets) {
+    if (!ds.data || !Array.isArray(ds.data)) {
+      return res.status(400).json({
+        error: "Each dataset must have a 'data' array of numeric values",
+      });
+    }
+  }
+
+  const chartConfig = {
+    type,
+    title: title || "",
+    labels,
+    datasets,
+    options: req.body.options || {},
+  };
+
+  const chartId = storeChart(chartConfig);
+  const chartEmbedUrl = `http://localhost:${CONFIG.TOOLS_PORT}/utility/chart/embed?id=${chartId}`;
+
+  res.json({
+    chartEmbedUrl,
+    chartId,
+    type,
+    labelCount: labels.length,
+    datasetCount: datasets.length,
+  });
+});
+
+router.get("/chart/embed", (req, res) => {
+  const { id } = req.query;
+  if (!id) {
+    return res.status(400).send("Missing 'id' parameter");
+  }
+
+  const chartConfig = getStoredChart(id);
+  if (!chartConfig) {
+    return res.status(404).send("Chart not found or expired");
+  }
+
+  const html = buildChartEmbedHtml(chartConfig);
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(html);
+});
+
 // ─── Health ────────────────────────────────────────────────────────
 
 export function getUtilityHealth() {
@@ -476,6 +549,7 @@ export function getUtilityHealth() {
     webcams: "on-demand",
     airports: "on-demand (in-memory, ~4,555 airports)",
     pythonInterpreter: "on-demand (sandboxed subprocess)",
+    chart: "on-demand (Chart.js embed)",
   };
 }
 
