@@ -3,13 +3,6 @@ import {
   TOOLS_PORT,
   MONGODB_URI,
 
-  // Location
-  LATITUDE,
-  LONGITUDE,
-  RADIUS_MILES,
-  TIMEZONE,
-  TIDE_STATION_ID,
-
   // Event
   TICKETMASTER_API_KEY,
   SEATGEEK_CLIENT_ID,
@@ -54,12 +47,13 @@ const CONFIG = {
   TOOLS_PORT: TOOLS_PORT || 5590,
   MONGODB_URI: MONGODB_URI || "mongodb://localhost:27017/tools",
 
-  // ─── Location ────────────────────────────────────────────────────
-  LATITUDE: LATITUDE || 49.2827,
-  LONGITUDE: LONGITUDE || -123.1207,
-  RADIUS_MILES: RADIUS_MILES || 50,
-  TIMEZONE: TIMEZONE || "America/Vancouver",
-  TIDE_STATION_ID: TIDE_STATION_ID || "9449880",
+  // ─── Location (populated dynamically by LocationService.initLocation()) ───
+  // Defaults act as fallbacks if initLocation() hasn't run yet.
+  LATITUDE: 0,
+  LONGITUDE: 0,
+  RADIUS_MILES: 50,
+  TIMEZONE: "UTC",
+  TIDE_STATION_ID: null,
 
   // ─── Event ───────────────────────────────────────────────────────
   TICKETMASTER_API_KEY,
@@ -99,5 +93,18 @@ const CONFIG = {
   // ─── Utility ─────────────────────────────────────────────────────
   IPINFO_TOKEN,
 };
+
+/**
+ * Apply resolved location data onto the CONFIG singleton.
+ * Called by server.js after LocationService.initLocation() completes.
+ * @param {object} loc - Output from initLocation()
+ */
+export function applyLocation(loc) {
+  CONFIG.LATITUDE = loc.latitude;
+  CONFIG.LONGITUDE = loc.longitude;
+  CONFIG.RADIUS_MILES = loc.radiusMiles;
+  CONFIG.TIMEZONE = loc.timezone;
+  CONFIG.TIDE_STATION_ID = loc.tideStationId;
+}
 
 export default CONFIG;

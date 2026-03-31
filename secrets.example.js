@@ -13,13 +13,10 @@ export const TOOLS_PORT = 5590;
 
 export const MONGODB_URI = "mongodb://localhost:27017/tools";
 
-// ─── Location (shared by event + weather domains) ──────────────────
-
-export const LATITUDE = 49.2827;
-export const LONGITUDE = -123.1207;
-export const RADIUS_MILES = 50;
-export const TIMEZONE = "America/Vancouver";
-export const TIDE_STATION_ID = "9449880";
+// ─── Location ──────────────────────────────────────────────────────
+// Resolved dynamically from server IP geolocation + NOAA.
+// Cached in MongoDB `location_config` collection (24h TTL).
+// See: services/LocationService.js
 
 // ─── Event Domain ──────────────────────────────────────────────────
 

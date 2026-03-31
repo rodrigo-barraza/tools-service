@@ -1,6 +1,7 @@
 import express from "express";
-import CONFIG from "./config.js";
+import CONFIG, { applyLocation } from "./config.js";
 import { connectDB } from "./db.js";
+import { initLocation } from "./services/LocationService.js";
 import { requestLoggerMiddleware } from "./middleware/RequestLoggerMiddleware.js";
 import { fieldProjectionMiddleware } from "./middleware/FieldProjectionMiddleware.js";
 
@@ -95,6 +96,17 @@ app.get("/health", (_req, res) => {
 async function start() {
   try {
     await connectDB(CONFIG.MONGODB_URI);
+
+    // Resolve location from IP geolocation + NOAA (cached in DB, 24h TTL)
+    const location = await initLocation();
+    applyLocation(location);
+
+    console.log(`   📍 LATITUDE ........... ${CONFIG.LATITUDE}`);
+    console.log(`   📍 LONGITUDE .......... ${CONFIG.LONGITUDE}`);
+    console.log(`   🌐 TIMEZONE ........... ${CONFIG.TIMEZONE}`);
+    console.log(`   📏 RADIUS_MILES ....... ${CONFIG.RADIUS_MILES}`);
+    console.log(`   🌊 TIDE_STATION_ID .... ${CONFIG.TIDE_STATION_ID}`);
+
     await Promise.all([
       setupEventCollection(),
       setupCommodityCollection(),
