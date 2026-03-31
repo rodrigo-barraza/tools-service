@@ -16,6 +16,7 @@ import { setupNeoCollection } from "./models/Neo.js";
 import { setupSolarFlareCollection } from "./models/SolarFlare.js";
 import { setupCmeCollection } from "./models/Cme.js";
 import { setupGeomagneticStormCollection } from "./models/GeomagneticStorm.js";
+import { setupWebcamCollection } from "./models/Webcam.js";
 
 // ─── Routes ────────────────────────────────────────────────────────
 
@@ -124,6 +125,7 @@ async function start() {
       setupSolarFlareCollection(),
       setupCmeCollection(),
       setupGeomagneticStormCollection(),
+      setupWebcamCollection(),
     ]);
   } catch (error) {
     console.error(`Failed to connect to MongoDB: ${error.message}`);

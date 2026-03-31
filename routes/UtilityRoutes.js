@@ -20,6 +20,7 @@ import {
   getAirportsByCountry,
   getNearestAirports,
 } from "../fetchers/utility/AirportFetcher.js";
+import { getPublicWebcams } from "../fetchers/utility/WebcamFetcher.js";
 import { asyncHandler } from "../utilities.js";
 
 const router = Router();
@@ -315,6 +316,20 @@ router.get("/map", async (req, res) => {
   }
 });
 
+// ─── Webcams ───────────────────────────────────────────────────────
+
+router.get("/webcams", asyncHandler(
+  async (req) => {
+    const { city, limit } = req.query;
+    const webcams = await getPublicWebcams({ 
+      city: city || "vancouver", 
+      limit: parseInt(limit, 10) || 100 
+    });
+    return { count: webcams.length, webcams };
+  },
+  "Webcams fetch"
+));
+
 // ─── Airports ──────────────────────────────────────────────────────
 
 router.get("/airports/search", (req, res) => {
@@ -364,6 +379,7 @@ export function getUtilityHealth() {
     timezone: "on-demand",
     ipinfo: "on-demand",
     places: "on-demand",
+    webcams: "on-demand",
     airports: "on-demand (in-memory, ~4,555 airports)",
   };
 }
