@@ -3604,6 +3604,35 @@ const TOOL_DEFINITIONS = [
 
   // ── Utilities ──────────────────────────────────────────────────
   {
+    name: "precise_calculator",
+    dataSource: onDemand("internal"),
+    description:
+      "Perform highly precise mathematical calculations using bignumber.js. Supports arbitrary-precision arithmetic. Passed numbers should be strings to prevent precision loss. For sqrt, 'b' is ignored.",
+    endpoint: {
+      path: "/utility/calculate",
+      queryParams: ["operation", "a", "b"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        operation: {
+          type: "string",
+          enum: ["add", "subtract", "multiply", "divide", "modulo", "power", "sqrt"],
+          description: "The mathematical operation to perform",
+        },
+        a: {
+          type: "string",
+          description: "The first operand (must be a valid numeric string)",
+        },
+        b: {
+          type: "string",
+          description: "The second operand (must be a valid numeric string). Optional for sqrt.",
+        },
+      },
+      required: ["operation", "a"],
+    },
+  },
+  {
     name: "convert_currency",
     dataSource: onDemand("Exchange Rate API"),
     description:
@@ -4806,6 +4835,7 @@ const TOOL_DOMAINS = {
   get_transit_route_info: "Transit",
 
   // Utilities
+  precise_calculator: "Utilities",
   convert_currency: "Utilities",
   get_time_in_timezone: "Utilities",
   lookup_ip: "Utilities",

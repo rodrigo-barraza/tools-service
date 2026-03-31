@@ -1,5 +1,6 @@
 import { Router } from "express";
 import crypto from "node:crypto";
+import BigNumber from "bignumber.js";
 import CONFIG from "../config.js";
 import {
   convertCurrency,
@@ -24,6 +25,69 @@ import { getPublicWebcams } from "../fetchers/utility/WebcamFetcher.js";
 import { asyncHandler } from "../utilities.js";
 
 const router = Router();
+
+// ─── Calculator (BigNumber) ────────────────────────────────────────
+
+router.get("/calculate", (req, res) => {
+  const { operation, a, b } = req.query;
+  if (!operation || !a) {
+    return res.status(400).json({ error: "Query parameters 'operation' and 'a' are required" });
+  }
+
+  try {
+    const numA = new BigNumber(a);
+    let numB;
+    if (b !== undefined && b !== "") {
+      numB = new BigNumber(b);
+    }
+
+    let result;
+    switch (operation) {
+      case "add":
+        if (numB === undefined) throw new Error("'b' is required for add");
+        result = numA.plus(numB);
+        break;
+      case "subtract":
+        if (numB === undefined) throw new Error("'b' is required for subtract");
+        result = numA.minus(numB);
+        break;
+      case "multiply":
+        if (numB === undefined) throw new Error("'b' is required for multiply");
+        result = numA.multipliedBy(numB);
+        break;
+      case "divide":
+        if (numB === undefined) throw new Error("'b' is required for divide");
+        result = numA.dividedBy(numB);
+        break;
+      case "modulo":
+        if (numB === undefined) throw new Error("'b' is required for modulo");
+        result = numA.modulo(numB);
+        break;
+      case "power":
+        if (numB === undefined) throw new Error("'b' is required for power");
+        result = numA.exponentiatedBy(numB);
+        break;
+      case "sqrt":
+        result = numA.squareRoot();
+        break;
+      default:
+        return res.status(400).json({ error: `Unsupported operation: ${operation}` });
+    }
+
+    if (result.isNaN()) {
+      return res.status(400).json({ error: "Result is Not-a-Number (NaN)" });
+    }
+
+    res.json({
+      operation,
+      a,
+      b: b || null,
+      result: result.toFixed(),
+    });
+  } catch (err) {
+    res.status(400).json({ error: `Calculation failed: ${err.message}` });
+  }
+});
 
 // ─── Currency Conversion ───────────────────────────────────────────
 
@@ -375,6 +439,7 @@ router.get("/airports/nearest", (req, res) => {
 
 export function getUtilityHealth() {
   return {
+    calculator: "on-demand (bignumber.js)",
     currency: "on-demand",
     timezone: "on-demand",
     ipinfo: "on-demand",
