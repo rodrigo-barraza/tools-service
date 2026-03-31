@@ -1188,6 +1188,80 @@ const FIELDS = {
     "secondary_muscles",
     "instructions",
   ],
+
+  // ── Maritime Domain (AIS Stream) ──────────────────────────────
+
+  // Tracked Vessels: from AisStreamFetcher.getTrackedVessels()
+  VESSELS: [
+    "mmsi",
+    "shipName",
+    "latitude",
+    "longitude",
+    "cog",
+    "sog",
+    "trueHeading",
+    "navigationalStatus",
+    "rateOfTurn",
+    "imoNumber",
+    "callSign",
+    "shipType",
+    "destination",
+    "draught",
+    "eta",
+    "dimensions",
+    "messageType",
+    "timestamp",
+    "receivedAt",
+  ],
+
+  // AIS Messages: raw ring buffer entries
+  AIS_MESSAGES: [
+    "messageType",
+    "mmsi",
+    "shipName",
+    "latitude",
+    "longitude",
+    "timestamp",
+    "receivedAt",
+    "cog",
+    "sog",
+    "trueHeading",
+    "safetyText",
+  ],
+
+  // ── Energy Domain (EIA) ───────────────────────────────────────
+
+  // Energy Indicators: from EiaFetcher.getEnergyIndicators()
+  ENERGY_INDICATORS: [
+    "id",
+    "name",
+    "category",
+    "value",
+    "period",
+    "unit",
+    "description",
+  ],
+
+  // EIA Browse: from EiaFetcher.browseRoute()
+  EIA_BROWSE: [
+    "id",
+    "name",
+    "description",
+    "routes",
+    "frequency",
+    "facets",
+    "data",
+    "startPeriod",
+    "endPeriod",
+  ],
+
+  // EIA Facets: from EiaFetcher.getFacetValues()
+  EIA_FACETS: [
+    "route",
+    "facetId",
+    "totalFacets",
+    "facets",
+  ],
 };
 
 // ────────────────────────────────────────────────────────────
@@ -4202,6 +4276,358 @@ const TOOL_DEFINITIONS = [
       required: ["q"],
     },
   },
+
+  // ── Maritime Domain (AIS Stream) ──────────────────────────────
+  {
+    name: "get_tracked_vessels",
+    dataSource: { type: "realtime", provider: "AIS Stream (aisstream.io)" },
+    description:
+      "Get the latest known positions and data for all maritime vessels currently tracked via AIS (Automatic Identification System). Returns vessels sorted by most recently seen. Data streams in real-time via WebSocket from nearby ship transponders.",
+    endpoint: {
+      path: "/maritime/vessels",
+      queryParams: ["limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        limit: {
+          type: "integer",
+          description: "Max vessels to return (default 100)",
+        },
+        ...fieldsParam(FIELDS.VESSELS),
+      },
+    },
+  },
+  {
+    name: "get_vessel_by_mmsi",
+    dataSource: { type: "realtime", provider: "AIS Stream (aisstream.io)" },
+    description:
+      "Get detailed data for a specific vessel by its MMSI (Maritime Mobile Service Identity) number. Returns position, speed, heading, destination, ship type, dimensions, and ETA if available.",
+    endpoint: {
+      path: "/maritime/vessels/:mmsi",
+      pathParams: ["mmsi"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        mmsi: {
+          type: "string",
+          description: "9-digit Maritime Mobile Service Identity number",
+        },
+        ...fieldsParam(FIELDS.VESSELS),
+      },
+      required: ["mmsi"],
+    },
+  },
+  {
+    name: "search_vessels",
+    dataSource: { type: "realtime", provider: "AIS Stream (aisstream.io)" },
+    description:
+      "Search tracked vessels by name (case-insensitive partial match). Useful for finding specific ships currently in the monitored area.",
+    endpoint: {
+      path: "/maritime/search",
+      queryParams: ["q", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        q: {
+          type: "string",
+          description: "Vessel name search query (partial match)",
+        },
+        limit: {
+          type: "integer",
+          description: "Max results (default 20)",
+        },
+        ...fieldsParam(FIELDS.VESSELS),
+      },
+      required: ["q"],
+    },
+  },
+  {
+    name: "get_vessels_in_area",
+    dataSource: { type: "realtime", provider: "AIS Stream (aisstream.io)" },
+    description:
+      "Get all tracked vessels within a geographic bounding box. Useful for monitoring ship traffic in a specific sea area, port, or strait.",
+    endpoint: {
+      path: "/maritime/area",
+      queryParams: ["minLat", "maxLat", "minLng", "maxLng", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        minLat: {
+          type: "number",
+          description: "Southern boundary latitude (e.g. 48.0)",
+        },
+        maxLat: {
+          type: "number",
+          description: "Northern boundary latitude (e.g. 50.0)",
+        },
+        minLng: {
+          type: "number",
+          description: "Western boundary longitude (e.g. -125.0)",
+        },
+        maxLng: {
+          type: "number",
+          description: "Eastern boundary longitude (e.g. -122.0)",
+        },
+        limit: {
+          type: "integer",
+          description: "Max vessels to return (default 100)",
+        },
+        ...fieldsParam(FIELDS.VESSELS),
+      },
+      required: ["minLat", "maxLat", "minLng", "maxLng"],
+    },
+  },
+  {
+    name: "get_ais_messages",
+    dataSource: { type: "realtime", provider: "AIS Stream (aisstream.io)" },
+    description:
+      "Get recent raw AIS messages from the stream buffer. Each message includes vessel identification, position, and type-specific data (position reports, static data, safety broadcasts).",
+    endpoint: {
+      path: "/maritime/messages",
+      queryParams: ["limit", "type"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        limit: {
+          type: "integer",
+          description: "Max messages to return (default 50)",
+        },
+        type: {
+          type: "string",
+          description:
+            "Filter by AIS message type: PositionReport, ShipStaticData, StandardClassBPositionReport, ExtendedClassBPositionReport, SafetyBroadcastMessage, StandardSearchAndRescueAircraftReport, BaseStationReport",
+        },
+        ...fieldsParam(FIELDS.AIS_MESSAGES),
+      },
+    },
+  },
+
+  // ── Energy Domain (EIA) ──────────────────────────────────────
+  {
+    name: "get_energy_indicators",
+    dataSource: onDemand("EIA (U.S. Energy Information Administration)"),
+    description:
+      "Get a curated snapshot of key U.S. energy indicators including gasoline prices, diesel prices, crude oil (WTI/Brent), natural gas prices and storage, average electricity price, coal production, and nuclear outage percentage. Data is sourced from the EIA API.",
+    endpoint: { path: "/energy/indicators" },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.ENERGY_INDICATORS),
+      },
+    },
+  },
+  {
+    name: "browse_energy_data",
+    dataSource: onDemand("EIA (U.S. Energy Information Administration)"),
+    description:
+      "Browse the EIA data catalog tree. Start with no route to see top-level categories (petroleum, electricity, natural-gas, coal, nuclear-outages, etc.), then drill down into sub-routes to discover available datasets, frequencies, and facets.",
+    endpoint: {
+      path: "/energy/browse",
+      queryParams: ["route"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        route: {
+          type: "string",
+          description:
+            "Data route path to browse (e.g. 'electricity', 'petroleum/pri', 'natural-gas/stor'). Leave empty for top-level categories.",
+        },
+        ...fieldsParam(FIELDS.EIA_BROWSE),
+      },
+    },
+  },
+  {
+    name: "get_energy_facets",
+    dataSource: onDemand("EIA (U.S. Energy Information Administration)"),
+    description:
+      "Get available facet values for an EIA data route. Use this to discover valid filter values (e.g. state IDs, sector IDs, product codes) before querying energy data.",
+    endpoint: {
+      path: "/energy/facets",
+      queryParams: ["route", "facetId"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        route: {
+          type: "string",
+          description: "EIA data route (e.g. 'electricity/retail-sales', 'petroleum/pri/gnd')",
+        },
+        facetId: {
+          type: "string",
+          description: "Facet identifier (e.g. 'stateid', 'sectorid', 'product', 'duoarea')",
+        },
+        ...fieldsParam(FIELDS.EIA_FACETS),
+      },
+      required: ["route", "facetId"],
+    },
+  },
+  {
+    name: "query_energy_data",
+    dataSource: onDemand("EIA (U.S. Energy Information Administration)"),
+    description:
+      "Query EIA energy data for a specific route with optional facet filters, date range, and frequency. Returns time-series data points. Use browse_energy_data first to discover routes and get_energy_facets to find valid filter values.",
+    endpoint: {
+      path: "/energy/data",
+      queryParams: ["route", "frequency", "start", "end", "sort", "length", "offset"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        route: {
+          type: "string",
+          description: "EIA data route (e.g. 'electricity/retail-sales', 'petroleum/pri/gnd', 'natural-gas/pri/sum')",
+        },
+        frequency: {
+          type: "string",
+          description: "Data frequency: 'daily', 'weekly', 'monthly', 'quarterly', 'annual'",
+        },
+        start: {
+          type: "string",
+          description: "Start period (e.g. '2024-01', '2024')",
+        },
+        end: {
+          type: "string",
+          description: "End period (e.g. '2024-12', '2025')",
+        },
+        sort: {
+          type: "string",
+          description: "Sort column and direction (e.g. 'period:desc', 'value:asc')",
+        },
+        length: {
+          type: "integer",
+          description: "Max rows to return (default 100, max 5000)",
+        },
+        offset: {
+          type: "integer",
+          description: "Pagination offset (default 0)",
+        },
+      },
+      required: ["route"],
+    },
+  },
+  {
+    name: "get_electricity_retail_sales",
+    dataSource: onDemand("EIA (U.S. Energy Information Administration)"),
+    description:
+      "Get U.S. electricity retail sales data including price (cents/kWh), revenue, sales volume, and customer counts. Filter by state and sector (residential, commercial, industrial, transportation).",
+    endpoint: {
+      path: "/energy/electricity/retail-sales",
+      queryParams: ["state", "sector", "frequency", "start", "end", "length"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        state: {
+          type: "string",
+          description: "State code (e.g. 'CA', 'TX', 'NY') or 'US' for national",
+        },
+        sector: {
+          type: "string",
+          description: "Sector: 'RES' (residential), 'COM' (commercial), 'IND' (industrial), 'TRA' (transportation), 'ALL' (total)",
+        },
+        frequency: {
+          type: "string",
+          description: "Data frequency: 'monthly', 'quarterly', 'annual' (default: monthly)",
+        },
+        start: {
+          type: "string",
+          description: "Start period (e.g. '2024-01')",
+        },
+        end: {
+          type: "string",
+          description: "End period (e.g. '2024-12')",
+        },
+        length: {
+          type: "integer",
+          description: "Max rows (default 50)",
+        },
+      },
+    },
+  },
+  {
+    name: "get_petroleum_prices",
+    dataSource: onDemand("EIA (U.S. Energy Information Administration)"),
+    description:
+      "Get U.S. petroleum/gasoline prices including regular, midgrade, premium, and diesel retail prices. Filter by product type and geographic area.",
+    endpoint: {
+      path: "/energy/petroleum/prices",
+      queryParams: ["product", "area", "frequency", "start", "end", "length"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        product: {
+          type: "string",
+          description: "Product code (e.g. 'EPM0' for regular gasoline, 'EPD2DXL0' for diesel)",
+        },
+        area: {
+          type: "string",
+          description: "Geographic area code (e.g. 'NUS' for U.S., 'R10' for PADD 1)",
+        },
+        frequency: {
+          type: "string",
+          description: "Data frequency: 'weekly', 'monthly' (default: weekly)",
+        },
+        start: {
+          type: "string",
+          description: "Start period (e.g. '2024-01-01')",
+        },
+        end: {
+          type: "string",
+          description: "End period",
+        },
+        length: {
+          type: "integer",
+          description: "Max rows (default 50)",
+        },
+      },
+    },
+  },
+  {
+    name: "get_natural_gas_prices",
+    dataSource: onDemand("EIA (U.S. Energy Information Administration)"),
+    description:
+      "Get U.S. natural gas prices. Filter by process type and geographic area.",
+    endpoint: {
+      path: "/energy/natural-gas/prices",
+      queryParams: ["process", "area", "frequency", "start", "end", "length"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        process: {
+          type: "string",
+          description: "Process type (e.g. 'FRC' for futures contract 1)",
+        },
+        area: {
+          type: "string",
+          description: "Geographic area code",
+        },
+        frequency: {
+          type: "string",
+          description: "Data frequency: 'daily', 'weekly', 'monthly', 'annual' (default: monthly)",
+        },
+        start: {
+          type: "string",
+          description: "Start period (e.g. '2024-01')",
+        },
+        end: {
+          type: "string",
+          description: "End period",
+        },
+        length: {
+          type: "integer",
+          description: "Max rows (default 50)",
+        },
+      },
+    },
+  },
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -4355,6 +4781,22 @@ const TOOL_DOMAINS = {
   get_airport_by_code: "Utilities",
   get_airports_by_country: "Utilities",
   find_nearest_airports: "Utilities",
+
+  // Maritime
+  get_tracked_vessels: "Maritime",
+  get_vessel_by_mmsi: "Maritime",
+  search_vessels: "Maritime",
+  get_vessels_in_area: "Maritime",
+  get_ais_messages: "Maritime",
+
+  // Energy
+  get_energy_indicators: "Energy",
+  browse_energy_data: "Energy",
+  get_energy_facets: "Energy",
+  query_energy_data: "Energy",
+  get_electricity_retail_sales: "Energy",
+  get_petroleum_prices: "Energy",
+  get_natural_gas_prices: "Energy",
 };
 
 // ────────────────────────────────────────────────────────────
