@@ -1106,6 +1106,20 @@ const FIELDS = {
     "distanceKm",
   ],
 
+  // ── Webcams ────────────────────────────────────────────────────────
+
+  WEBCAMS: [
+    "id",
+    "name",
+    "url",
+    "area",
+    "latitude",
+    "longitude",
+    "city",
+    "country",
+    "source",
+  ],
+
   // ── Exoplanet Domain ───────────────────────────────────────────
 
   // Exoplanet Search/Lookup: from ExoplanetFetcher
@@ -4080,6 +4094,27 @@ const TOOL_DEFINITIONS = [
       required: ["lat", "lng"],
     },
   },
+  {
+    name: "get_public_webcams",
+    description:
+      "Get a list of public webcams for a specific city. These are live traffic or scenic cameras. Returns name, location, and the URL to the camera page or image. Supported cities: vancouver, seattle.",
+    endpoint: { path: "/utility/webcams", queryParams: ["city", "limit"] },
+    parameters: {
+      type: "object",
+      properties: {
+        city: {
+          type: "string",
+          description:
+            "City name. Supported: vancouver, seattle. Default: vancouver.",
+        },
+        limit: {
+          type: "integer",
+          description: "Max number of webcams to return. Default 100.",
+        },
+        ...fieldsParam(FIELDS.WEBCAMS),
+      },
+    },
+  },
 
   // ── Exoplanet Tools ────────────────────────────────────────────
 
@@ -4781,6 +4816,7 @@ const TOOL_DOMAINS = {
   get_airport_by_code: "Utilities",
   get_airports_by_country: "Utilities",
   find_nearest_airports: "Utilities",
+  get_public_webcams: "Utilities",
 
   // Maritime
   get_tracked_vessels: "Maritime",
