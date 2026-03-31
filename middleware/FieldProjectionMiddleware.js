@@ -27,6 +27,8 @@ const ARRAY_WRAPPER_KEYS = new Set([
   "places",
   "results",
   "stops",
+  "vessels",
+  "messages",
 ]);
 
 /**
