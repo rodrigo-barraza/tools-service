@@ -22,6 +22,10 @@ import {
   getNearestAirports,
 } from "../fetchers/utility/AirportFetcher.js";
 import { getPublicWebcams } from "../fetchers/utility/WebcamFetcher.js";
+import {
+  executePython,
+  getInterpreterInfo,
+} from "../services/PythonInterpreterService.js";
 import { asyncHandler } from "../utilities.js";
 
 const router = Router();
@@ -435,6 +439,31 @@ router.get("/airports/nearest", (req, res) => {
   ));
 });
 
+// ─── Python Code Interpreter ───────────────────────────────────────
+
+router.post("/python/execute", async (req, res) => {
+  const { code, timeout } = req.body;
+  if (!code || typeof code !== "string") {
+    return res
+      .status(400)
+      .json({ error: "Request body must include 'code' (string)" });
+  }
+  if (code.length > 100_000) {
+    return res
+      .status(400)
+      .json({ error: "Code exceeds maximum length of 100,000 characters" });
+  }
+  const result = await executePython(code, {
+    timeout: timeout ? Math.min(Math.max(parseInt(timeout), 1000), 60_000) : undefined,
+  });
+  res.json(result);
+});
+
+router.get("/python/info", asyncHandler(
+  () => getInterpreterInfo(),
+  "Python interpreter info",
+));
+
 // ─── Health ────────────────────────────────────────────────────────
 
 export function getUtilityHealth() {
@@ -446,6 +475,7 @@ export function getUtilityHealth() {
     places: "on-demand",
     webcams: "on-demand",
     airports: "on-demand (in-memory, ~4,555 airports)",
+    pythonInterpreter: "on-demand (sandboxed subprocess)",
   };
 }
 

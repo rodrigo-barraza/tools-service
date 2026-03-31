@@ -3604,6 +3604,33 @@ const TOOL_DEFINITIONS = [
 
   // ── Utilities ──────────────────────────────────────────────────
   {
+    name: "execute_python",
+    dataSource: onDemand("internal"),
+    description:
+      "Execute Python code in a sandboxed interpreter. Use this for complex calculations, data transformations, statistical analysis, string manipulation, date/time operations, or any task that benefits from programmatic computation. The interpreter has access to Python's standard library (math, json, datetime, collections, itertools, statistics, decimal, fractions, re, textwrap, csv, io, etc.) but network access and dangerous modules (subprocess, shutil, ctypes) are blocked. Code runs with a 30-second default timeout (max 60s) and 256 MB memory limit. Print results to stdout — the output is captured and returned.",
+    endpoint: {
+      method: "POST",
+      path: "/utility/python/execute",
+      bodyParams: ["code", "timeout"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        code: {
+          type: "string",
+          description:
+            "Python 3 source code to execute. Use print() to produce output. The full standard library is available (math, json, datetime, statistics, collections, itertools, decimal, fractions, re, csv, io, etc.). Network and subprocess access is blocked.",
+        },
+        timeout: {
+          type: "integer",
+          description:
+            "Execution timeout in milliseconds (min 1000, max 60000, default 30000). Increase for computationally intensive tasks.",
+        },
+      },
+      required: ["code"],
+    },
+  },
+  {
     name: "precise_calculator",
     dataSource: onDemand("internal"),
     description:
@@ -4847,6 +4874,7 @@ const TOOL_DOMAINS = {
   get_airports_by_country: "Utilities",
   find_nearest_airports: "Utilities",
   get_public_webcams: "Utilities",
+  execute_python: "Utilities",
 
   // Maritime
   get_tracked_vessels: "Maritime",
