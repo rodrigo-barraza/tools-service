@@ -4153,7 +4153,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "get_public_webcams",
     description:
-      "Get a list of public webcams for a specific city. These are live traffic or scenic cameras. Returns name, location, and the URL to the camera page or image. Supported cities: vancouver, seattle.",
+      "Get a list of public traffic and scenic webcams for a specific city across North America. Returns camera name, location, coordinates, and the URL to the camera page or image. Covers 33 cities across Canada and the US.",
     endpoint: { path: "/utility/webcams", queryParams: ["city", "limit"] },
     parameters: {
       type: "object",
@@ -4161,7 +4161,15 @@ const TOOL_DEFINITIONS = [
         city: {
           type: "string",
           description:
-            "City name. Supported: vancouver, seattle. Default: vancouver.",
+            "City/area name. Default: vancouver.",
+          enum: [
+            "vancouver", "seattle", "toronto", "calgary", "austin",
+            "ottawa", "hamilton", "london-on", "kingston", "windsor-on",
+            "kitchener", "barrie", "thunder-bay", "sudbury", "niagara", "mississauga",
+            "edmonton", "red-deer", "lethbridge", "medicine-hat", "grande-prairie", "banff", "fort-mcmurray",
+            "baton-rouge",
+            "nyc", "buffalo", "syracuse", "albany", "rochester", "long-island", "westchester", "utica", "binghamton", "ithaca",
+          ],
         },
         limit: {
           type: "integer",
