@@ -1,4 +1,5 @@
 import { Router } from "express";
+import crypto from "node:crypto";
 import CONFIG from "../config.js";
 import {
   convertCurrency,
@@ -131,6 +132,26 @@ router.get("/places/search", async (req, res) => {
 // ─── Map Generation ───────────────────────────────────────────────
 
 /**
+ * In-memory map marker store — avoids multi-kb query-param URLs.
+ * Maps are keyed by short UUID, expire after 1h.
+ */
+const MAP_STORE = new Map();
+const MAP_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+function storeMarkers(markerList) {
+  const id = crypto.randomUUID().slice(0, 12);
+  MAP_STORE.set(id, { markers: markerList, createdAt: Date.now() });
+  // Lazy cleanup
+  if (MAP_STORE.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of MAP_STORE) {
+      if (now - v.createdAt > MAP_TTL_MS) MAP_STORE.delete(k);
+    }
+  }
+  return id;
+}
+
+/**
  * Build the interactive embed HTML for Google Maps JS API.
  * Renders numbered markers with info windows showing name + address.
  */
@@ -220,24 +241,39 @@ function initMap(){
 }
 
 router.get("/map/embed", (req, res) => {
-  const { markers, zoom, maptype } = req.query;
-  if (!markers || !CONFIG.GOOGLE_API_KEY) {
-    return res.status(400).send("Missing markers or API key");
+  const { id, markers, zoom, maptype } = req.query;
+
+  if (!CONFIG.GOOGLE_API_KEY) {
+    return res.status(400).send("Missing API key");
   }
-  try {
-    const markerList = JSON.parse(markers);
-    if (!Array.isArray(markerList) || markerList.length === 0) {
-      return res.status(400).send("markers must be a non-empty array");
+
+  let markerList;
+
+  // Resolve by stored ID (short URL) or inline JSON (backward compat)
+  if (id) {
+    const entry = MAP_STORE.get(id);
+    if (!entry) return res.status(404).send("Map not found or expired");
+    markerList = entry.markers;
+  } else if (markers) {
+    try {
+      markerList = JSON.parse(markers);
+    } catch {
+      return res.status(400).send("Invalid markers JSON");
     }
-    const html = buildMapEmbedHtml(markerList, CONFIG.GOOGLE_API_KEY, {
-      zoom: zoom ? parseInt(zoom) : undefined,
-      maptype: maptype || "roadmap",
-    });
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.send(html);
-  } catch (err) {
-    res.status(500).send(`Map embed failed: ${err.message}`);
+  } else {
+    return res.status(400).send("Missing 'id' or 'markers' parameter");
   }
+
+  if (!Array.isArray(markerList) || markerList.length === 0) {
+    return res.status(400).send("markers must be a non-empty array");
+  }
+
+  const html = buildMapEmbedHtml(markerList, CONFIG.GOOGLE_API_KEY, {
+    zoom: zoom ? parseInt(zoom) : undefined,
+    maptype: maptype || "roadmap",
+  });
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(html);
 });
 
 router.get("/map", async (req, res) => {
@@ -263,7 +299,9 @@ router.get("/map", async (req, res) => {
         .json({ error: "'markers' must be a non-empty array" });
     }
 
-    const embedParams = new URLSearchParams({ markers });
+    // Store markers and build a short embed URL
+    const mapId = storeMarkers(markerList);
+    const embedParams = new URLSearchParams({ id: mapId });
     if (zoom) embedParams.set("zoom", zoom);
     if (maptype) embedParams.set("maptype", maptype);
     const mapEmbedUrl = `http://localhost:${CONFIG.TOOLS_PORT}/utility/map/embed?${embedParams.toString()}`;
