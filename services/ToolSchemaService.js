@@ -3851,7 +3851,7 @@ const TOOL_DEFINITIONS = [
     name: "generate_chart",
     dataSource: onDemand("internal"),
     description:
-      "Generate an interactive chart (bar, line, or pie) from structured data. Use this to visualize comparisons, trends, distributions, or any numeric data the user asks to see as a chart. Pass labels (category names or x-axis values) and one or more datasets (each with a label and numeric data array). The response contains a chartEmbedUrl — you MUST render it in your response using ![Chart](chartEmbedUrl) markdown syntax so the user sees the interactive chart inline.",
+      "Generate an interactive chart (bar, line, or pie) from structured data. Use this to visualize comparisons, trends, distributions, or any numeric data the user asks to see as a chart. Pass labels (category names or x-axis values) and one or more datasets (each with a label and numeric data array). The response contains a chartImageUrl — you MUST render it in your response using ![Chart](chartImageUrl) markdown syntax so the user sees the chart image inline.",
     endpoint: {
       method: "POST",
       path: "/utility/chart",

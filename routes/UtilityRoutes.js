@@ -29,7 +29,7 @@ import {
 import {
   storeChart,
   getStoredChart,
-  buildChartEmbedHtml,
+  renderChartPng,
 } from "../services/ChartService.js";
 import { asyncHandler } from "../utilities.js";
 
@@ -510,10 +510,10 @@ router.post("/chart", (req, res) => {
   };
 
   const chartId = storeChart(chartConfig);
-  const chartEmbedUrl = `http://localhost:${CONFIG.TOOLS_PORT}/utility/chart/embed?id=${chartId}`;
+  const chartImageUrl = `http://localhost:${CONFIG.TOOLS_PORT}/utility/chart/render?id=${chartId}`;
 
   res.json({
-    chartEmbedUrl,
+    chartImageUrl,
     chartId,
     type,
     labelCount: labels.length,
@@ -521,7 +521,7 @@ router.post("/chart", (req, res) => {
   });
 });
 
-router.get("/chart/embed", (req, res) => {
+router.get("/chart/render", async (req, res) => {
   const { id } = req.query;
   if (!id) {
     return res.status(400).send("Missing 'id' parameter");
@@ -532,9 +532,14 @@ router.get("/chart/embed", (req, res) => {
     return res.status(404).send("Chart not found or expired");
   }
 
-  const html = buildChartEmbedHtml(chartConfig);
-  res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.send(html);
+  try {
+    const pngBuffer = await renderChartPng(chartConfig);
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.send(pngBuffer);
+  } catch (err) {
+    res.status(500).json({ error: `Chart render failed: ${err.message}` });
+  }
 });
 
 // ─── Health ────────────────────────────────────────────────────────

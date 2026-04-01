@@ -1,12 +1,24 @@
 // ============================================================
-// Chart Service — Embeddable Chart.js Charts
+// Chart Service — Server-Side PNG Chart Rendering
 // ============================================================
-// Generates self-contained HTML pages with Chart.js (via CDN)
-// for bar, line, and pie charts. Uses an in-memory store with
-// TTL identical to the map embed pattern.
+// Uses chartjs-node-canvas to render Chart.js charts as PNG
+// buffers server-side. Returns image/png so markdown ![](url)
+// embeds work correctly.
 // ============================================================
 
 import crypto from "node:crypto";
+import { ChartJSNodeCanvas } from "chartjs-node-canvas";
+
+// ─── Renderer Singleton ────────────────────────────────────────
+
+const CHART_WIDTH = 900;
+const CHART_HEIGHT = 500;
+
+const renderer = new ChartJSNodeCanvas({
+  width: CHART_WIDTH,
+  height: CHART_HEIGHT,
+  backgroundColour: "#0f172a",
+});
 
 // ─── In-Memory Store ───────────────────────────────────────────
 
@@ -107,71 +119,56 @@ function assignColors(datasets, chartType) {
   });
 }
 
-// ─── HTML Builder ──────────────────────────────────────────────
+// ─── PNG Renderer ──────────────────────────────────────────────
 
 /**
- * Build a self-contained HTML page for a Chart.js chart.
+ * Render a chart config to a PNG buffer.
  * @param {object} chartConfig - { type, title, labels, datasets, options }
- * @returns {string} Complete HTML document
+ * @returns {Promise<Buffer>} PNG buffer
  */
-export function buildChartEmbedHtml(chartConfig) {
+export async function renderChartPng(chartConfig) {
   const { type, title, labels, datasets, options = {} } = chartConfig;
 
   const coloredDatasets = assignColors(datasets, type);
 
-  const chartJsConfig = {
+  const config = {
     type,
     data: {
       labels,
       datasets: coloredDatasets,
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: {
-        duration: 800,
-        easing: "easeOutQuart",
-      },
+      responsive: false,
+      animation: false, // no animation for server-side render
       plugins: {
         title: {
           display: !!title,
           text: title || "",
           color: "#e2e8f0",
-          font: { size: 18, weight: "600", family: "'Inter', system-ui, sans-serif" },
-          padding: { top: 12, bottom: 20 },
+          font: { size: 18, weight: "600", family: "sans-serif" },
+          padding: { top: 16, bottom: 24 },
         },
         legend: {
           display: type === "pie" || (datasets.length > 1),
           labels: {
             color: "#cbd5e1",
-            font: { size: 12, family: "'Inter', system-ui, sans-serif" },
+            font: { size: 12, family: "sans-serif" },
             usePointStyle: true,
             padding: 16,
           },
-        },
-        tooltip: {
-          backgroundColor: "rgba(15, 23, 42, 0.9)",
-          titleColor: "#f1f5f9",
-          bodyColor: "#cbd5e1",
-          borderColor: "rgba(99, 102, 241, 0.3)",
-          borderWidth: 1,
-          cornerRadius: 8,
-          padding: 10,
-          titleFont: { size: 13, weight: "600" },
-          bodyFont: { size: 12 },
         },
       },
       ...(type !== "pie" && {
         scales: {
           x: {
             ticks: { color: "#94a3b8", font: { size: 11 } },
-            grid: { color: "rgba(148, 163, 184, 0.08)" },
-            border: { color: "rgba(148, 163, 184, 0.15)" },
+            grid: { color: "rgba(148, 163, 184, 0.12)" },
+            border: { color: "rgba(148, 163, 184, 0.2)" },
           },
           y: {
             ticks: { color: "#94a3b8", font: { size: 11 } },
-            grid: { color: "rgba(148, 163, 184, 0.08)" },
-            border: { color: "rgba(148, 163, 184, 0.15)" },
+            grid: { color: "rgba(148, 163, 184, 0.12)" },
+            border: { color: "rgba(148, 163, 184, 0.2)" },
             beginAtZero: options.beginAtZero !== false,
           },
         },
@@ -180,47 +177,5 @@ export function buildChartEmbedHtml(chartConfig) {
     },
   };
 
-  const configJson = JSON.stringify(chartJsConfig);
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  html,body{
-    width:100%;height:100%;
-    background:#0f172a;
-    font-family:'Inter',system-ui,sans-serif;
-    display:flex;align-items:center;justify-content:center;
-  }
-  .chart-wrap{
-    position:relative;
-    width:calc(100% - 32px);
-    height:calc(100% - 32px);
-    max-width:900px;
-    max-height:600px;
-    padding:16px;
-    background:rgba(30,41,59,0.6);
-    border:1px solid rgba(99,102,241,0.15);
-    border-radius:16px;
-    backdrop-filter:blur(12px);
-    box-shadow:0 8px 32px rgba(0,0,0,0.3);
-  }
-  canvas{width:100%!important;height:100%!important}
-</style>
-</head>
-<body>
-<div class="chart-wrap">
-  <canvas id="chart"></canvas>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-<script>
-  const ctx=document.getElementById('chart').getContext('2d');
-  new Chart(ctx,${configJson});
-</script>
-</body></html>`;
+  return renderer.renderToBuffer(config);
 }
