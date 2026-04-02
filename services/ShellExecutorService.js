@@ -285,6 +285,107 @@ export async function executeShell(command, { stdin = "", timeout = DEFAULT_TIME
 }
 
 /**
+ * Execute an allowlisted shell command with real-time output streaming.
+ * Same security model as executeShell, but invokes `onChunk` for each
+ * stdout/stderr data event as it arrives.
+ *
+ * @param {string} command - Shell command (pipes allowed)
+ * @param {object} [options]
+ * @param {string}   [options.stdin]     - Optional input piped to stdin
+ * @param {number}   [options.timeout]   - Execution timeout (max 30000)
+ * @param {function} [options.onChunk]   - (event: "stdout"|"stderr", data: string) => void
+ * @returns {Promise<{ success, stdout, stderr, exitCode, executionTimeMs, timedOut, error? }>}
+ */
+export async function executeShellStreaming(command, { stdin = "", timeout = DEFAULT_TIMEOUT_MS, onChunk } = {}) {
+  const clampedTimeout = Math.min(Math.max(timeout, 500), MAX_TIMEOUT_MS);
+
+  const validation = validateCommand(command);
+  if (!validation.valid) {
+    return {
+      success: false, stdout: "", stderr: "", exitCode: null,
+      executionTimeMs: 0, timedOut: false, error: validation.error,
+    };
+  }
+
+  if (stdin && Buffer.byteLength(stdin) > MAX_INPUT_BYTES) {
+    return {
+      success: false, stdout: "", stderr: "", exitCode: null,
+      executionTimeMs: 0, timedOut: false,
+      error: `stdin exceeds maximum size of ${MAX_INPUT_BYTES} bytes`,
+    };
+  }
+
+  const startTime = performance.now();
+
+  return new Promise((resolve) => {
+    const stdoutChunks = [];
+    const stderrChunks = [];
+    let stdoutLen = 0;
+    let stderrLen = 0;
+    let timedOut = false;
+    let settled = false;
+
+    const child = spawn("bash", ["-r", "-c", command], {
+      stdio: ["pipe", "pipe", "pipe"],
+      env: { PATH: "/usr/bin:/bin:/usr/local/bin", HOME: "/tmp", LANG: "C.UTF-8" },
+      detached: false,
+      cwd: "/tmp",
+    });
+
+    if (stdin) child.stdin.write(stdin);
+    child.stdin.end();
+
+    child.stdout.on("data", (chunk) => {
+      if (stdoutLen < MAX_OUTPUT_BYTES) {
+        stdoutChunks.push(chunk);
+        stdoutLen += chunk.length;
+        onChunk?.("stdout", chunk.toString("utf-8"));
+      }
+    });
+
+    child.stderr.on("data", (chunk) => {
+      if (stderrLen < MAX_OUTPUT_BYTES) {
+        stderrChunks.push(chunk);
+        stderrLen += chunk.length;
+        onChunk?.("stderr", chunk.toString("utf-8"));
+      }
+    });
+
+    const timer = setTimeout(() => { timedOut = true; child.kill("SIGKILL"); }, clampedTimeout);
+
+    function finish(exitCode) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      const stdout = Buffer.concat(stdoutChunks).toString("utf-8");
+      const stderr = Buffer.concat(stderrChunks).toString("utf-8");
+      resolve({
+        success: exitCode === 0 && !timedOut,
+        stdout: stdoutLen > MAX_OUTPUT_BYTES ? stdout + "\n... [output truncated]" : stdout,
+        stderr: stderrLen > MAX_OUTPUT_BYTES ? stderr + "\n... [output truncated]" : stderr,
+        exitCode: timedOut ? null : exitCode,
+        executionTimeMs: Math.round(performance.now() - startTime),
+        timedOut,
+        ...(timedOut && { error: `Execution timed out after ${clampedTimeout}ms` }),
+      });
+    }
+
+    child.on("close", (code) => finish(code));
+    child.on("error", (err) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        resolve({
+          success: false, stdout: "", stderr: "", exitCode: null,
+          executionTimeMs: Math.round(performance.now() - startTime),
+          timedOut: false, error: `Process error: ${err.message}`,
+        });
+      }
+    });
+  });
+}
+
+/**
  * Get the list of allowed binaries.
  */
 export function getAllowedBinaries() {

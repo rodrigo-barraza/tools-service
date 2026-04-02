@@ -24,6 +24,7 @@ import {
 import { getPublicWebcams } from "../fetchers/utility/WebcamFetcher.js";
 import {
   executePython,
+  executePythonStreaming,
   getInterpreterInfo,
 } from "../services/PythonInterpreterService.js";
 import {
@@ -468,6 +469,42 @@ router.get("/python/info", asyncHandler(
   () => getInterpreterInfo(),
   "Python interpreter info",
 ));
+
+// ── Python Streaming (SSE) ────────────────────────────────────
+
+function setupStreamingSSE(res) {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+  });
+  const send = (event) => {
+    res.write(`data: ${JSON.stringify(event)}\n\n`);
+  };
+  return send;
+}
+
+router.post("/python/stream", async (req, res) => {
+  const { code, timeout } = req.body;
+  if (!code || typeof code !== "string") {
+    return res.status(400).json({ error: "Request body must include 'code' (string)" });
+  }
+  if (code.length > 100_000) {
+    return res.status(400).json({ error: "Code exceeds maximum length of 100,000 characters" });
+  }
+
+  const send = setupStreamingSSE(res);
+  send({ event: "start", language: "python" });
+
+  const result = await executePythonStreaming(code, {
+    timeout: timeout ? Math.min(Math.max(parseInt(timeout), 1000), 60_000) : undefined,
+    onChunk: (event, data) => send({ event, data }),
+  });
+
+  send({ event: "exit", exitCode: result.exitCode, executionTimeMs: result.executionTimeMs, success: result.success, timedOut: result.timedOut, error: result.error || undefined });
+  res.end();
+});
 
 // ─── Chart Generation ──────────────────────────────────────────────
 

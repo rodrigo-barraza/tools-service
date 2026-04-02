@@ -16,9 +16,24 @@ import {
 } from "../services/JavaScriptInterpreterService.js";
 import {
   executeShell,
+  executeShellStreaming,
   getAllowedBinaries,
 } from "../services/ShellExecutorService.js";
 import CONFIG from "../config.js";
+
+// ── SSE streaming helper ───────────────────────────────────────
+function setupStreamingSSE(res) {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+  });
+  const send = (event) => {
+    res.write(`data: ${JSON.stringify(event)}\n\n`);
+  };
+  return send;
+}
 
 // ─── Lazy-loaded dependencies ──────────────────────────────────────
 // These are loaded on first use to avoid blocking startup.
@@ -90,6 +105,36 @@ router.get("/js/info", (_req, res) => {
   res.json(getJsInterpreterInfo());
 });
 
+// ── JS Streaming (SSE) — synchronous vm, but follows the same SSE pattern ──
+
+router.post("/js/stream", (req, res) => {
+  const { code, timeout } = req.body;
+  if (!code || typeof code !== "string") {
+    return res.status(400).json({ error: "Request body must include 'code' (string)" });
+  }
+  if (code.length > 100_000) {
+    return res.status(400).json({ error: "Code exceeds maximum length of 100,000 characters" });
+  }
+
+  const send = setupStreamingSSE(res);
+  send({ event: "start", language: "javascript" });
+
+  const result = executeJavaScript(code, {
+    timeout: timeout ? Math.min(Math.max(parseInt(timeout), 100), 30_000) : undefined,
+  });
+
+  // Emit console output as stdout chunks
+  if (result.output) {
+    send({ event: "stdout", data: result.output + "\n" });
+  }
+  if (result.error) {
+    send({ event: "stderr", data: result.error + "\n" });
+  }
+
+  send({ event: "exit", exitCode: result.error ? 1 : 0, executionTimeMs: result.executionTimeMs, success: result.success });
+  res.end();
+});
+
 // ═══════════════════════════════════════════════════════════════
 // 2. Shell Executor (allowlisted commands)
 // ═══════════════════════════════════════════════════════════════
@@ -118,6 +163,30 @@ router.post("/shell/execute", async (req, res) => {
 router.get("/shell/binaries", (_req, res) => {
   const binaries = getAllowedBinaries();
   res.json({ count: binaries.length, binaries });
+});
+
+// ── Shell Streaming (SSE) ─────────────────────────────────────
+
+router.post("/shell/stream", async (req, res) => {
+  const { command, stdin, timeout } = req.body;
+  if (!command || typeof command !== "string") {
+    return res.status(400).json({ error: "Request body must include 'command' (string)" });
+  }
+  if (command.length > 10_000) {
+    return res.status(400).json({ error: "Command exceeds maximum length of 10,000 characters" });
+  }
+
+  const send = setupStreamingSSE(res);
+  send({ event: "start", command });
+
+  const result = await executeShellStreaming(command, {
+    stdin: stdin || "",
+    timeout: timeout ? Math.min(Math.max(parseInt(timeout), 500), 30_000) : undefined,
+    onChunk: (event, data) => send({ event, data }),
+  });
+
+  send({ event: "exit", exitCode: result.exitCode, executionTimeMs: result.executionTimeMs, success: result.success, timedOut: result.timedOut, error: result.error || undefined });
+  res.end();
 });
 
 // ═══════════════════════════════════════════════════════════════

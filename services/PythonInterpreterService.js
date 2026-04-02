@@ -205,6 +205,106 @@ export async function executePython(code, { timeout = DEFAULT_TIMEOUT_MS } = {})
 }
 
 /**
+ * Execute Python code with real-time output streaming.
+ * Same sandbox as executePython, but invokes `onChunk` for each
+ * stdout/stderr data event as it arrives.
+ *
+ * @param {string} code - Python source code
+ * @param {object} [options]
+ * @param {number}   [options.timeout]  - Execution timeout in ms (max 60000)
+ * @param {function} [options.onChunk]  - (event: "stdout"|"stderr", data: string) => void
+ * @returns {Promise<{ success, stdout, stderr, exitCode, executionTimeMs, timedOut, error? }>}
+ */
+export async function executePythonStreaming(code, { timeout = DEFAULT_TIMEOUT_MS, onChunk } = {}) {
+  const clampedTimeout = Math.min(Math.max(timeout, 1000), MAX_TIMEOUT_MS);
+  const startTime = performance.now();
+
+  let tmpDir;
+  let scriptPath;
+  try {
+    tmpDir = await mkdtemp(join(tmpdir(), "pyexec-"));
+    scriptPath = join(tmpDir, "script.py");
+    await writeFile(scriptPath, PREAMBLE + "\n" + code, "utf-8");
+  } catch (err) {
+    return {
+      success: false, stdout: "", stderr: "", exitCode: null,
+      executionTimeMs: Math.round(performance.now() - startTime),
+      timedOut: false, error: `Failed to stage script: ${err.message}`,
+    };
+  }
+
+  return new Promise((resolve) => {
+    const stdoutChunks = [];
+    const stderrChunks = [];
+    let stdoutLen = 0;
+    let stderrLen = 0;
+    let timedOut = false;
+    let settled = false;
+
+    const child = spawn(PYTHON_BIN, ["-u", scriptPath], {
+      stdio: ["pipe", "pipe", "pipe"],
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1", PYTHONUNBUFFERED: "1" },
+      detached: false,
+    });
+
+    child.stdin.end();
+
+    child.stdout.on("data", (chunk) => {
+      if (stdoutLen < MAX_OUTPUT_BYTES) {
+        stdoutChunks.push(chunk);
+        stdoutLen += chunk.length;
+        onChunk?.("stdout", chunk.toString("utf-8"));
+      }
+    });
+
+    child.stderr.on("data", (chunk) => {
+      if (stderrLen < MAX_OUTPUT_BYTES) {
+        stderrChunks.push(chunk);
+        stderrLen += chunk.length;
+        onChunk?.("stderr", chunk.toString("utf-8"));
+      }
+    });
+
+    const timer = setTimeout(() => { timedOut = true; child.kill("SIGKILL"); }, clampedTimeout);
+
+    function finish(exitCode) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+
+      const stdout = Buffer.concat(stdoutChunks).toString("utf-8");
+      const stderr = Buffer.concat(stderrChunks).toString("utf-8");
+
+      rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+
+      resolve({
+        success: exitCode === 0 && !timedOut,
+        stdout: stdoutLen > MAX_OUTPUT_BYTES ? stdout + `\n... [output truncated]` : stdout,
+        stderr: stderrLen > MAX_OUTPUT_BYTES ? stderr + `\n... [output truncated]` : stderr,
+        exitCode: timedOut ? null : exitCode,
+        executionTimeMs: Math.round(performance.now() - startTime),
+        timedOut,
+        ...(timedOut && { error: `Execution timed out after ${clampedTimeout}ms` }),
+      });
+    }
+
+    child.on("close", (code) => finish(code));
+    child.on("error", (err) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        unlink(scriptPath).catch(() => {});
+        resolve({
+          success: false, stdout: "", stderr: "", exitCode: null,
+          executionTimeMs: Math.round(performance.now() - startTime),
+          timedOut: false, error: `Process error: ${err.message}`,
+        });
+      }
+    });
+  });
+}
+
+/**
  * Get interpreter metadata for health checks.
  */
 export async function getInterpreterInfo() {
