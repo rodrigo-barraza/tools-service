@@ -3664,6 +3664,464 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
+    name: "execute_javascript",
+    dataSource: compute("Node.js vm"),
+    description:
+      "Execute JavaScript code in a sandboxed Node.js vm context. Much faster than Python for quick data transforms, JSON manipulation, regex, and math. Has access to JSON, Math, Date, RegExp, Array, Object, Map, Set, typed arrays, TextEncoder/TextDecoder, console.log, and all core JS builtins. No access to require, import, process, fetch, setTimeout, filesystem, or network. Use console.log() to produce output. Returns both captured output and the expression result.",
+    endpoint: {
+      method: "POST",
+      path: "/compute/js/execute",
+      bodyParams: ["code", "timeout"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        code: {
+          type: "string",
+          description:
+            "JavaScript source code to execute. Use console.log() to produce output. The last expression value is returned as 'result'. Full standard JS built-ins available (JSON, Math, Date, RegExp, Array methods, Map, Set, etc.). No require/import/fetch/process/setTimeout.",
+        },
+        timeout: {
+          type: "integer",
+          description:
+            "Execution timeout in milliseconds (min 100, max 30000, default 5000).",
+        },
+      },
+      required: ["code"],
+    },
+  },
+  {
+    name: "execute_shell",
+    dataSource: compute("bash subprocess"),
+    description:
+      "Execute allowlisted shell commands for text processing. Supports pipes (|) between commands. Allowed binaries: awk, sed, grep, cut, tr, sort, uniq, wc, head, tail, jq, bc, expr, base64, md5sum, sha256sum, date, cal, echo, printf, cat, paste, column, fold, nl, rev, tac, seq, shuf, factor, and more. No filesystem mutation, no network access. Input data can be piped via stdin.",
+    endpoint: {
+      method: "POST",
+      path: "/compute/shell/execute",
+      bodyParams: ["command", "stdin", "timeout"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        command: {
+          type: "string",
+          description:
+            "Shell command to execute. Pipes (|) are allowed between allowlisted binaries. Example: 'echo \"hello world\" | tr a-z A-Z' or 'sort | uniq -c | sort -rn | head -10'. Shell metacharacters (;, &, `, $, etc.) are blocked for security.",
+        },
+        stdin: {
+          type: "string",
+          description:
+            "Optional input data to pipe to the command's stdin. Useful for processing text data with awk/sed/grep/sort/jq pipelines. Max 1 MB.",
+        },
+        timeout: {
+          type: "integer",
+          description:
+            "Execution timeout in milliseconds (min 500, max 30000, default 10000).",
+        },
+      },
+      required: ["command"],
+    },
+  },
+  {
+    name: "convert_units",
+    dataSource: compute("convert-units"),
+    description:
+      "Convert between physical measurement units. Supports length, mass, volume, temperature, time, speed, area, pressure, energy, power, frequency, data, acceleration, current, voltage, and more. LLMs frequently hallucinate unit conversions — use this tool for accuracy.",
+    endpoint: {
+      path: "/compute/units/convert",
+      queryParams: ["value", "from", "to"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        value: {
+          type: "number",
+          description: "The numeric value to convert",
+        },
+        from: {
+          type: "string",
+          description:
+            "Source unit abbreviation (e.g. 'mi', 'km', 'lb', 'kg', 'F', 'C', 'gal', 'l', 'psi', 'Pa', 'GB', 'MB')",
+        },
+        to: {
+          type: "string",
+          description:
+            "Target unit abbreviation (e.g. 'km', 'mi', 'kg', 'lb', 'C', 'F', 'l', 'gal')",
+        },
+      },
+      required: ["value", "from", "to"],
+    },
+  },
+  {
+    name: "parse_datetime",
+    dataSource: compute("date-fns"),
+    description:
+      "Parse, format, compare, and perform arithmetic on dates and times. Operations: 'now' (current time), 'parse' (analyze a date), 'format' (custom formatting), 'diff' (difference between two dates in all units), 'add'/'subtract' (date arithmetic), 'startOf'/'endOf' (period boundaries), 'isValid' (validation). Supports timezone conversion. LLMs frequently get date math wrong — use this tool for accuracy.",
+    endpoint: {
+      method: "POST",
+      path: "/compute/datetime/parse",
+      bodyParams: ["operation", "date", "date2", "amount", "unit", "format", "timezone"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        operation: {
+          type: "string",
+          enum: ["now", "parse", "format", "diff", "add", "subtract", "startOf", "endOf", "isValid"],
+          description: "The date/time operation to perform",
+        },
+        date: {
+          type: "string",
+          description:
+            "Date input — ISO 8601 string (e.g. '2024-03-15T10:30:00Z'), Unix timestamp (number), or 'now'. Required for most operations.",
+        },
+        date2: {
+          type: "string",
+          description:
+            "Second date for 'diff' operation. Same format as 'date'.",
+        },
+        amount: {
+          type: "integer",
+          description: "Amount to add/subtract (for 'add' and 'subtract' operations)",
+        },
+        unit: {
+          type: "string",
+          enum: ["years", "months", "weeks", "days", "hours", "minutes", "seconds", "year", "month", "week", "day", "hour", "minute"],
+          description:
+            "Time unit for add/subtract/startOf/endOf operations",
+        },
+        format: {
+          type: "string",
+          description:
+            "Output format string using date-fns tokens (e.g. 'yyyy-MM-dd', 'EEEE, MMMM do yyyy', 'HH:mm:ss'). See date-fns format docs.",
+        },
+        timezone: {
+          type: "string",
+          description:
+            "IANA timezone for output (e.g. 'America/Vancouver', 'Europe/London', 'Asia/Tokyo'). If omitted, uses UTC.",
+        },
+      },
+      required: ["operation"],
+    },
+  },
+  {
+    name: "transform_json",
+    dataSource: compute("jsonpath-plus"),
+    description:
+      "Transform, filter, reshape, and aggregate JSON data using JSONPath expressions and/or chained operations. Useful for extracting specific fields from complex API responses, reshaping data structures, filtering arrays, grouping, sorting, and aggregating. Operations: flatten, unique, sort, filter, pick, omit, groupBy, count, sum, limit, reverse.",
+    endpoint: {
+      method: "POST",
+      path: "/compute/json/transform",
+      bodyParams: ["data", "expression", "operations"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        data: {
+          type: "object",
+          description: "The JSON data to transform (object or array)",
+        },
+        expression: {
+          type: "string",
+          description:
+            "JSONPath expression to extract data (e.g. '$.store.book[*].author', '$..price', '$.items[?(@.active==true)]'). Optional — can use operations alone.",
+        },
+        operations: {
+          type: "array",
+          description:
+            "Array of chained operations to apply. Each operation: { type: 'flatten'|'unique'|'sort'|'filter'|'pick'|'omit'|'groupBy'|'count'|'sum'|'limit'|'reverse', ...params }. Sort: { key, order:'asc'|'desc' }. Filter: { key, value, operator:'eq'|'gt'|'lt'|'contains' }. Pick/Omit: { keys:[] }. GroupBy: { key }. Sum: { key }. Limit: { count }.",
+          items: {
+            type: "object",
+            properties: {
+              type: {
+                type: "string",
+                enum: ["flatten", "unique", "sort", "filter", "pick", "omit", "groupBy", "count", "sum", "limit", "reverse"],
+              },
+            },
+          },
+        },
+      },
+      required: ["data"],
+    },
+  },
+  {
+    name: "generate_csv",
+    dataSource: compute("internal"),
+    description:
+      "Convert an array of objects into a downloadable CSV file. Returns a download URL. Use this when the user needs data exported for spreadsheets, reports, or external tools. Supports custom column ordering and delimiter.",
+    endpoint: {
+      method: "POST",
+      path: "/compute/csv",
+      bodyParams: ["data", "columns", "filename", "delimiter"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        data: {
+          type: "array",
+          description:
+            "Array of objects to convert to CSV. Each object becomes one row.",
+          items: { type: "object" },
+        },
+        columns: {
+          type: "array",
+          description:
+            "Optional explicit column order. If omitted, uses keys from the first object.",
+          items: { type: "string" },
+        },
+        filename: {
+          type: "string",
+          description: "Download filename (default: 'export.csv')",
+        },
+        delimiter: {
+          type: "string",
+          description: "Column delimiter (default: ','). Use '\\t' for TSV.",
+        },
+      },
+      required: ["data"],
+    },
+  },
+  {
+    name: "generate_qr_code",
+    dataSource: compute("qrcode"),
+    description:
+      "Generate a QR code PNG image from text, URLs, WiFi credentials, vCards, or any string data. Returns a qrImageUrl — render it with ![QR](qrImageUrl) markdown syntax so the user sees the QR code inline.",
+    endpoint: {
+      method: "POST",
+      path: "/compute/qr",
+      bodyParams: ["data", "size", "errorCorrection", "darkColor", "lightColor"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        data: {
+          type: "string",
+          description:
+            "The data to encode. URL, text, WiFi config (WIFI:T:WPA;S:MyNetwork;P:MyPassword;;), vCard, etc. Max ~4296 chars.",
+        },
+        size: {
+          type: "integer",
+          description: "Image width/height in pixels (default: 400, max: 1024)",
+        },
+        errorCorrection: {
+          type: "string",
+          enum: ["L", "M", "Q", "H"],
+          description: "Error correction level: L (7%), M (15%, default), Q (25%), H (30%)",
+        },
+        darkColor: {
+          type: "string",
+          description: "Foreground color as hex (default: '#000000')",
+        },
+        lightColor: {
+          type: "string",
+          description: "Background color as hex (default: '#ffffff')",
+        },
+      },
+      required: ["data"],
+    },
+  },
+  {
+    name: "render_latex",
+    dataSource: compute("KaTeX CDN"),
+    description:
+      "Render LaTeX mathematical expressions as a beautiful embedded page using KaTeX. Use this to display equations, formulas, and mathematical notation. Returns a latexEmbedUrl — render it with ![LaTeX](latexEmbedUrl) markdown syntax so the user sees the rendered math inline.",
+    endpoint: {
+      method: "POST",
+      path: "/compute/latex",
+      bodyParams: ["latex", "displayMode"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        latex: {
+          type: "string",
+          description:
+            "LaTeX math expression to render. Examples: '\\\\int_0^1 x^2 dx = \\\\frac{1}{3}', 'E = mc^2', '\\\\sum_{i=1}^{n} i = \\\\frac{n(n+1)}{2}'",
+        },
+        displayMode: {
+          type: "boolean",
+          description:
+            "If true (default), renders as a display-style equation (centered, larger). If false, renders inline-style.",
+        },
+      },
+      required: ["latex"],
+    },
+  },
+  {
+    name: "generate_diagram",
+    dataSource: compute("Mermaid CDN"),
+    description:
+      "Render Mermaid diagrams (flowcharts, sequence diagrams, class diagrams, ER diagrams, Gantt charts, state diagrams, pie charts, git graphs) as interactive embedded pages. Returns a diagramEmbedUrl — render it with ![Diagram](diagramEmbedUrl) markdown syntax so the user sees the diagram inline.",
+    endpoint: {
+      method: "POST",
+      path: "/compute/diagram",
+      bodyParams: ["definition", "theme"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        definition: {
+          type: "string",
+          description:
+            "Mermaid diagram syntax. Examples: 'graph TD\\n  A[Start] --> B{Decision}\\n  B -->|Yes| C[OK]\\n  B -->|No| D[End]' or 'sequenceDiagram\\n  Alice->>Bob: Hello\\n  Bob-->>Alice: Hi back' or 'pie\\n  \"Dogs\" : 386\\n  \"Cats\" : 85'",
+        },
+        theme: {
+          type: "string",
+          enum: ["dark", "default", "forest", "neutral"],
+          description: "Mermaid color theme (default: 'dark')",
+        },
+      },
+      required: ["definition"],
+    },
+  },
+  {
+    name: "diff_text",
+    dataSource: compute("diff"),
+    description:
+      "Compare two text inputs and produce a structured diff showing additions, deletions, and unchanged content. Also generates a unified patch. Supports character-level, word-level, line-level, sentence-level, and JSON diffs.",
+    endpoint: {
+      method: "POST",
+      path: "/compute/diff",
+      bodyParams: ["textA", "textB", "mode"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        textA: {
+          type: "string",
+          description: "The original text (or JSON string for json mode)",
+        },
+        textB: {
+          type: "string",
+          description: "The modified text (or JSON string for json mode)",
+        },
+        mode: {
+          type: "string",
+          enum: ["lines", "words", "chars", "sentences", "json"],
+          description: "Diff granularity (default: 'lines')",
+        },
+      },
+      required: ["textA", "textB"],
+    },
+  },
+  {
+    name: "generate_hash",
+    dataSource: compute("node:crypto"),
+    description:
+      "Generate cryptographic hashes and HMACs. Supports MD5, SHA-1, SHA-256, SHA-512, and all Node.js crypto algorithms. Outputs in hex, base64, or other encodings. Use for checksums, data verification, and fingerprinting.",
+    endpoint: {
+      path: "/compute/hash",
+      queryParams: ["data", "algorithm", "encoding", "key"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        data: {
+          type: "string",
+          description: "The data to hash",
+        },
+        algorithm: {
+          type: "string",
+          description: "Hash algorithm: md5, sha1, sha256, sha512, sha3-256, etc. (default: sha256)",
+        },
+        encoding: {
+          type: "string",
+          description: "Output encoding: hex (default), base64, base64url",
+        },
+        key: {
+          type: "string",
+          description: "Optional HMAC key. If provided, computes HMAC instead of plain hash.",
+        },
+      },
+      required: ["data"],
+    },
+  },
+  {
+    name: "regex_tester",
+    dataSource: compute("native RegExp"),
+    description:
+      "Test a regular expression pattern against input text. Returns all matches with indices, captured groups, and named groups. Validates regex syntax. Useful for pattern matching, data extraction, and regex debugging.",
+    endpoint: {
+      method: "POST",
+      path: "/compute/regex",
+      bodyParams: ["pattern", "flags", "text"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        pattern: {
+          type: "string",
+          description: "Regular expression pattern (without delimiters). Example: '\\\\d{3}-\\\\d{4}' or '(?<name>[A-Z]\\\\w+)'",
+        },
+        flags: {
+          type: "string",
+          description: "Regex flags: g (global), i (case-insensitive), m (multiline), s (dotAll), u (unicode). Default: 'g'",
+        },
+        text: {
+          type: "string",
+          description: "The input text to test the pattern against",
+        },
+      },
+      required: ["pattern", "text"],
+    },
+  },
+  {
+    name: "encode_decode",
+    dataSource: compute("internal"),
+    description:
+      "Encode or decode data between formats: Base64, Base64URL, hex, URL encoding, HTML entities, ROT13, binary, and JWT decode (no verification). Bidirectional — specify encode or decode direction.",
+    endpoint: {
+      path: "/compute/encode",
+      queryParams: ["data", "format", "direction"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        data: {
+          type: "string",
+          description: "The data to encode or decode",
+        },
+        format: {
+          type: "string",
+          enum: ["base64", "base64url", "hex", "url", "html", "rot13", "binary", "jwt"],
+          description: "The encoding format",
+        },
+        direction: {
+          type: "string",
+          enum: ["encode", "decode"],
+          description: "Direction of transformation (default: 'encode'). JWT only supports 'decode'.",
+        },
+      },
+      required: ["data", "format"],
+    },
+  },
+  {
+    name: "convert_color",
+    dataSource: compute("internal"),
+    description:
+      "Convert colors between HEX, RGB, HSL, HSV, and CMYK formats. Also generates color palettes: complementary, analogous, triadic, split-complementary, tetradic, and monochromatic. Accepts any common color input format including CSS named colors.",
+    endpoint: {
+      path: "/compute/color/convert",
+      queryParams: ["color", "palette"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        color: {
+          type: "string",
+          description:
+            "Color value in any format: HEX ('#ff6347'), RGB ('rgb(255,99,71)'), HSL ('hsl(9,100%,64%)'), or CSS name ('tomato')",
+        },
+        palette: {
+          type: "string",
+          enum: ["complementary", "analogous", "triadic", "splitComplementary", "tetradic", "monochromatic"],
+          description: "Optional — generate a color harmony palette based on the input color",
+        },
+      },
+      required: ["color"],
+    },
+  },
+  {
     name: "convert_currency",
     dataSource: onDemand("Exchange Rate API"),
     description:
@@ -4958,6 +5416,22 @@ const TOOL_DOMAINS = {
   find_nearest_airports: "Utilities",
   get_public_webcams: "Utilities",
   execute_python: "Utilities",
+
+  // Compute
+  execute_javascript: "Compute",
+  execute_shell: "Compute",
+  convert_units: "Compute",
+  parse_datetime: "Compute",
+  transform_json: "Compute",
+  generate_csv: "Compute",
+  generate_qr_code: "Compute",
+  render_latex: "Compute",
+  generate_diagram: "Compute",
+  diff_text: "Compute",
+  generate_hash: "Compute",
+  regex_tester: "Compute",
+  encode_decode: "Compute",
+  convert_color: "Compute",
 
   // Maritime
   get_tracked_vessels: "Maritime",

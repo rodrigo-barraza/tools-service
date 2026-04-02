@@ -32,6 +32,7 @@ import knowledgeRoutes, {
 import healthRoutes, { getHealthDomainHealth } from "./routes/HealthRoutes.js";
 import transitRoutes, { getTransitHealth } from "./routes/TransitRoutes.js";
 import utilityRoutes, { getUtilityHealth } from "./routes/UtilityRoutes.js";
+import computeRoutes, { getComputeHealth } from "./routes/ComputeRoutes.js";
 import maritimeRoutes, { getMaritimeHealth } from "./routes/MaritimeRoutes.js";
 import energyRoutes, { getEnergyHealth } from "./routes/EnergyRoutes.js";
 import adminRoutes from "./routes/AdminRoutes.js";
@@ -72,6 +73,7 @@ app.use("/knowledge", knowledgeRoutes);
 app.use("/health", healthRoutes);
 app.use("/transit", transitRoutes);
 app.use("/utility", utilityRoutes);
+app.use("/compute", computeRoutes);
 app.use("/maritime", maritimeRoutes);
 app.use("/energy", energyRoutes);
 app.use("/admin", adminRoutes);
@@ -93,6 +95,7 @@ app.get("/health", (_req, res) => {
       health: getHealthDomainHealth(),
       transit: getTransitHealth(),
       utility: getUtilityHealth(),
+      compute: getComputeHealth(),
       maritime: getMaritimeHealth(),
       energy: getEnergyHealth(),
     },
@@ -148,10 +151,10 @@ async function start() {
     console.log(`🔧 Tools API running on port ${port}`);
     console.log(`   Database: ${CONFIG.MONGODB_URI}`);
     console.log(
-      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, maritime, energy",
+      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy",
     );
     console.log(
-      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /maritime/*, /energy/*",
+      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*",
     );
   });
 }
