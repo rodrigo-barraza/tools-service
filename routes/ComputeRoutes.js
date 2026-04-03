@@ -9,7 +9,6 @@
 // ============================================================
 
 import { Router } from "express";
-import crypto from "node:crypto";
 import {
   executeJavaScript,
   getJsInterpreterInfo,
@@ -20,20 +19,10 @@ import {
   getAllowedBinaries,
 } from "../services/ShellExecutorService.js";
 import CONFIG from "../config.js";
+import { MAX_CODE_LENGTH, MAX_COMMAND_LENGTH } from "../constants.js";
+import { setupStreamingSSE, EphemeralStore } from "../utilities.js";
 
-// ── SSE streaming helper ───────────────────────────────────────
-function setupStreamingSSE(res) {
-  res.writeHead(200, {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    Connection: "keep-alive",
-    "X-Accel-Buffering": "no",
-  });
-  const send = (event) => {
-    res.write(`data: ${JSON.stringify(event)}\n\n`);
-  };
-  return send;
-}
+// SSE helper imported from utilities.js
 
 // ─── Lazy-loaded dependencies ──────────────────────────────────────
 // These are loaded on first use to avoid blocking startup.
@@ -88,10 +77,10 @@ router.post("/js/execute", (req, res) => {
       .status(400)
       .json({ error: "Request body must include 'code' (string)" });
   }
-  if (code.length > 100_000) {
+  if (code.length > MAX_CODE_LENGTH) {
     return res
       .status(400)
-      .json({ error: "Code exceeds maximum length of 100,000 characters" });
+      .json({ error: `Code exceeds maximum length of ${MAX_CODE_LENGTH.toLocaleString()} characters` });
   }
   const result = executeJavaScript(code, {
     timeout: timeout
@@ -112,8 +101,8 @@ router.post("/js/stream", (req, res) => {
   if (!code || typeof code !== "string") {
     return res.status(400).json({ error: "Request body must include 'code' (string)" });
   }
-  if (code.length > 100_000) {
-    return res.status(400).json({ error: "Code exceeds maximum length of 100,000 characters" });
+  if (code.length > MAX_CODE_LENGTH) {
+    return res.status(400).json({ error: `Code exceeds maximum length of ${MAX_CODE_LENGTH.toLocaleString()} characters` });
   }
 
   const send = setupStreamingSSE(res);
@@ -146,10 +135,10 @@ router.post("/shell/execute", async (req, res) => {
       .status(400)
       .json({ error: "Request body must include 'command' (string)" });
   }
-  if (command.length > 10_000) {
+  if (command.length > MAX_COMMAND_LENGTH) {
     return res
       .status(400)
-      .json({ error: "Command exceeds maximum length of 10,000 characters" });
+      .json({ error: `Command exceeds maximum length of ${MAX_COMMAND_LENGTH.toLocaleString()} characters` });
   }
   const result = await executeShell(command, {
     stdin: stdin || "",
@@ -172,8 +161,8 @@ router.post("/shell/stream", async (req, res) => {
   if (!command || typeof command !== "string") {
     return res.status(400).json({ error: "Request body must include 'command' (string)" });
   }
-  if (command.length > 10_000) {
-    return res.status(400).json({ error: "Command exceeds maximum length of 10,000 characters" });
+  if (command.length > MAX_COMMAND_LENGTH) {
+    return res.status(400).json({ error: `Command exceeds maximum length of ${MAX_COMMAND_LENGTH.toLocaleString()} characters` });
   }
 
   const send = setupStreamingSSE(res);
@@ -562,8 +551,7 @@ router.post("/json/transform", async (req, res) => {
 // 6. CSV Generation
 // ═══════════════════════════════════════════════════════════════
 
-const CSV_STORE = new Map();
-const CSV_TTL_MS = 60 * 60 * 1000; // 1 hour
+const csvStore = new EphemeralStore();
 
 router.post("/csv", (req, res) => {
   const { data, columns, filename, delimiter } = req.body;
@@ -592,16 +580,7 @@ router.post("/csv", (req, res) => {
     }
     const csv = lines.join("\n");
 
-    const id = crypto.randomUUID().slice(0, 12);
-    CSV_STORE.set(id, { csv, filename: filename || "export.csv", createdAt: Date.now() });
-
-    // Lazy cleanup
-    if (CSV_STORE.size > 200) {
-      const now = Date.now();
-      for (const [k, v] of CSV_STORE) {
-        if (now - v.createdAt > CSV_TTL_MS) CSV_STORE.delete(k);
-      }
-    }
+    const id = csvStore.set({ csv, filename: filename || "export.csv" });
 
     const downloadUrl = `http://localhost:${CONFIG.TOOLS_PORT}/compute/csv/download?id=${id}`;
     res.json({
@@ -619,9 +598,8 @@ router.get("/csv/download", (req, res) => {
   const { id } = req.query;
   if (!id) return res.status(400).send("Missing 'id' parameter");
 
-  const entry = CSV_STORE.get(id);
-  if (!entry || Date.now() - entry.createdAt > CSV_TTL_MS) {
-    CSV_STORE.delete(id);
+  const entry = csvStore.get(id);
+  if (!entry) {
     return res.status(404).send("CSV not found or expired");
   }
 
@@ -634,8 +612,7 @@ router.get("/csv/download", (req, res) => {
 // 7. QR Code Generation
 // ═══════════════════════════════════════════════════════════════
 
-const QR_STORE = new Map();
-const QR_TTL_MS = 60 * 60 * 1000;
+const qrStore = new EphemeralStore();
 
 router.post("/qr", async (req, res) => {
   const { data, size, errorCorrection, darkColor, lightColor } = req.body;
@@ -658,16 +635,7 @@ router.post("/qr", async (req, res) => {
       margin: 2,
     });
 
-    const id = crypto.randomUUID().slice(0, 12);
-    QR_STORE.set(id, { buffer: pngBuffer, createdAt: Date.now() });
-
-    // Lazy cleanup
-    if (QR_STORE.size > 200) {
-      const now = Date.now();
-      for (const [k, v] of QR_STORE) {
-        if (now - v.createdAt > QR_TTL_MS) QR_STORE.delete(k);
-      }
-    }
+    const id = qrStore.set({ buffer: pngBuffer });
 
     const qrImageUrl = `http://localhost:${CONFIG.TOOLS_PORT}/compute/qr/render?id=${id}`;
     res.json({ qrImageUrl, qrId: id, dataLength: data.length });
@@ -680,9 +648,8 @@ router.get("/qr/render", (req, res) => {
   const { id } = req.query;
   if (!id) return res.status(400).send("Missing 'id' parameter");
 
-  const entry = QR_STORE.get(id);
-  if (!entry || Date.now() - entry.createdAt > QR_TTL_MS) {
-    QR_STORE.delete(id);
+  const entry = qrStore.get(id);
+  if (!entry) {
     return res.status(404).send("QR code not found or expired");
   }
 
@@ -695,21 +662,15 @@ router.get("/qr/render", (req, res) => {
 // 8. LaTeX Rendering (KaTeX CDN embed)
 // ═══════════════════════════════════════════════════════════════
 
-const LATEX_STORE = new Map();
-const LATEX_TTL_MS = 60 * 60 * 1000;
+const latexStore = new EphemeralStore();
 
 function buildLatexEmbedHtml(latex, displayMode = true) {
-  const escaped = latex
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
   return `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"><${"/"}script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{
@@ -743,7 +704,7 @@ function buildLatexEmbedHtml(latex, displayMode = true) {
   } catch(e) {
     document.getElementById("math").textContent = "LaTeX error: " + e.message;
   }
-<\/script>
+<${"/"}script>
 </body></html>`;
 }
 
@@ -756,20 +717,10 @@ router.post("/latex", (req, res) => {
     return res.status(400).json({ error: "LaTeX expression exceeds 10,000 characters" });
   }
 
-  const id = crypto.randomUUID().slice(0, 12);
-  LATEX_STORE.set(id, {
+  const id = latexStore.set({
     latex,
     displayMode: displayMode !== false,
-    createdAt: Date.now(),
   });
-
-  // Lazy cleanup
-  if (LATEX_STORE.size > 200) {
-    const now = Date.now();
-    for (const [k, v] of LATEX_STORE) {
-      if (now - v.createdAt > LATEX_TTL_MS) LATEX_STORE.delete(k);
-    }
-  }
 
   const latexEmbedUrl = `http://localhost:${CONFIG.TOOLS_PORT}/compute/latex/embed?id=${id}`;
   res.json({ latexEmbedUrl, latexId: id });
@@ -779,9 +730,8 @@ router.get("/latex/embed", (req, res) => {
   const { id } = req.query;
   if (!id) return res.status(400).send("Missing 'id' parameter");
 
-  const entry = LATEX_STORE.get(id);
-  if (!entry || Date.now() - entry.createdAt > LATEX_TTL_MS) {
-    LATEX_STORE.delete(id);
+  const entry = latexStore.get(id);
+  if (!entry) {
     return res.status(404).send("LaTeX not found or expired");
   }
 
@@ -793,8 +743,7 @@ router.get("/latex/embed", (req, res) => {
 // 9. Mermaid Diagram Rendering (CDN embed)
 // ═══════════════════════════════════════════════════════════════
 
-const DIAGRAM_STORE = new Map();
-const DIAGRAM_TTL_MS = 60 * 60 * 1000;
+const diagramStore = new EphemeralStore();
 
 function buildMermaidEmbedHtml(definition, theme = "dark") {
   return `<!DOCTYPE html>
@@ -836,7 +785,7 @@ function buildMermaidEmbedHtml(definition, theme = "dark") {
   } catch(e) {
     document.getElementById('diagram').textContent = 'Diagram error: ' + e.message;
   }
-<\/script>
+<${"/"}script>
 </body></html>`;
 }
 
@@ -849,20 +798,10 @@ router.post("/diagram", (req, res) => {
     return res.status(400).json({ error: "Diagram definition exceeds 50,000 characters" });
   }
 
-  const id = crypto.randomUUID().slice(0, 12);
-  DIAGRAM_STORE.set(id, {
+  const id = diagramStore.set({
     definition,
     theme: theme || "dark",
-    createdAt: Date.now(),
   });
-
-  // Lazy cleanup
-  if (DIAGRAM_STORE.size > 200) {
-    const now = Date.now();
-    for (const [k, v] of DIAGRAM_STORE) {
-      if (now - v.createdAt > DIAGRAM_TTL_MS) DIAGRAM_STORE.delete(k);
-    }
-  }
 
   const diagramEmbedUrl = `http://localhost:${CONFIG.TOOLS_PORT}/compute/diagram/embed?id=${id}`;
   res.json({ diagramEmbedUrl, diagramId: id });
@@ -872,9 +811,8 @@ router.get("/diagram/embed", (req, res) => {
   const { id } = req.query;
   if (!id) return res.status(400).send("Missing 'id' parameter");
 
-  const entry = DIAGRAM_STORE.get(id);
-  if (!entry || Date.now() - entry.createdAt > DIAGRAM_TTL_MS) {
-    DIAGRAM_STORE.delete(id);
+  const entry = diagramStore.get(id);
+  if (!entry) {
     return res.status(404).send("Diagram not found or expired");
   }
 

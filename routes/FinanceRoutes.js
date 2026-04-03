@@ -25,7 +25,7 @@ import {
   searchSeries,
   getKeyIndicators,
 } from "../fetchers/finance/FredFetcher.js";
-import { asyncHandler } from "../utilities.js";
+import { asyncHandler, toISODate } from "../utilities.js";
 
 const router = Router();
 
@@ -75,8 +75,8 @@ router.get("/news", async (req, res) => {
   if (symbol) {
     try {
       const now = new Date();
-      const to = now.toISOString().slice(0, 10);
-      const from = new Date(now - 7 * 86_400_000).toISOString().slice(0, 10);
+      const to = toISODate(now);
+      const from = toISODate(new Date(now - 7 * 86_400_000));
       const news = await fetchCompanyNews(symbol.toUpperCase(), from, to);
       return res.json({
         symbol: symbol.toUpperCase(),

@@ -6,6 +6,7 @@ import {
 import {
   getToolSchemas,
   getToolSchemasForAI,
+  getDisabledTools,
 } from "../services/ToolSchemaService.js";
 
 const router = Router();
@@ -26,6 +27,14 @@ router.get("/tool-schemas", (_req, res) => {
  */
 router.get("/tool-schemas/ai", (_req, res) => {
   res.json(getToolSchemasForAI());
+});
+
+/**
+ * GET /admin/tool-schemas/disabled
+ * Tools hidden because their required API keys are not configured.
+ */
+router.get("/tool-schemas/disabled", (_req, res) => {
+  res.json(getDisabledTools());
 });
 
 // ─── Request Log Endpoints ─────────────────────────────────────────

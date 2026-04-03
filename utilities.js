@@ -300,3 +300,98 @@ export function asyncHandler(fn, label, errorStatus = 502) {
     }
   };
 }
+
+// ─── SSE Streaming Helper ─────────────────────────────────────────
+
+/**
+ * Set up a Server-Sent Events response with proper headers.
+ * Returns a `send(event)` function that serializes objects as SSE data lines.
+ * @param {import("express").Response} res
+ * @returns {(event: object) => void}
+ */
+export function setupStreamingSSE(res) {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+  });
+  const send = (event) => {
+    res.write(`data: ${JSON.stringify(event)}\n\n`);
+  };
+  return send;
+}
+
+// ─── Ephemeral Store ──────────────────────────────────────────────
+
+import crypto from "node:crypto";
+import { EPHEMERAL_TTL_MS, EPHEMERAL_MAX_SIZE } from "./constants.js";
+
+/**
+ * Generic in-memory ephemeral store backed by a Map with automatic
+ * TTL expiry and lazy cleanup. Replaces the duplicated
+ * Map + TTL + cleanup pattern used across CSV, QR, LaTeX, Diagram,
+ * Map, and Chart stores.
+ */
+export class EphemeralStore {
+  #map = new Map();
+  #ttlMs;
+  #maxSize;
+
+  /**
+   * @param {number} [ttlMs=EPHEMERAL_TTL_MS] - Entry time-to-live in milliseconds
+   * @param {number} [maxSize=EPHEMERAL_MAX_SIZE] - Max entries before lazy cleanup
+   */
+  constructor(ttlMs = EPHEMERAL_TTL_MS, maxSize = EPHEMERAL_MAX_SIZE) {
+    this.#ttlMs = ttlMs;
+    this.#maxSize = maxSize;
+  }
+
+  /**
+   * Store a value and return its generated ID.
+   * @param {*} value - The data to store
+   * @returns {string} A 12-character UUID prefix
+   */
+  set(value) {
+    const id = crypto.randomUUID().slice(0, 12);
+    this.#map.set(id, { value, createdAt: Date.now() });
+    this.#cleanup();
+    return id;
+  }
+
+  /**
+   * Retrieve a stored value by ID. Returns null if expired or not found.
+   * @param {string} id
+   * @returns {*|null}
+   */
+  get(id) {
+    const entry = this.#map.get(id);
+    if (!entry) return null;
+    if (Date.now() - entry.createdAt > this.#ttlMs) {
+      this.#map.delete(id);
+      return null;
+    }
+    return entry.value;
+  }
+
+  /** Lazy cleanup — only runs when size exceeds the threshold. */
+  #cleanup() {
+    if (this.#map.size <= this.#maxSize) return;
+    const now = Date.now();
+    for (const [k, v] of this.#map) {
+      if (now - v.createdAt > this.#ttlMs) this.#map.delete(k);
+    }
+  }
+}
+
+// ─── Date Utilities ───────────────────────────────────────────────
+
+/**
+ * Format a Date as an ISO date string (YYYY-MM-DD).
+ * Replaces the repeated `date.toISOString().slice(0, 10)` pattern.
+ * @param {Date} [date=new Date()] - The date to format
+ * @returns {string}
+ */
+export function toISODate(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}

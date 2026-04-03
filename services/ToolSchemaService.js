@@ -5451,30 +5451,137 @@ const TOOL_DOMAINS = {
 };
 
 // ────────────────────────────────────────────────────────────
+// API Key Gating — maps tools to required CONFIG keys
+// ────────────────────────────────────────────────────────────
+// Tools listed here will be excluded from schema responses
+// when their required API keys are missing (falsy) in CONFIG.
+// Tools NOT listed here are always available (public APIs,
+// in-memory datasets, compute tools, scrapers, etc.).
+// ────────────────────────────────────────────────────────────
+
+import CONFIG from "../config.js";
+
+const TOOL_REQUIRED_KEYS = {
+  // Movies & TV (all require TMDb API key)
+  search_movies: ["TMDB_API_KEY"],
+  get_movie_details: ["TMDB_API_KEY"],
+  get_movie_credits: ["TMDB_API_KEY"],
+  get_trending_movies: ["TMDB_API_KEY"],
+  discover_movies: ["TMDB_API_KEY"],
+  get_movie_genres: ["TMDB_API_KEY"],
+  search_tv_shows: ["TMDB_API_KEY"],
+  get_tv_show_details: ["TMDB_API_KEY"],
+  get_tv_show_credits: ["TMDB_API_KEY"],
+  get_tv_season_details: ["TMDB_API_KEY"],
+  get_trending_tv_shows: ["TMDB_API_KEY"],
+  discover_tv_shows: ["TMDB_API_KEY"],
+  get_tv_genres: ["TMDB_API_KEY"],
+
+  // Finance — Finnhub
+  get_stock_quote: ["FINNHUB_API_KEY"],
+  get_company_profile: ["FINNHUB_API_KEY"],
+  get_market_news: ["FINNHUB_API_KEY"],
+  get_earnings_calendar: ["FINNHUB_API_KEY"],
+  get_stock_recommendation: ["FINNHUB_API_KEY"],
+  get_stock_financials: ["FINNHUB_API_KEY"],
+
+  // Finance — FRED
+  get_macro_indicators: ["FRED_API_KEY"],
+  search_macro_series: ["FRED_API_KEY"],
+  get_macro_series_info: ["FRED_API_KEY"],
+  get_macro_observations: ["FRED_API_KEY"],
+
+  // Transit (all require TransLink API key)
+  get_next_bus: ["TRANSLINK_API_KEY"],
+  get_transit_stop_info: ["TRANSLINK_API_KEY"],
+  find_transit_stops_nearby: ["TRANSLINK_API_KEY"],
+  get_transit_route_info: ["TRANSLINK_API_KEY"],
+
+  // Places (require Google Places API key)
+  search_nearby_places: ["GOOGLE_PLACES_API_KEY"],
+  search_places: ["GOOGLE_PLACES_API_KEY"],
+  generate_map: ["GOOGLE_API_KEY"],
+
+  // Weather (only specific Google-powered tools)
+  get_google_air_quality: ["GOOGLE_API_KEY"],
+  get_pollen: ["GOOGLE_API_KEY"],
+
+  // Maritime (all require AIS Stream API key)
+  get_tracked_vessels: ["AIS_STREAM_API_KEY"],
+  get_vessel_by_mmsi: ["AIS_STREAM_API_KEY"],
+  search_vessels: ["AIS_STREAM_API_KEY"],
+  get_vessels_in_area: ["AIS_STREAM_API_KEY"],
+  get_ais_messages: ["AIS_STREAM_API_KEY"],
+
+  // Energy (all require EIA API key)
+  get_energy_indicators: ["EIA_API_KEY"],
+  browse_energy_data: ["EIA_API_KEY"],
+  get_energy_facets: ["EIA_API_KEY"],
+  query_energy_data: ["EIA_API_KEY"],
+  get_electricity_retail_sales: ["EIA_API_KEY"],
+  get_petroleum_prices: ["EIA_API_KEY"],
+  get_natural_gas_prices: ["EIA_API_KEY"],
+};
+
+/**
+ * Check if a tool is available based on its required API keys.
+ * Returns true if the tool has no required keys or all keys are configured.
+ */
+function isToolAvailable(toolName) {
+  const keys = TOOL_REQUIRED_KEYS[toolName];
+  if (!keys) return true;
+  return keys.every((key) => Boolean(CONFIG[key]));
+}
+
+// ────────────────────────────────────────────────────────────
 // Public API
 // ────────────────────────────────────────────────────────────
 
 /**
  * Get all tool schemas with endpoint metadata.
  * Used by clients (like Retina) to build dynamic executors.
+ * Filters out tools whose required API keys are not configured.
  * @returns {Array} Full tool definitions including endpoint info
  */
 export function getToolSchemas() {
-  return TOOL_DEFINITIONS.map((t) => ({
-    ...t,
-    domain: TOOL_DOMAINS[t.name] || "Other",
-  }));
+  return TOOL_DEFINITIONS
+    .filter((t) => isToolAvailable(t.name))
+    .map((t) => ({
+      ...t,
+      domain: TOOL_DOMAINS[t.name] || "Other",
+    }));
 }
 
 /**
  * Get tool schemas cleaned for LLM consumption.
  * Strips the `endpoint` property since the AI doesn't need routing info.
+ * Filters out tools whose required API keys are not configured.
  * @returns {Array} Tool definitions without endpoint metadata
  */
 export function getToolSchemasForAI() {
-  return TOOL_DEFINITIONS.map(
-    ({ endpoint: _endpoint, dataSource: _dataSource, ...rest }) => rest,
-  );
+  return TOOL_DEFINITIONS
+    .filter((t) => isToolAvailable(t.name))
+    .map(
+      ({ endpoint: _endpoint, dataSource: _dataSource, ...rest }) => rest,
+    );
+}
+
+/**
+ * Get tools that are disabled due to missing API keys.
+ * Useful for admin diagnostics and health checks.
+ * @returns {Array<{ name: string, domain: string, missingKeys: string[] }>}
+ */
+export function getDisabledTools() {
+  return TOOL_DEFINITIONS
+    .filter((t) => !isToolAvailable(t.name))
+    .map((t) => {
+      const requiredKeys = TOOL_REQUIRED_KEYS[t.name] || [];
+      return {
+        name: t.name,
+        domain: TOOL_DOMAINS[t.name] || "Other",
+        missingKeys: requiredKeys.filter((key) => !CONFIG[key]),
+      };
+    });
 }
 
 /**
@@ -5484,3 +5591,4 @@ export function getToolSchemasForAI() {
 export function getFields() {
   return FIELDS;
 }
+

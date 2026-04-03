@@ -1,5 +1,4 @@
 import { Router } from "express";
-import crypto from "node:crypto";
 import BigNumber from "bignumber.js";
 import CONFIG from "../config.js";
 import {
@@ -32,7 +31,8 @@ import {
   getStoredChart,
   renderChartPng,
 } from "../services/ChartService.js";
-import { asyncHandler } from "../utilities.js";
+import { MAX_CODE_LENGTH } from "../constants.js";
+import { asyncHandler, setupStreamingSSE, EphemeralStore } from "../utilities.js";
 
 const router = Router();
 
@@ -210,20 +210,10 @@ router.get("/places/search", async (req, res) => {
  * In-memory map marker store — avoids multi-kb query-param URLs.
  * Maps are keyed by short UUID, expire after 1h.
  */
-const MAP_STORE = new Map();
-const MAP_TTL_MS = 60 * 60 * 1000; // 1 hour
+const mapStore = new EphemeralStore();
 
 function storeMarkers(markerList) {
-  const id = crypto.randomUUID().slice(0, 12);
-  MAP_STORE.set(id, { markers: markerList, createdAt: Date.now() });
-  // Lazy cleanup
-  if (MAP_STORE.size > 200) {
-    const now = Date.now();
-    for (const [k, v] of MAP_STORE) {
-      if (now - v.createdAt > MAP_TTL_MS) MAP_STORE.delete(k);
-    }
-  }
-  return id;
+  return mapStore.set({ markers: markerList });
 }
 
 /**
@@ -326,7 +316,7 @@ router.get("/map/embed", (req, res) => {
 
   // Resolve by stored ID (short URL) or inline JSON (backward compat)
   if (id) {
-    const entry = MAP_STORE.get(id);
+    const entry = mapStore.get(id);
     if (!entry) return res.status(404).send("Map not found or expired");
     markerList = entry.markers;
   } else if (markers) {
@@ -454,10 +444,10 @@ router.post("/python/execute", async (req, res) => {
       .status(400)
       .json({ error: "Request body must include 'code' (string)" });
   }
-  if (code.length > 100_000) {
+  if (code.length > MAX_CODE_LENGTH) {
     return res
       .status(400)
-      .json({ error: "Code exceeds maximum length of 100,000 characters" });
+      .json({ error: `Code exceeds maximum length of ${MAX_CODE_LENGTH.toLocaleString()} characters` });
   }
   const result = await executePython(code, {
     timeout: timeout ? Math.min(Math.max(parseInt(timeout), 1000), 60_000) : undefined,
@@ -472,26 +462,15 @@ router.get("/python/info", asyncHandler(
 
 // ── Python Streaming (SSE) ────────────────────────────────────
 
-function setupStreamingSSE(res) {
-  res.writeHead(200, {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    Connection: "keep-alive",
-    "X-Accel-Buffering": "no",
-  });
-  const send = (event) => {
-    res.write(`data: ${JSON.stringify(event)}\n\n`);
-  };
-  return send;
-}
+// SSE helper imported from utilities.js
 
 router.post("/python/stream", async (req, res) => {
   const { code, timeout } = req.body;
   if (!code || typeof code !== "string") {
     return res.status(400).json({ error: "Request body must include 'code' (string)" });
   }
-  if (code.length > 100_000) {
-    return res.status(400).json({ error: "Code exceeds maximum length of 100,000 characters" });
+  if (code.length > MAX_CODE_LENGTH) {
+    return res.status(400).json({ error: `Code exceeds maximum length of ${MAX_CODE_LENGTH.toLocaleString()} characters` });
   }
 
   const send = setupStreamingSSE(res);

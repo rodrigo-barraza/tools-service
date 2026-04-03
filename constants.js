@@ -2670,3 +2670,19 @@ export const NUTRITION_STEROL_FIELDS = {
   campesterol: "campesterol_mg",
   beta_sitosterol: "betaSitosterol_mg",
 };
+
+// ═══════════════════════════════════════════════════════════════
+//  SHARED COMPUTE / ROUTE CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+
+/** Default TTL for in-memory ephemeral stores (CSV, QR, LaTeX, Diagrams, Maps). */
+export const EPHEMERAL_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+/** Maximum entries before triggering lazy cleanup in ephemeral stores. */
+export const EPHEMERAL_MAX_SIZE = 200;
+
+/** Maximum length for user-submitted code (JavaScript, Python). */
+export const MAX_CODE_LENGTH = 100_000;
+
+/** Maximum length for user-submitted shell commands. */
+export const MAX_COMMAND_LENGTH = 10_000;

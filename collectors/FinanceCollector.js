@@ -13,6 +13,7 @@ import {
   setEarningsError,
 } from "../caches/FinnhubCache.js";
 import { saveState, startCollectorLoop } from "../services/FreshnessService.js";
+import { toISODate } from "../utilities.js";
 
 // ─── News Collector ────────────────────────────────────────────────
 
@@ -34,10 +35,8 @@ async function collectMarketNews() {
 async function collectEarnings() {
   try {
     const now = new Date();
-    const from = now.toISOString().slice(0, 10);
-    const to = new Date(now.getTime() + 14 * 86_400_000)
-      .toISOString()
-      .slice(0, 10);
+    const from = toISODate(now);
+    const to = toISODate(new Date(now.getTime() + 14 * 86_400_000));
     const result = await fetchEarningsCalendar(from, to);
     const earnings = result?.earningsCalendar || [];
     updateEarnings(earnings);
