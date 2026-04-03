@@ -1,7 +1,7 @@
 import {
   // Server
   TOOLS_PORT,
-  MONGODB_URI,
+  MONGO_URI,
 
   // Event
   TICKETMASTER_API_KEY,
@@ -51,7 +51,7 @@ import {
 const CONFIG = {
   // ─── Server ──────────────────────────────────────────────────────
   TOOLS_PORT: TOOLS_PORT || 5590,
-  MONGODB_URI: MONGODB_URI || "mongodb://localhost:27017/tools",
+  MONGODB_URI: MONGO_URI || "mongodb://localhost:27017/tools",
 
   // ─── Location (populated dynamically by LocationService.initLocation()) ───
   // Defaults act as fallbacks if initLocation() hasn't run yet.
