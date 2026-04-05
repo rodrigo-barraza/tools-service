@@ -36,6 +36,7 @@ import computeRoutes, { getComputeHealth } from "./routes/ComputeRoutes.js";
 import maritimeRoutes, { getMaritimeHealth } from "./routes/MaritimeRoutes.js";
 import energyRoutes, { getEnergyHealth } from "./routes/EnergyRoutes.js";
 import adminRoutes from "./routes/AdminRoutes.js";
+import { mountMcpRoutes } from "./services/McpAdapter.js";
 
 // ─── Collectors ────────────────────────────────────────────────────
 
@@ -77,6 +78,7 @@ app.use("/compute", computeRoutes);
 app.use("/maritime", maritimeRoutes);
 app.use("/energy", energyRoutes);
 app.use("/admin", adminRoutes);
+mountMcpRoutes(app);
 
 // ─── Unified Health ────────────────────────────────────────────────
 
