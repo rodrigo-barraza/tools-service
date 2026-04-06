@@ -395,3 +395,107 @@ export class EphemeralStore {
 export function toISODate(date = new Date()) {
   return date.toISOString().slice(0, 10);
 }
+
+/**
+ * Format a Date using a custom format string.
+ * Supports common patterns: yyyy-MM-dd, dd/MM/yyyy, HH:mm, etc.
+ * @param {Date|string|number} date - The date to format (Date object, ISO string, or timestamp)
+ * @param {string} [format='yyyy-MM-dd'] - Format pattern using Moment.js syntax (y=year, M=month, d=day, H=hour, m=minute, s=second)
+ * @returns {string} Formatted date string
+ */
+export function formatDate(date, format = 'yyyy-MM-dd') {
+  const moment = require('moment');
+  return moment(date).format(format);
+}
+
+/**
+ * Format a Date as a relative time string (e.g., "2 days ago", "3 hours from now").
+ * @param {Date|string|number} date - The date to format
+ * @param {object} [options] - Formatting options
+ * @param {boolean} [options.includeSeconds=false] - Include seconds in the output
+ * @returns {string} Relative time string (e.g., "2 days ago", "5 minutes from now")
+ */
+export function formatRelativeTime(date, options = {}) {
+  const moment = require('moment');
+  const relativeTimeOptions = { includeSeconds: options.includeSeconds };
+  return moment(date).fromNow(relativeTimeOptions);
+}
+
+/**
+ * Format a Date with human-readable locale-specific formatting.
+ * @param {Date|string|number} date - The date to format
+ * @param {string} [locale='en-US'] - Locale for formatting (e.g., 'en-US', 'de-DE')
+ * @param {object} [options] - Options for formatting
+ * @param {boolean} [options.withTime=false] - Include time in the output
+ * @returns {string} Human-readable date string (e.g., "Jan 15, 2024", "Jan 15, 2024 at 3:45 PM")
+ */
+export function formatHumanReadable(date, locale = 'en-US', options = {}) {
+  const moment = require('moment');
+  const dateObj = moment(date);
+  let formatted = dateObj.format('ll'); // Short date format (e.g., "Jan 15, 2024")
+  
+  if (options.withTime) {
+    formatted = dateObj.format('ll LTS'); // Includes time (e.g., "Jan 15, 2024 at 3:45:30 PM")
+  }
+  
+  return formatted;
+}
+
+/**
+ * Format a Date as a Unix timestamp string (YYYYMMDDHHmmss).
+ * @param {Date|string|number} date - The date to format
+ * @returns {string} Timestamp string (e.g., "20240115143000")
+ */
+export function formatUnixTimestamp(date = new Date()) {
+  return date.toISOString().replace(/[-:]/g, '').slice(0, 16);
+}
+
+/**
+ * Format a Date with day name and ordinal suffix (e.g., "Monday, January 15th, 2024").
+ * @param {Date|string|number} date - The date to format
+ * @returns {string} Formatted date with day of week
+ */
+export function formatDateWithDayName(date) {
+  const moment = require('moment');
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  
+  const dateObj = moment(date);
+  const monthIndex = dateObj.month();
+  const dayName = dayNames[dateObj.day()];
+  const monthName = monthNames[monthIndex];
+  const day = dateObj.date();
+  const year = dateObj.year();
+  
+  // Add ordinal suffix (st, nd, rd, th)
+  let dayOrdinal = day;
+  const suffixes = ['th', 'st', 'nd', 'rd'];
+  const remainder = day % 100;
+  const suffixIndex = suffixes[(day - (day % 10)) % 10] || suffixes[remainder];
+  if (suffixIndex === 'st' && day > 3) suffixIndex = 'th'; // Fix for dates like 11st, 12th, 13th
+  else if (suffixIndex === 'nd' && day > 2) suffixIndex = 'rd';
+  else if (suffixIndex === 'rd' && day > 3) suffixIndex = 'th';
+  
+  return `${dayName}, ${monthName} ${dayOrdinal}${suffixIndex}, ${year}`;
+}
+
+/**
+ * Format a Date as an ISO datetime string (YYYY-MM-DDTHH:mm:ss.sssZ).
+ * @param {Date|string|number} [date=new Date()] - The date to format
+ * @returns {string}
+ */
+export function toISODateTime(date = new Date()) {
+  return date.toISOString();
+}
+
+/**
+ * Format a Date as an ISO datetime without milliseconds (YYYY-MM-DDTHH:mm:ssZ).
+ * @param {Date|string|number} [date=new Date()] - The date to format
+ * @returns {string}
+ */
+export function toISODateTimeSeconds(date = new Date()) {
+  return date.toISOString().slice(0, 19);
+}
