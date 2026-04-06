@@ -5553,6 +5553,286 @@ const TOOL_DEFINITIONS = [
       required: ["query"],
     },
   },
+  {
+    name: "multi_file_read",
+    dataSource: compute("sandboxed fs"),
+    description:
+      "Read multiple files in a single call. Returns numbered lines for each file. Much more efficient than calling read_file multiple times — use this when you need to read 2-20 files for context (e.g. a component, its CSS module, and the service it imports). Each file supports optional line range selection. Maximum 20 files per batch, 800 lines per file.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/file/read-multi",
+      bodyParams: ["files"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        files: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              path: { type: "string", description: "Absolute path to the file." },
+              startLine: { type: "integer", description: "Optional 1-indexed start line." },
+              endLine: { type: "integer", description: "Optional 1-indexed end line." },
+            },
+            required: ["path"],
+          },
+          description: "Array of file read requests. Maximum 20 files.",
+        },
+      },
+      required: ["files"],
+    },
+  },
+  {
+    name: "file_info",
+    dataSource: compute("sandboxed fs"),
+    description:
+      "Get metadata about one or more files without reading their content. Returns: exists, isFile, isDirectory, sizeBytes, lines, lastModified, extension, isBinary. Use this to check if files exist, determine file sizes, or inspect metadata before deciding whether to read the full content. Supports batch queries (up to 20 paths).",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/file/info",
+      bodyParams: ["path", "paths"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Absolute path to inspect. Use this for a single file.",
+        },
+        paths: {
+          type: "array",
+          items: { type: "string" },
+          description: "Array of absolute paths to inspect (max 20). Use this for batch queries instead of 'path'.",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "file_diff",
+    dataSource: compute("sandboxed fs + diff"),
+    description:
+      "Generate a unified diff between two files, or between a file and provided content. Returns additions/deletions counts and the unified diff output. Use this to compare file versions, review changes before committing, or verify that edits had the intended effect.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/file/diff",
+      bodyParams: ["pathA", "pathB", "content", "contextLines"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        pathA: {
+          type: "string",
+          description: "Absolute path to the first file (the 'old' side of the diff).",
+        },
+        pathB: {
+          type: "string",
+          description: "Absolute path to the second file (the 'new' side). Use this OR 'content', not both.",
+        },
+        content: {
+          type: "string",
+          description: "Content string to diff against pathA. Use this OR 'pathB', not both.",
+        },
+        contextLines: {
+          type: "integer",
+          description: "Number of context lines in the diff output (default: 3, max: 10).",
+        },
+      },
+      required: ["pathA"],
+    },
+  },
+  {
+    name: "move_file",
+    dataSource: compute("sandboxed fs"),
+    description:
+      "Move or rename a file within the allowed workspace. Parent directories at the destination are created automatically. The destination must not already exist. Use this for refactoring operations like renaming component files or reorganizing project structure.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/file/move",
+      bodyParams: ["source", "destination", "createDirs"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        source: {
+          type: "string",
+          description: "Absolute path of the file to move/rename.",
+        },
+        destination: {
+          type: "string",
+          description: "Absolute path of the new location/name.",
+        },
+        createDirs: {
+          type: "boolean",
+          description: "Create parent directories at destination if needed (default: true).",
+        },
+      },
+      required: ["source", "destination"],
+    },
+  },
+  {
+    name: "delete_file",
+    dataSource: compute("sandboxed fs"),
+    description:
+      "Delete a file from the allowed workspace. Only files can be deleted — directories are not supported for safety. Returns the file size that was deleted. Use this when cleaning up generated files or removing obsolete code.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/file/delete",
+      bodyParams: ["path"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Absolute path of the file to delete.",
+        },
+      },
+      required: ["path"],
+    },
+  },
+  {
+    name: "run_command",
+    dataSource: compute("sandboxed subprocess"),
+    description:
+      "Execute a project-scoped command in a sandboxed subprocess. Supports common development commands: npm, npx, node, git, eslint, prettier, tsc, python3, pip, and read-only filesystem tools (cat, ls, find, etc.). The working directory must be within the allowed workspace. Use this to run tests, lint code, build projects, check dependencies, or any development workflow. Timeout default: 60s, max: 120s.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/command/run",
+      bodyParams: ["command", "cwd", "timeout"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        command: {
+          type: "string",
+          description: "The command to execute. Must start with an allowed binary (npm, npx, node, git, eslint, prettier, tsc, python3, pip, cat, ls, find, wc, diff, which, head, tail, tree, du, ps, lsof).",
+        },
+        cwd: {
+          type: "string",
+          description: "Absolute path of the working directory. Must be within allowed workspace roots.",
+        },
+        timeout: {
+          type: "integer",
+          description: "Timeout in milliseconds (default: 60000, max: 120000).",
+        },
+      },
+      required: ["command", "cwd"],
+    },
+  },
+  {
+    name: "git_status",
+    dataSource: compute("git subprocess"),
+    description:
+      "Get the git status of a repository — current branch, ahead/behind counts, staged/unstaged/untracked files. Equivalent to 'git status --short --branch'. Use this to understand the current state of a repo before making changes or to check if there are uncommitted modifications.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/git/status",
+      bodyParams: ["path"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Absolute path to a directory inside the git repository.",
+        },
+      },
+      required: ["path"],
+    },
+  },
+  {
+    name: "git_diff",
+    dataSource: compute("git subprocess"),
+    description:
+      "Get git diff output — see what's changed in the working tree or staging area. Supports diffing against specific commits/branches and filtering by file path. Returns a unified diff with addition/deletion counts.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/git/diff",
+      bodyParams: ["path", "staged", "file", "ref"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Absolute path to a directory inside the git repository.",
+        },
+        staged: {
+          type: "boolean",
+          description: "If true, show staged (cached) changes instead of working tree changes.",
+        },
+        file: {
+          type: "string",
+          description: "Optional absolute file path to limit the diff to a specific file.",
+        },
+        ref: {
+          type: "string",
+          description: "Optional git reference to diff against (e.g. 'HEAD~3', 'main', a commit hash).",
+        },
+      },
+      required: ["path"],
+    },
+  },
+  {
+    name: "git_log",
+    dataSource: compute("git subprocess"),
+    description:
+      "Get git commit log — recent commits with hash, author, date, and message. Supports filtering by author, date range, and file path. Returns up to 100 commits.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/git/log",
+      bodyParams: ["path", "limit", "author", "since", "file"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Absolute path to a directory inside the git repository.",
+        },
+        limit: {
+          type: "integer",
+          description: "Number of commits to return (default: 20, max: 100).",
+        },
+        author: {
+          type: "string",
+          description: "Filter commits by author name or email.",
+        },
+        since: {
+          type: "string",
+          description: "Show commits after this date (e.g. '2024-01-01', '1 week ago', '3 days ago').",
+        },
+        file: {
+          type: "string",
+          description: "Show only commits affecting this file path.",
+        },
+      },
+      required: ["path"],
+    },
+  },
+  {
+    name: "project_summary",
+    dataSource: compute("fs scan"),
+    description:
+      "Scan a project directory and return structured metadata: package.json info (scripts, dependencies, frameworks), directory structure, entry points, config files, and README excerpt. Use this as the FIRST tool when starting work on a new project to understand its structure and technology stack in a single call, instead of multiple list_directory + read_file calls.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/project/summary",
+      bodyParams: ["path"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Absolute path to the project root directory.",
+        },
+      },
+      required: ["path"],
+    },
+  },
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -5753,6 +6033,16 @@ const TOOL_DOMAINS = {
   glob_files: "Agentic",
   fetch_url: "Agentic",
   web_search: "Agentic",
+  multi_file_read: "Agentic",
+  file_info: "Agentic",
+  file_diff: "Agentic",
+  move_file: "Agentic",
+  delete_file: "Agentic",
+  run_command: "Agentic",
+  git_status: "Agentic",
+  git_diff: "Agentic",
+  git_log: "Agentic",
+  project_summary: "Agentic",
 };
 
 // ────────────────────────────────────────────────────────────

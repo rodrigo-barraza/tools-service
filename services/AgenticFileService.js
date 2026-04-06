@@ -11,7 +11,7 @@
 //   - Size limits prevent resource exhaustion
 // ============================================================
 
-import { readFile, writeFile, stat, readdir, mkdir } from "node:fs/promises";
+import { readFile, writeFile, stat, readdir, mkdir, rename, unlink } from "node:fs/promises";
 import { resolve, relative, extname, dirname } from "node:path";
 import { existsSync } from "node:fs";
 
@@ -673,6 +673,276 @@ export async function agenticGlobFiles(pattern, searchPath) {
 }
 
 // ────────────────────────────────────────────────────────────
+// Multi-File Read
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Read multiple files in a single call.
+ *
+ * @param {Array<{ path: string, startLine?: number, endLine?: number }>} files
+ * @returns {Promise<object>}
+ */
+export async function agenticMultiFileRead(files) {
+  if (!Array.isArray(files) || files.length === 0) {
+    return { error: "'files' must be a non-empty array of { path, startLine?, endLine? }" };
+  }
+  if (files.length > 20) {
+    return { error: `Maximum 20 files per batch read. Received ${files.length}.` };
+  }
+
+  const results = await Promise.all(
+    files.map(async (f) => {
+      const result = await agenticReadFile(f.path, {
+        startLine: f.startLine,
+        endLine: f.endLine,
+      });
+      return { path: f.path, ...result };
+    }),
+  );
+
+  const succeeded = results.filter((r) => !r.error).length;
+  const failed = results.filter((r) => r.error).length;
+
+  return {
+    totalRequested: files.length,
+    succeeded,
+    failed,
+    results,
+  };
+}
+
+// ────────────────────────────────────────────────────────────
+// File Info (Stat)
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Get metadata for one or more files without reading content.
+ *
+ * @param {string|string[]} paths - Single path or array of paths
+ * @returns {Promise<object>}
+ */
+export async function agenticFileInfo(paths) {
+  const pathList = Array.isArray(paths) ? paths : [paths];
+  if (pathList.length === 0) {
+    return { error: "'paths' must be a non-empty string or array of strings" };
+  }
+  if (pathList.length > 20) {
+    return { error: `Maximum 20 paths per batch. Received ${pathList.length}.` };
+  }
+
+  const results = await Promise.all(
+    pathList.map(async (p) => {
+      const validation = validatePath(p);
+      if (!validation.safe) {
+        return { path: p, exists: false, error: validation.error };
+      }
+
+      const resolved = validation.resolved;
+      try {
+        const stats = await stat(resolved);
+        const ext = extname(resolved).toLowerCase();
+        const info = {
+          path: resolved,
+          exists: true,
+          isFile: stats.isFile(),
+          isDirectory: stats.isDirectory(),
+          sizeBytes: stats.size,
+          lastModified: stats.mtime.toISOString(),
+          extension: ext || null,
+          isBinary: BINARY_EXTENSIONS.has(ext),
+        };
+
+        // Line count for text files
+        if (stats.isFile() && !BINARY_EXTENSIONS.has(ext) && stats.size <= MAX_READ_BYTES) {
+          try {
+            const content = await readFile(resolved, "utf-8");
+            info.lines = content.split("\n").length;
+          } catch {
+            // Non-fatal — skip line counting
+          }
+        }
+
+        return info;
+      } catch (err) {
+        if (err.code === "ENOENT") {
+          return { path: resolved, exists: false };
+        }
+        return { path: resolved, exists: false, error: err.message };
+      }
+    }),
+  );
+
+  if (pathList.length === 1) {
+    return results[0];
+  }
+
+  return {
+    totalRequested: pathList.length,
+    results,
+  };
+}
+
+// ────────────────────────────────────────────────────────────
+// File Diff
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Generate a unified diff between two files or between a file and provided content.
+ *
+ * @param {string} pathA - Path to the first file ("old" side)
+ * @param {object} options
+ * @param {string} [options.pathB] - Path to the second file ("new" side)
+ * @param {string} [options.content] - Content to compare against (alternative to pathB)
+ * @param {number} [options.contextLines=3] - Number of context lines in diff
+ * @returns {Promise<object>}
+ */
+export async function agenticFileDiff(pathA, { pathB, content, contextLines = 3 } = {}) {
+  if (!pathA) {
+    return { error: "'pathA' is required" };
+  }
+  if (!pathB && content === undefined) {
+    return { error: "Either 'pathB' or 'content' must be provided" };
+  }
+
+  const validA = validatePath(pathA);
+  if (!validA.safe) {
+    return { error: validA.error };
+  }
+
+  try {
+    const contentA = await readFile(validA.resolved, "utf-8");
+    let contentB;
+    let labelB;
+
+    if (pathB) {
+      const validB = validatePath(pathB);
+      if (!validB.safe) {
+        return { error: validB.error };
+      }
+      contentB = await readFile(validB.resolved, "utf-8");
+      labelB = validB.resolved;
+    } else {
+      contentB = content;
+      labelB = "(provided content)";
+    }
+
+    const { createTwoFilesPatch } = await import("diff");
+    const diff = createTwoFilesPatch(
+      validA.resolved,
+      labelB,
+      contentA,
+      contentB,
+      "",
+      "",
+      { context: Math.min(contextLines, 10) },
+    );
+
+    const hasChanges = diff.includes("@@");
+    const additions = (diff.match(/^\+[^+]/gm) || []).length;
+    const deletions = (diff.match(/^-[^-]/gm) || []).length;
+
+    return {
+      pathA: validA.resolved,
+      pathB: labelB,
+      hasChanges,
+      additions,
+      deletions,
+      diff: hasChanges ? diff : "(files are identical)",
+    };
+  } catch (err) {
+    if (err.code === "ENOENT") {
+      return { error: `File not found: ${err.path || pathA}` };
+    }
+    return { error: `file_diff failed: ${err.message}` };
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// Move / Rename File
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Move or rename a file within allowed roots.
+ *
+ * @param {string} source - Absolute path of the source file
+ * @param {string} destination - Absolute path of the destination
+ * @param {object} [options]
+ * @param {boolean} [options.createDirs=true] - Create destination parent dirs
+ * @returns {Promise<object>}
+ */
+export async function agenticMoveFile(source, destination, { createDirs = true } = {}) {
+  const validSrc = validatePath(source);
+  if (!validSrc.safe) {
+    return { error: validSrc.error };
+  }
+  const validDst = validatePath(destination);
+  if (!validDst.safe) {
+    return { error: validDst.error };
+  }
+
+  try {
+    if (!existsSync(validSrc.resolved)) {
+      return { error: `Source not found: ${validSrc.resolved}` };
+    }
+    if (existsSync(validDst.resolved)) {
+      return { error: `Destination already exists: ${validDst.resolved}. Delete it first or choose a different path.` };
+    }
+
+    if (createDirs) {
+      await mkdir(dirname(validDst.resolved), { recursive: true });
+    }
+
+    await rename(validSrc.resolved, validDst.resolved);
+
+    return {
+      source: validSrc.resolved,
+      destination: validDst.resolved,
+      success: true,
+    };
+  } catch (err) {
+    return { error: `move_file failed: ${err.message}` };
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// Delete File
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Delete a file within allowed roots.
+ *
+ * @param {string} filePath - Absolute path to the file to delete
+ * @returns {Promise<object>}
+ */
+export async function agenticDeleteFile(filePath) {
+  const validation = validatePath(filePath);
+  if (!validation.safe) {
+    return { error: validation.error };
+  }
+
+  try {
+    const stats = await stat(validation.resolved);
+    if (stats.isDirectory()) {
+      return { error: `'${validation.resolved}' is a directory. Only files can be deleted with this tool.` };
+    }
+
+    const sizeBytes = stats.size;
+    await unlink(validation.resolved);
+
+    return {
+      filePath: validation.resolved,
+      deleted: true,
+      sizeBytes,
+    };
+  } catch (err) {
+    if (err.code === "ENOENT") {
+      return { error: `File not found: ${validation.resolved}` };
+    }
+    return { error: `delete_file failed: ${err.message}` };
+  }
+}
+
+// ────────────────────────────────────────────────────────────
 // Helpers
 // ────────────────────────────────────────────────────────────
 
@@ -692,6 +962,9 @@ function globToRegex(glob) {
 
   return new RegExp(`(^|/)${regex}$`, "i");
 }
+
+// Export validatePath and ALLOWED_ROOTS for reuse in other agentic services
+export { validatePath, ALLOWED_ROOTS };
 
 /**
  * Get the file service metadata (for health checks).
