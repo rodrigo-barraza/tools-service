@@ -5259,6 +5259,292 @@ const TOOL_DEFINITIONS = [
       },
     },
   },
+
+  // ════════════════════════════════════════════════════════════════
+  // AGENTIC — File System & Web Tools for AI Coding Loops
+  // ════════════════════════════════════════════════════════════════
+
+  {
+    name: "read_file",
+    dataSource: compute("sandboxed fs"),
+    description:
+      "Read the content of a file from the local filesystem. Returns numbered lines for easy reference. Supports optional line range selection for targeted reading of large files. Use this to inspect code, understand context, or identify where to make changes. Maximum 800 lines per read — use startLine/endLine for large files.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/file/read",
+      bodyParams: ["path", "startLine", "endLine"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description:
+            "Absolute path to the file to read. Must be within the allowed workspace roots.",
+        },
+        startLine: {
+          type: "integer",
+          description:
+            "Optional 1-indexed start line (inclusive). Use with endLine to read a specific portion of a large file.",
+        },
+        endLine: {
+          type: "integer",
+          description:
+            "Optional 1-indexed end line (inclusive). Maximum 800 lines will be returned per read.",
+        },
+      },
+      required: ["path"],
+    },
+  },
+  {
+    name: "write_file",
+    dataSource: compute("sandboxed fs"),
+    description:
+      "Create a new file or overwrite an existing file with the provided content. Parent directories are created automatically. Use this for creating new files — for targeted edits to existing files, prefer str_replace_file instead (it's safer and more token-efficient). Maximum file size: 5 MB.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/file/write",
+      bodyParams: ["path", "content", "createDirs"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description:
+            "Absolute path for the file to create/overwrite. Must be within allowed workspace roots.",
+        },
+        content: {
+          type: "string",
+          description: "The complete file content to write.",
+        },
+        createDirs: {
+          type: "boolean",
+          description:
+            "Create parent directories if they don't exist (default: true).",
+        },
+      },
+      required: ["path", "content"],
+    },
+  },
+  {
+    name: "str_replace_file",
+    dataSource: compute("sandboxed fs"),
+    description:
+      "Perform a targeted string replacement in a file. Finds the exact 'oldStr' and replaces it with 'newStr'. The oldStr must match EXACTLY (including whitespace and indentation). This is the preferred method for editing existing files — it's safer than write_file because it can't accidentally overwrite the entire file, and it's more token-efficient. If multiple occurrences are found and allowMultiple is false, it returns an error asking you to provide more context for a unique match.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/file/str-replace",
+      bodyParams: ["path", "oldStr", "newStr", "allowMultiple"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Absolute path to the file to edit.",
+        },
+        oldStr: {
+          type: "string",
+          description:
+            "The exact string to find and replace. Must match the file content exactly, including whitespace, indentation, and line breaks. Include enough surrounding context to ensure a unique match.",
+        },
+        newStr: {
+          type: "string",
+          description:
+            "The replacement string. This replaces the oldStr entirely.",
+        },
+        allowMultiple: {
+          type: "boolean",
+          description:
+            "If true, replace ALL occurrences of oldStr. If false (default), error if multiple matches are found.",
+        },
+      },
+      required: ["path", "oldStr", "newStr"],
+    },
+  },
+  {
+    name: "patch_file",
+    dataSource: compute("sandboxed fs + diff"),
+    description:
+      "Apply a unified diff patch to a file. Useful for complex, multi-hunk edits where str_replace_file would require multiple calls. The patch must be in standard unified diff format (as produced by 'diff -u' or git). The file content must match the diff context lines for the patch to apply.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/file/patch",
+      bodyParams: ["path", "patch"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Absolute path to the file to patch.",
+        },
+        patch: {
+          type: "string",
+          description:
+            "A unified diff string (standard diff -u format). Must include @@ hunk headers and context lines that match the current file content.",
+        },
+      },
+      required: ["path", "patch"],
+    },
+  },
+  {
+    name: "list_directory",
+    dataSource: compute("sandboxed fs"),
+    description:
+      "List the contents of a directory, showing all files and subdirectories with metadata (name, size, type). Use this to explore project structure, find files, or understand codebase organization. Results are capped at 500 entries. Supports recursive listing with configurable depth.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/directory/list",
+      bodyParams: ["path", "recursive", "maxDepth"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Absolute path to the directory to list.",
+        },
+        recursive: {
+          type: "boolean",
+          description:
+            "If true, list contents recursively (default: false). Use with maxDepth to control depth.",
+        },
+        maxDepth: {
+          type: "integer",
+          description:
+            "Maximum recursion depth when recursive=true (default: 3, max: 5).",
+        },
+      },
+      required: ["path"],
+    },
+  },
+  {
+    name: "grep_search",
+    dataSource: compute("sandboxed fs"),
+    description:
+      "Search for a literal string or regex pattern across files in a directory. Returns matching lines with file paths and line numbers. Use this to find function definitions, usage patterns, imports, variable references, or any text across the codebase. Automatically skips node_modules, .git, and binary files. Results capped at 50 matches.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/search/grep",
+      bodyParams: ["pattern", "searchPath", "isRegex", "includes", "caseInsensitive", "matchPerLine"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        pattern: {
+          type: "string",
+          description:
+            "The search pattern — a literal string or regex. Use isRegex=true for regex mode.",
+        },
+        searchPath: {
+          type: "string",
+          description:
+            "Absolute path to search in (file or directory).",
+        },
+        isRegex: {
+          type: "boolean",
+          description:
+            "If true, treat pattern as a regular expression. If false (default), treat as a literal string.",
+        },
+        includes: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Glob patterns to filter files (e.g. ['*.js', '*.ts']). Only files matching these patterns will be searched.",
+        },
+        caseInsensitive: {
+          type: "boolean",
+          description: "If true, perform case-insensitive search (default: false).",
+        },
+        matchPerLine: {
+          type: "boolean",
+          description:
+            "If true (default), return each matching line with file and line number. If false, return only the names of matching files.",
+        },
+      },
+      required: ["pattern", "searchPath"],
+    },
+  },
+  {
+    name: "glob_files",
+    dataSource: compute("sandboxed fs"),
+    description:
+      "Find files by name pattern using glob syntax. Supports *, **, and ? wildcards. Use this to find files by extension, naming convention, or path pattern. Automatically skips node_modules and .git. Results capped at 200 matches.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/search/glob",
+      bodyParams: ["pattern", "searchPath"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        pattern: {
+          type: "string",
+          description:
+            "Glob pattern to match filenames (e.g. '*.test.js', '**/*.css', 'README*'). Supports * (any except /), ** (any including /), ? (single char).",
+        },
+        searchPath: {
+          type: "string",
+          description:
+            "Absolute path to the root directory to search from.",
+        },
+      },
+      required: ["pattern", "searchPath"],
+    },
+  },
+  {
+    name: "fetch_url",
+    dataSource: onDemand("HTTP fetch"),
+    description:
+      "Fetch content from a URL via HTTP request. Automatically converts HTML pages to clean markdown, strips scripts/styles/navigation, and extracts the main content. JSON responses are returned formatted. Use this to read documentation, web pages, and API responses. Supports optional CSS selector to extract specific page sections. Maximum output: 100,000 characters.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/web/fetch",
+      bodyParams: ["url", "selector"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        url: {
+          type: "string",
+          description: "The URL to fetch (must be http or https).",
+        },
+        selector: {
+          type: "string",
+          description:
+            "Optional CSS selector to extract specific content from the page (e.g. 'article', '.main-content', '#docs'). If omitted, the tool automatically finds the main content area.",
+        },
+      },
+      required: ["url"],
+    },
+  },
+  {
+    name: "web_search",
+    dataSource: onDemand("search provider"),
+    description:
+      "Search the web for information. Returns a list of results with titles, URLs, and snippets. Use this for researching topics, finding documentation, or looking up current information. Note: Requires a search provider to be configured (Brave Search API, SearXNG, or Google Custom Search).",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/web/search",
+      bodyParams: ["query", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "The search query.",
+        },
+        limit: {
+          type: "integer",
+          description: "Maximum number of results to return (default: 5, max: 20).",
+        },
+      },
+      required: ["query"],
+    },
+  },
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -5448,6 +5734,17 @@ const TOOL_DOMAINS = {
   get_electricity_retail_sales: "Energy",
   get_petroleum_prices: "Energy",
   get_natural_gas_prices: "Energy",
+
+  // Agentic — File System & Web Tools
+  read_file: "Agentic",
+  write_file: "Agentic",
+  str_replace_file: "Agentic",
+  patch_file: "Agentic",
+  list_directory: "Agentic",
+  grep_search: "Agentic",
+  glob_files: "Agentic",
+  fetch_url: "Agentic",
+  web_search: "Agentic",
 };
 
 // ────────────────────────────────────────────────────────────

@@ -35,6 +35,7 @@ import utilityRoutes, { getUtilityHealth } from "./routes/UtilityRoutes.js";
 import computeRoutes, { getComputeHealth } from "./routes/ComputeRoutes.js";
 import maritimeRoutes, { getMaritimeHealth } from "./routes/MaritimeRoutes.js";
 import energyRoutes, { getEnergyHealth } from "./routes/EnergyRoutes.js";
+import agenticRoutes, { getAgenticHealth } from "./routes/AgenticRoutes.js";
 import adminRoutes from "./routes/AdminRoutes.js";
 import { mountMcpRoutes } from "./services/McpAdapter.js";
 
@@ -77,6 +78,7 @@ app.use("/utility", utilityRoutes);
 app.use("/compute", computeRoutes);
 app.use("/maritime", maritimeRoutes);
 app.use("/energy", energyRoutes);
+app.use("/agentic", agenticRoutes);
 app.use("/admin", adminRoutes);
 mountMcpRoutes(app);
 
@@ -100,6 +102,7 @@ app.get("/health", (_req, res) => {
       compute: getComputeHealth(),
       maritime: getMaritimeHealth(),
       energy: getEnergyHealth(),
+      agentic: getAgenticHealth(),
     },
   });
 });
@@ -153,10 +156,10 @@ async function start() {
     console.log(`🔧 Tools API running on port ${port}`);
     console.log(`   Database: ${CONFIG.MONGODB_URI}`);
     console.log(
-      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy",
+      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy, agentic",
     );
     console.log(
-      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*",
+      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*, /agentic/*",
     );
   });
 }
