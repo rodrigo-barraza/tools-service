@@ -61,6 +61,13 @@ export const X_BEARER_TOKEN = "";
 export const TOMORROWIO_API_KEY = "";
 export const NASA_API_KEY = "DEMO_KEY";
 export const GOOGLE_API_KEY = "";
+export const GOOGLE_CSE_CX = "";
+
+// ─── Web Search Domain ─────────────────────────────────────────────
+//    Brave Search API — 2,000 queries/month free.
+//    Register at https://api.search.brave.com
+
+export const BRAVE_SEARCH_API_KEY = "";
 
 // ─── Transit Domain ───────────────────────────────────────────────
 //    Register at https://developer.translink.ca/ for a free key.

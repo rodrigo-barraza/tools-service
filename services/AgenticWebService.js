@@ -1,14 +1,16 @@
 // ============================================================
-// Agentic Web Service — URL Fetching & HTML→Markdown
+// Agentic Web Service — URL Fetching & Web Search
 // ============================================================
 // Provides web interaction primitives for AI agentic loops.
 //
 // - fetch_url: Fetch a web page and convert HTML to clean
 //   markdown. Uses cheerio (already a dependency) for parsing.
-// - web_search: Stubbed for future implementation.
+// - web_search: Google Custom Search JSON API (100 queries/day
+//   free, $5/1000 after that).
 // ============================================================
 
 import * as cheerio from "cheerio";
+import CONFIG from "../config.js";
 
 // ────────────────────────────────────────────────────────────
 // Constants
@@ -28,6 +30,9 @@ const BLOCKED_DOMAINS = new Set([
   "169.254.169.254",  // AWS metadata
   "metadata.google.internal",
 ]);
+
+// Google Custom Search JSON API
+const GOOGLE_CSE_BASE = "https://www.googleapis.com/customsearch/v1";
 
 // ────────────────────────────────────────────────────────────
 // URL Fetching
@@ -137,26 +142,159 @@ export async function agenticFetchUrl(url, { selector } = {}) {
   }
 }
 
+// ────────────────────────────────────────────────────────────
+// Web Search — Multi-Provider (Brave → Google CSE fallback)
+// ────────────────────────────────────────────────────────────
+
+const BRAVE_SEARCH_BASE = "https://api.search.brave.com/res/v1/web/search";
+
 /**
- * Web search (stub — returns a "not implemented" message).
- * Override with a real provider (Brave, SearXNG, Google CSE) later.
+ * Search the web. Provider priority:
+ *   1. Brave Search API (whole-web, 2000 queries/month free)
+ *   2. Google Custom Search (site-restricted, 100 queries/day free)
  *
  * @param {string} query - Search query
  * @param {object} [options]
- * @param {number} [options.limit=5] - Number of results
+ * @param {number} [options.limit=5] - Number of results (max 10)
+ * @param {string} [options.dateRestrict] - e.g. "d7" (past 7 days), "m1" (past month)
+ * @param {string} [options.siteSearch] - Restrict to a specific site domain
  * @returns {Promise<object>}
  */
-export async function agenticWebSearch(query, { limit = 5 } = {}) {
+export async function agenticWebSearch(query, { limit = 5, dateRestrict, siteSearch } = {}) {
   if (!query || typeof query !== "string") {
     return { error: "'query' is required and must be a non-empty string" };
+  }
+
+  // If siteSearch is specified, prepend it to the query for Brave
+  const effectiveQuery = siteSearch ? `site:${siteSearch} ${query}` : query;
+  const clampedLimit = Math.min(limit, 10);
+
+  // ── Provider 1: Brave Search ───────────────────────────────
+  if (CONFIG.BRAVE_SEARCH_API_KEY) {
+    try {
+      const result = await _searchBrave(effectiveQuery, { limit: clampedLimit, dateRestrict });
+      if (!result.error) return result;
+      // If Brave fails, fall through to Google CSE
+      console.warn(`[AgenticWebService] Brave Search failed, trying Google CSE: ${result.error}`);
+    } catch (err) {
+      console.warn(`[AgenticWebService] Brave Search exception: ${err.message}`);
+    }
+  }
+
+  // ── Provider 2: Google Custom Search ───────────────────────
+  if (CONFIG.GOOGLE_API_KEY && CONFIG.GOOGLE_CSE_CX) {
+    return _searchGoogleCSE(query, { limit: clampedLimit, dateRestrict, siteSearch });
   }
 
   return {
     query,
     limit,
     results: [],
-    message: "Web search is not yet configured. Configure a search provider (Brave Search API, SearXNG, or Google Custom Search) in config.js to enable this tool.",
+    message: "No search provider configured. Set BRAVE_SEARCH_API_KEY or GOOGLE_API_KEY + GOOGLE_CSE_CX in secrets.js.",
     provider: null,
+  };
+}
+
+// ── Brave Search Implementation ──────────────────────────────
+
+async function _searchBrave(query, { limit, dateRestrict }) {
+  const params = new URLSearchParams({
+    q: query,
+    count: String(limit),
+  });
+
+  // Brave freshness: "pd" (past day), "pw" (past week), "pm" (past month), "py" (past year)
+  if (dateRestrict) {
+    const freshnessMap = { d1: "pd", d7: "pw", w1: "pw", w2: "pw", m1: "pm", m3: "pm", y1: "py" };
+    const freshness = freshnessMap[dateRestrict] || dateRestrict;
+    params.set("freshness", freshness);
+  }
+
+  const res = await fetch(`${BRAVE_SEARCH_BASE}?${params}`, {
+    headers: {
+      "Accept": "application/json",
+      "Accept-Encoding": "gzip",
+      "X-Subscription-Token": CONFIG.BRAVE_SEARCH_API_KEY,
+    },
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    if (res.status === 429) {
+      return { error: "Brave Search rate limit exceeded. Falling back to Google CSE.", query, provider: "brave" };
+    }
+    return { error: `Brave Search API error: HTTP ${res.status} — ${body.slice(0, 500)}`, query, provider: "brave" };
+  }
+
+  const data = await res.json();
+  const webResults = data.web?.results || [];
+
+  const results = webResults.slice(0, limit).map((item) => ({
+    title: item.title || "",
+    url: item.url || "",
+    snippet: item.description?.replace(/<\/?[^>]+(>|$)/g, "").trim() || "",
+    displayUrl: item.url ? new URL(item.url).hostname : "",
+    age: item.age || "",
+  }));
+
+  return {
+    query,
+    limit,
+    results,
+    totalResults: String(webResults.length),
+    provider: "brave",
+  };
+}
+
+// ── Google CSE Implementation ────────────────────────────────
+
+async function _searchGoogleCSE(query, { limit, dateRestrict, siteSearch }) {
+  const params = new URLSearchParams({
+    key: CONFIG.GOOGLE_API_KEY,
+    cx: CONFIG.GOOGLE_CSE_CX,
+    q: query,
+    num: String(limit),
+  });
+
+  if (dateRestrict) params.set("dateRestrict", dateRestrict);
+  if (siteSearch) params.set("siteSearch", siteSearch);
+
+  const res = await fetch(`${GOOGLE_CSE_BASE}?${params}`, {
+    headers: { "Accept": "application/json" },
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    if (res.status === 429) {
+      return {
+        error: "Google Custom Search daily quota exhausted (100/day free).",
+        query,
+        provider: "google_cse",
+      };
+    }
+    return {
+      error: `Google CSE API error: HTTP ${res.status} — ${body.slice(0, 500)}`,
+      query,
+      provider: "google_cse",
+    };
+  }
+
+  const data = await res.json();
+
+  const results = (data.items || []).map((item) => ({
+    title: item.title || "",
+    url: item.link || "",
+    snippet: item.snippet?.replace(/\n/g, " ").trim() || "",
+    displayUrl: item.displayLink || "",
+  }));
+
+  return {
+    query,
+    limit,
+    results,
+    totalResults: data.searchInformation?.totalResults || "0",
+    searchTime: data.searchInformation?.searchTime || 0,
+    provider: "google_cse",
   };
 }
 
@@ -354,9 +492,12 @@ function processTable($, $table, lines) {
  * Get the web service health info.
  */
 export function getAgenticWebHealth() {
+  const brave = !!CONFIG.BRAVE_SEARCH_API_KEY;
+  const googleCse = !!(CONFIG.GOOGLE_API_KEY && CONFIG.GOOGLE_CSE_CX);
+  const providers = [brave && "brave", googleCse && "google_cse"].filter(Boolean);
   return {
     fetchUrl: "on-demand (cheerio HTML→markdown)",
-    webSearch: "stub (not configured)",
+    webSearch: providers.length ? `${providers.join(" → ")} (active)` : "not configured",
     maxFetchBytes: MAX_FETCH_BYTES,
     fetchTimeoutMs: FETCH_TIMEOUT_MS,
   };

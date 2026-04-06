@@ -5522,13 +5522,13 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "web_search",
-    dataSource: onDemand("search provider"),
+    dataSource: onDemand("Brave Search / Google CSE"),
     description:
-      "Search the web for information. Returns a list of results with titles, URLs, and snippets. Use this for researching topics, finding documentation, or looking up current information. Note: Requires a search provider to be configured (Brave Search API, SearXNG, or Google Custom Search).",
+      "Search the web using Brave Search (primary, whole-web) with Google Custom Search fallback. Returns results with titles, URLs, and snippets. Use this for researching topics, finding documentation, looking up current information, or verifying facts. Supports date filtering and site-specific search.",
     endpoint: {
       method: "POST",
       path: "/agentic/web/search",
-      bodyParams: ["query", "limit"],
+      bodyParams: ["query", "limit", "dateRestrict", "siteSearch"],
     },
     parameters: {
       type: "object",
@@ -5539,7 +5539,15 @@ const TOOL_DEFINITIONS = [
         },
         limit: {
           type: "integer",
-          description: "Maximum number of results to return (default: 5, max: 20).",
+          description: "Maximum number of results to return (default: 5, max: 10).",
+        },
+        dateRestrict: {
+          type: "string",
+          description: "Restrict results by age. Examples: 'd7' (past 7 days), 'w2' (past 2 weeks), 'm1' (past month), 'y1' (past year).",
+        },
+        siteSearch: {
+          type: "string",
+          description: "Restrict search to a specific domain (e.g. 'stackoverflow.com', 'developer.mozilla.org').",
         },
       },
       required: ["query"],
@@ -5818,6 +5826,9 @@ const TOOL_REQUIRED_KEYS = {
   get_electricity_retail_sales: ["EIA_API_KEY"],
   get_petroleum_prices: ["EIA_API_KEY"],
   get_natural_gas_prices: ["EIA_API_KEY"],
+
+  // Web Search (Brave primary — whole-web; Google CSE fallback — site-restricted)
+  web_search: ["BRAVE_SEARCH_API_KEY"],
 };
 
 /**

@@ -203,13 +203,15 @@ router.post("/web/fetch", async (req, res) => {
 // ── Web Search ────────────────────────────────────────────────
 
 router.post("/web/search", async (req, res) => {
-  const { query, limit } = req.body;
+  const { query, limit, dateRestrict, siteSearch } = req.body;
   if (!query || typeof query !== "string") {
     return res.status(400).json({ error: "Request body must include 'query' (string)" });
   }
 
   const result = await agenticWebSearch(query, {
-    limit: limit ? Math.min(parseInt(limit), 20) : 5,
+    limit: limit ? Math.min(parseInt(limit), 10) : 5,
+    dateRestrict,
+    siteSearch,
   });
 
   if (result.error) {
@@ -232,7 +234,7 @@ export function getAgenticHealth() {
     grepSearch: "on-demand (sandboxed fs)",
     globFiles: "on-demand (sandboxed fs)",
     fetchUrl: "on-demand (cheerio HTML→markdown)",
-    webSearch: "stub (not configured)",
+    webSearch: "brave (primary) + google_cse (fallback)",
   };
 }
 
