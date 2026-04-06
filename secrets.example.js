@@ -11,7 +11,7 @@ export const TOOLS_PORT = 5590;
 
 // ─── MongoDB ───────────────────────────────────────────────────────
 
-export const MONGODB_URI = "mongodb://localhost:27017/tools";
+export const MONGO_URI = "mongodb://192.168.86.2:27017/tools?directConnection=true&replicaSet=rs0";
 
 // ─── Location ──────────────────────────────────────────────────────
 // Resolved dynamically from server IP geolocation + NOAA.

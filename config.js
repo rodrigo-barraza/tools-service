@@ -51,7 +51,7 @@ import {
 const CONFIG = {
   // ─── Server ──────────────────────────────────────────────────────
   TOOLS_PORT: TOOLS_PORT || 5590,
-  MONGODB_URI: MONGO_URI || "mongodb://localhost:27017/tools",
+  MONGODB_URI: MONGO_URI || "mongodb://192.168.86.2:27017/tools?directConnection=true&replicaSet=rs0",
 
   // ─── Location (populated dynamically by LocationService.initLocation()) ───
   // Defaults act as fallbacks if initLocation() hasn't run yet.
