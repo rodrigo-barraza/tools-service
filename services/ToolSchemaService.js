@@ -6023,26 +6023,34 @@ const TOOL_DOMAINS = {
   get_petroleum_prices: "Energy",
   get_natural_gas_prices: "Energy",
 
-  // Agentic — File System & Web Tools
-  read_file: "Agentic",
-  write_file: "Agentic",
-  str_replace_file: "Agentic",
-  patch_file: "Agentic",
-  list_directory: "Agentic",
-  grep_search: "Agentic",
-  glob_files: "Agentic",
-  fetch_url: "Agentic",
-  web_search: "Agentic",
-  multi_file_read: "Agentic",
-  file_info: "Agentic",
-  file_diff: "Agentic",
-  move_file: "Agentic",
-  delete_file: "Agentic",
-  run_command: "Agentic",
-  git_status: "Agentic",
-  git_diff: "Agentic",
-  git_log: "Agentic",
-  project_summary: "Agentic",
+  // Agentic — File Operations
+  read_file: "Agentic: File Operations",
+  write_file: "Agentic: File Operations",
+  str_replace_file: "Agentic: File Operations",
+  patch_file: "Agentic: File Operations",
+  multi_file_read: "Agentic: File Operations",
+  file_info: "Agentic: File Operations",
+  file_diff: "Agentic: File Operations",
+  move_file: "Agentic: File Operations",
+  delete_file: "Agentic: File Operations",
+
+  // Agentic — Search & Discovery
+  list_directory: "Agentic: Search & Discovery",
+  grep_search: "Agentic: Search & Discovery",
+  glob_files: "Agentic: Search & Discovery",
+  project_summary: "Agentic: Search & Discovery",
+
+  // Agentic — Web
+  fetch_url: "Agentic: Web",
+  web_search: "Agentic: Web",
+
+  // Agentic — Command Execution
+  run_command: "Agentic: Command Execution",
+
+  // Agentic — Git
+  git_status: "Agentic: Git",
+  git_diff: "Agentic: Git",
+  git_log: "Agentic: Git",
 };
 
 // ────────────────────────────────────────────────────────────
