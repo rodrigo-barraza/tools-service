@@ -13,7 +13,7 @@ export const TOOLS_PORT = 5590;
 // REQUIRED — comma-separated absolute paths the agentic tools are allowed to access.
 // tools-api will refuse to start if this is empty.
 // Example: '/home/youruser/projects/sun,/home/youruser/other-repo'
-export const WORKSPACE_ROOTS = '';
+export const WORKSPACE_ROOT = '';
 
 // ─── MongoDB ───────────────────────────────────────────────────────
 
