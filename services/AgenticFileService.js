@@ -14,14 +14,17 @@
 import { readFile, writeFile, stat, readdir, mkdir, rename, unlink } from "node:fs/promises";
 import { resolve, relative, extname, dirname } from "node:path";
 import { existsSync } from "node:fs";
+import { WORKSPACE_ROOTS as WORKSPACE_ROOTS_RAW } from "../secrets.js";
 
 // ────────────────────────────────────────────────────────────
 // Configuration
 // ────────────────────────────────────────────────────────────
 
-const ALLOWED_ROOTS = [
-  resolve(process.env.HOME || "/home", "development/sun"),
-];
+// Parsed from secrets.js WORKSPACE_ROOTS (comma-separated).
+// Falls back to $HOME/development/sun if not set.
+const ALLOWED_ROOTS = WORKSPACE_ROOTS_RAW
+  ? WORKSPACE_ROOTS_RAW.split(",").map((r) => resolve(r.trim()))
+  : [resolve(process.env.HOME || "/home", "development/sun")];
 
 const MAX_READ_BYTES = 1_048_576;      // 1 MB
 const MAX_WRITE_BYTES = 5_242_880;     // 5 MB

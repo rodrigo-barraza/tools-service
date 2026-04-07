@@ -9,6 +9,12 @@
 
 export const TOOLS_PORT = 5590;
 
+// ─── Workspace Roots ───────────────────────────────────────────────
+// Comma-separated absolute paths the agentic tools are allowed to access.
+// Leave empty to default to $HOME/development/sun.
+// Example: '/home/youruser/projects/sun,/home/youruser/other-repo'
+export const WORKSPACE_ROOTS = '';
+
 // ─── MongoDB ───────────────────────────────────────────────────────
 
 export const MONGO_URI = "mongodb://192.168.86.2:27017/tools?directConnection=true&replicaSet=rs0";
