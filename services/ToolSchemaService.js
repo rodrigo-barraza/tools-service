@@ -5833,6 +5833,78 @@ const TOOL_DEFINITIONS = [
       required: ["path"],
     },
   },
+  {
+    name: "browser_action",
+    dataSource: compute("headless Chromium (Playwright)"),
+    description:
+      "Control a headless Chromium browser for web automation, E2E testing, visual QA, and interacting with JavaScript-rendered pages that fetch_url cannot handle. Supports navigation, screenshots, clicking, typing, scrolling, JS evaluation, content extraction, and waiting. Each call performs ONE action. The browser session persists between calls (same sessionId) so you can build multi-step flows: navigate → click → type → screenshot. Screenshots are uploaded to storage and returned as references. Sessions auto-close after 5 minutes of inactivity.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/browser/action",
+      bodyParams: ["action", "sessionId", "url", "selector", "text", "pressEnter", "fullPage", "direction", "amount", "expression", "format", "timeout", "state"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          description:
+            "The browser action to perform. One of: 'navigate' (go to URL), 'screenshot' (capture viewport), 'click' (click element), 'type' (enter text), 'scroll' (scroll page), 'evaluate' (run JS), 'get_content' (extract text/HTML), 'wait' (wait for element/time), 'close' (end session).",
+          enum: ["navigate", "screenshot", "click", "type", "scroll", "evaluate", "get_content", "wait", "close"],
+        },
+        sessionId: {
+          type: "string",
+          description:
+            "Optional session identifier for reusing the same browser page across calls. Defaults to 'default'. Use distinct IDs for parallel browser tasks.",
+        },
+        url: {
+          type: "string",
+          description: "URL to navigate to (required for 'navigate' action).",
+        },
+        selector: {
+          type: "string",
+          description: "CSS selector targeting an element (used by 'click', 'type', 'screenshot', 'scroll', 'get_content', 'wait').",
+        },
+        text: {
+          type: "string",
+          description: "Text to type into the selected element (required for 'type' action).",
+        },
+        pressEnter: {
+          type: "boolean",
+          description: "If true, press Enter after typing (for 'type' action). Useful for submitting search forms.",
+        },
+        fullPage: {
+          type: "boolean",
+          description: "If true, capture the full scrollable page instead of just the viewport (for 'screenshot' action).",
+        },
+        direction: {
+          type: "string",
+          description: "Scroll direction: 'up' or 'down' (for 'scroll' action, default: 'down').",
+        },
+        amount: {
+          type: "integer",
+          description: "Pixels to scroll (for 'scroll' action, default: 500).",
+        },
+        expression: {
+          type: "string",
+          description: "JavaScript expression to evaluate in the page context (for 'evaluate' action). The return value is serialized to JSON.",
+        },
+        format: {
+          type: "string",
+          description: "Content format: 'text' (default) or 'html' (for 'get_content' action).",
+        },
+        timeout: {
+          type: "integer",
+          description: "Timeout in milliseconds (for 'wait' action, default: 10000, max: 30000).",
+        },
+        state: {
+          type: "string",
+          description: "Element state to wait for: 'visible' (default), 'hidden', 'attached', 'detached' (for 'wait' action).",
+        },
+      },
+      required: ["action"],
+    },
+  },
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -6051,6 +6123,9 @@ const TOOL_DOMAINS = {
   git_status: "Agentic: Git",
   git_diff: "Agentic: Git",
   git_log: "Agentic: Git",
+
+  // Agentic — Browser Automation
+  browser_action: "Agentic: Browser",
 };
 
 // ────────────────────────────────────────────────────────────

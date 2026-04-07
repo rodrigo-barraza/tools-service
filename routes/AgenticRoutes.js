@@ -40,6 +40,10 @@ import {
   agenticGitLog,
 } from "../services/AgenticGitService.js";
 import { agenticProjectSummary } from "../services/AgenticProjectService.js";
+import {
+  agenticBrowserAction,
+  getBrowserHealth,
+} from "../services/AgenticBrowserService.js";
 
 const router = Router();
 
@@ -435,6 +439,24 @@ router.post("/project/summary", async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// 9. Browser Automation
+// ═══════════════════════════════════════════════════════════════
+
+router.post("/browser/action", async (req, res) => {
+  const { action } = req.body;
+  if (!action || typeof action !== "string") {
+    return res.status(400).json({ error: "Request body must include 'action' (string)" });
+  }
+
+  const result = await agenticBrowserAction(req.body);
+
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+// ═══════════════════════════════════════════════════════════════
 // Health
 // ═══════════════════════════════════════════════════════════════
 
@@ -459,6 +481,7 @@ export function getAgenticHealth() {
     gitDiff: "on-demand (git subprocess)",
     gitLog: "on-demand (git subprocess)",
     projectSummary: "on-demand (fs scan)",
+    browserAction: getBrowserHealth(),
   };
 }
 
