@@ -20,11 +20,11 @@ import { WORKSPACE_ROOTS as WORKSPACE_ROOTS_RAW } from "../secrets.js";
 // Configuration
 // ────────────────────────────────────────────────────────────
 
-// Parsed from secrets.js WORKSPACE_ROOTS (comma-separated).
-// Falls back to $HOME/development/sun if not set.
-const ALLOWED_ROOTS = WORKSPACE_ROOTS_RAW
-  ? WORKSPACE_ROOTS_RAW.split(",").map((r) => resolve(r.trim()))
-  : [resolve(process.env.HOME || "/home", "development/sun")];
+// Parsed from secrets.js WORKSPACE_ROOTS (comma-separated absolute paths).
+if (!WORKSPACE_ROOTS_RAW) {
+  throw new Error("[AgenticFileService] WORKSPACE_ROOTS is not set in secrets.js — agent tools require at least one allowed root path.");
+}
+const ALLOWED_ROOTS = WORKSPACE_ROOTS_RAW.split(",").map((r) => resolve(r.trim()));
 
 const MAX_READ_BYTES = 1_048_576;      // 1 MB
 const MAX_WRITE_BYTES = 5_242_880;     // 5 MB

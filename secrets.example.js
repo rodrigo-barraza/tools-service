@@ -10,8 +10,8 @@
 export const TOOLS_PORT = 5590;
 
 // ─── Workspace Roots ───────────────────────────────────────────────
-// Comma-separated absolute paths the agentic tools are allowed to access.
-// Leave empty to default to $HOME/development/sun.
+// REQUIRED — comma-separated absolute paths the agentic tools are allowed to access.
+// tools-api will refuse to start if this is empty.
 // Example: '/home/youruser/projects/sun,/home/youruser/other-repo'
 export const WORKSPACE_ROOTS = '';
 
