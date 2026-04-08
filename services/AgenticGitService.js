@@ -302,3 +302,213 @@ export async function agenticGitLog(repoPath, { limit = 20, author, since, path:
     commits,
   };
 }
+
+// ────────────────────────────────────────────────────────────
+// Git Worktree Operations (for Coordinator Mode)
+// ────────────────────────────────────────────────────────────
+
+const WORKTREE_BASE = "/tmp/prism-worktrees";
+
+/**
+ * Create a git worktree with its own branch.
+ *
+ * @param {string} repoPath - Absolute path to the main git repo
+ * @param {string} branchName - Name for the new branch
+ * @returns {Promise<object>} { worktreePath, branch }
+ */
+export async function agenticGitWorktreeCreate(repoPath, branchName) {
+  const validation = validatePath(repoPath);
+  if (!validation.safe) {
+    return { error: validation.error };
+  }
+
+  const cwd = validation.resolved;
+  const sanitized = branchName.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const worktreePath = `${WORKTREE_BASE}/${sanitized}-${Date.now()}`;
+
+  // Ensure base directory exists
+  const { mkdirSync } = await import("node:fs");
+  try {
+    mkdirSync(WORKTREE_BASE, { recursive: true });
+  } catch {
+    // ignore if it exists
+  }
+
+  const result = await runGit(
+    ["worktree", "add", worktreePath, "-b", sanitized],
+    cwd,
+  );
+
+  if (result.error) {
+    return { error: result.error, path: cwd };
+  }
+
+  return {
+    worktreePath,
+    branch: sanitized,
+    repoPath: cwd,
+  };
+}
+
+/**
+ * Remove a git worktree and optionally delete the branch.
+ *
+ * @param {string} repoPath - Absolute path to the main git repo
+ * @param {string} worktreePath - Absolute path to the worktree to remove
+ * @param {object} [options]
+ * @param {boolean} [options.deleteBranch=true] - Also delete the local branch
+ * @returns {Promise<object>}
+ */
+export async function agenticGitWorktreeRemove(repoPath, worktreePath, { deleteBranch = true } = {}) {
+  const validation = validatePath(repoPath);
+  if (!validation.safe) {
+    return { error: validation.error };
+  }
+
+  const cwd = validation.resolved;
+
+  // Get branch name from worktree before removing
+  let branchName = null;
+  if (deleteBranch) {
+    const branchResult = await runGit(["branch", "--show-current"], worktreePath);
+    if (!branchResult.error) {
+      branchName = branchResult.stdout.trim();
+    }
+  }
+
+  // Remove worktree
+  const result = await runGit(
+    ["worktree", "remove", worktreePath, "--force"],
+    cwd,
+  );
+
+  if (result.error) {
+    return { error: result.error, path: cwd };
+  }
+
+  // Delete the branch
+  if (deleteBranch && branchName) {
+    await runGit(["branch", "-D", branchName], cwd);
+  }
+
+  return {
+    removed: worktreePath,
+    branch: branchName,
+    branchDeleted: deleteBranch && !!branchName,
+  };
+}
+
+/**
+ * Merge a worktree branch back into the current branch.
+ *
+ * @param {string} repoPath - Absolute path to the main git repo
+ * @param {string} branch - Branch name to merge
+ * @param {object} [options]
+ * @param {string} [options.message] - Custom merge commit message
+ * @returns {Promise<object>}
+ */
+export async function agenticGitWorktreeMerge(repoPath, branch, { message } = {}) {
+  const validation = validatePath(repoPath);
+  if (!validation.safe) {
+    return { error: validation.error };
+  }
+
+  const cwd = validation.resolved;
+
+  const args = ["merge", "--no-ff", branch];
+  if (message) {
+    args.push("-m", message);
+  }
+
+  const result = await runGit(args, cwd);
+  if (result.error) {
+    return { error: result.error, path: cwd };
+  }
+
+  return {
+    merged: branch,
+    output: result.stdout.trim(),
+  };
+}
+
+/**
+ * Get the diff between a worktree branch and the main branch.
+ *
+ * @param {string} repoPath - Absolute path to the main git repo
+ * @param {string} branch - Branch name to diff
+ * @returns {Promise<object>}
+ */
+export async function agenticGitWorktreeDiff(repoPath, branch) {
+  const validation = validatePath(repoPath);
+  if (!validation.safe) {
+    return { error: validation.error };
+  }
+
+  const cwd = validation.resolved;
+
+  // Get current branch name
+  const currentResult = await runGit(["branch", "--show-current"], cwd);
+  const currentBranch = currentResult.error ? "HEAD" : currentResult.stdout.trim();
+
+  const result = await runGit(
+    ["diff", `${currentBranch}...${branch}`, "--stat", "--patch"],
+    cwd,
+  );
+
+  if (result.error) {
+    return { error: result.error, path: cwd };
+  }
+
+  const diff = result.stdout;
+  const hasChanges = diff.trim().length > 0;
+  const additions = (diff.match(/^\+[^+]/gm) || []).length;
+  const deletions = (diff.match(/^-[^-]/gm) || []).length;
+
+  return {
+    branch,
+    baseBranch: currentBranch,
+    hasChanges,
+    additions,
+    deletions,
+    diff: hasChanges ? diff : "(no changes)",
+  };
+}
+
+/**
+ * Clean up any orphaned worktrees from previous runs.
+ * Should be called on server startup.
+ *
+ * @param {string} repoPath - Absolute path to the main git repo
+ * @returns {Promise<object>}
+ */
+export async function agenticGitWorktreeCleanup(repoPath) {
+  const validation = validatePath(repoPath);
+  if (!validation.safe) {
+    return { error: validation.error };
+  }
+
+  const cwd = validation.resolved;
+  const result = await runGit(["worktree", "prune"], cwd);
+
+  if (result.error) {
+    return { error: result.error };
+  }
+
+  // Also clean up temp directory
+  const { rmSync, existsSync } = await import("node:fs");
+  let cleaned = 0;
+  if (existsSync(WORKTREE_BASE)) {
+    const { readdirSync } = await import("node:fs");
+    const entries = readdirSync(WORKTREE_BASE);
+    for (const entry of entries) {
+      try {
+        rmSync(`${WORKTREE_BASE}/${entry}`, { recursive: true, force: true });
+        cleaned++;
+      } catch {
+        // best-effort cleanup
+      }
+    }
+  }
+
+  return { pruned: true, cleanedDirs: cleaned };
+}

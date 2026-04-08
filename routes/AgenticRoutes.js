@@ -38,6 +38,11 @@ import {
   agenticGitStatus,
   agenticGitDiff,
   agenticGitLog,
+  agenticGitWorktreeCreate,
+  agenticGitWorktreeRemove,
+  agenticGitWorktreeMerge,
+  agenticGitWorktreeDiff,
+  agenticGitWorktreeCleanup,
 } from "../services/AgenticGitService.js";
 import { agenticProjectSummary } from "../services/AgenticProjectService.js";
 import {
@@ -421,6 +426,85 @@ router.post("/git/log", async (req, res) => {
   res.json(result);
 });
 
+// ── Git Worktree (Coordinator Mode) ───────────────────────────
+
+router.post("/git/worktree/create", async (req, res) => {
+  const { path, branch } = req.body;
+  if (!path || typeof path !== "string") {
+    return res.status(400).json({ error: "Request body must include 'path' (string) — path to the main git repo" });
+  }
+  if (!branch || typeof branch !== "string") {
+    return res.status(400).json({ error: "Request body must include 'branch' (string) — name for the new worktree branch" });
+  }
+
+  const result = await agenticGitWorktreeCreate(path, branch);
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+router.post("/git/worktree/remove", async (req, res) => {
+  const { path, worktreePath, deleteBranch } = req.body;
+  if (!path || typeof path !== "string") {
+    return res.status(400).json({ error: "Request body must include 'path' (string) — path to the main git repo" });
+  }
+  if (!worktreePath || typeof worktreePath !== "string") {
+    return res.status(400).json({ error: "Request body must include 'worktreePath' (string) — path to the worktree to remove" });
+  }
+
+  const result = await agenticGitWorktreeRemove(path, worktreePath, { deleteBranch: deleteBranch !== false });
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+router.post("/git/worktree/merge", async (req, res) => {
+  const { path, branch, message } = req.body;
+  if (!path || typeof path !== "string") {
+    return res.status(400).json({ error: "Request body must include 'path' (string) — path to the main git repo" });
+  }
+  if (!branch || typeof branch !== "string") {
+    return res.status(400).json({ error: "Request body must include 'branch' (string) — branch to merge" });
+  }
+
+  const result = await agenticGitWorktreeMerge(path, branch, { message });
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+router.post("/git/worktree/diff", async (req, res) => {
+  const { path, branch } = req.body;
+  if (!path || typeof path !== "string") {
+    return res.status(400).json({ error: "Request body must include 'path' (string) — path to the main git repo" });
+  }
+  if (!branch || typeof branch !== "string") {
+    return res.status(400).json({ error: "Request body must include 'branch' (string) — branch to diff against" });
+  }
+
+  const result = await agenticGitWorktreeDiff(path, branch);
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+router.post("/git/worktree/cleanup", async (req, res) => {
+  const { path } = req.body;
+  if (!path || typeof path !== "string") {
+    return res.status(400).json({ error: "Request body must include 'path' (string) — path to the main git repo" });
+  }
+
+  const result = await agenticGitWorktreeCleanup(path);
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
 // ═══════════════════════════════════════════════════════════════
 // 8. Project Intelligence
 // ═══════════════════════════════════════════════════════════════
@@ -480,6 +564,11 @@ export function getAgenticHealth() {
     gitStatus: "on-demand (git subprocess)",
     gitDiff: "on-demand (git subprocess)",
     gitLog: "on-demand (git subprocess)",
+    gitWorktreeCreate: "on-demand (git worktree)",
+    gitWorktreeRemove: "on-demand (git worktree)",
+    gitWorktreeMerge: "on-demand (git merge)",
+    gitWorktreeDiff: "on-demand (git diff)",
+    gitWorktreeCleanup: "on-demand (git prune)",
     projectSummary: "on-demand (fs scan)",
     browserAction: getBrowserHealth(),
   };
