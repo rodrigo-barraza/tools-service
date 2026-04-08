@@ -5837,11 +5837,11 @@ const TOOL_DEFINITIONS = [
     name: "browser_action",
     dataSource: compute("headless Chromium (Playwright)"),
     description:
-      "Control a headless Chromium browser for web automation, E2E testing, visual QA, and interacting with JavaScript-rendered pages that fetch_url cannot handle. Supports navigation, screenshots, clicking, typing, scrolling, JS evaluation, content extraction, and waiting. Each call performs ONE action. The browser session persists between calls (same sessionId) so you can build multi-step flows: navigate → click → type → screenshot. Screenshots are uploaded to storage and returned as references. Sessions auto-close after 5 minutes of inactivity.",
+      "Control a headless Chromium browser for web automation, E2E testing, visual QA, and interacting with JavaScript-rendered pages that fetch_url cannot handle. Supports navigation, screenshots, clicking, typing, scrolling, JS evaluation, content extraction, element discovery, and waiting. Each call performs ONE action. The browser session persists between calls (same sessionId) so you can build multi-step flows: navigate → get_elements → click → type → screenshot. IMPORTANT: After navigating to a page, use 'get_elements' to discover available interactive elements and their CSS selectors before clicking or typing — never guess selectors. Sessions auto-close after 5 minutes of inactivity.",
     endpoint: {
       method: "POST",
       path: "/agentic/browser/action",
-      bodyParams: ["action", "sessionId", "url", "selector", "text", "pressEnter", "fullPage", "direction", "amount", "expression", "format", "timeout", "state"],
+      bodyParams: ["action", "sessionId", "url", "selector", "text", "pressEnter", "fullPage", "direction", "amount", "expression", "format", "timeout", "state", "limit"],
     },
     parameters: {
       type: "object",
@@ -5849,8 +5849,8 @@ const TOOL_DEFINITIONS = [
         action: {
           type: "string",
           description:
-            "The browser action to perform. One of: 'navigate' (go to URL), 'screenshot' (capture viewport), 'click' (click element), 'type' (enter text), 'scroll' (scroll page), 'evaluate' (run JS), 'get_content' (extract text/HTML), 'wait' (wait for element/time), 'close' (end session).",
-          enum: ["navigate", "screenshot", "click", "type", "scroll", "evaluate", "get_content", "wait", "close"],
+            "The browser action to perform. One of: 'navigate' (go to URL), 'screenshot' (capture viewport), 'click' (click element), 'type' (enter text), 'scroll' (scroll page), 'evaluate' (run JS), 'get_content' (extract text/HTML), 'get_elements' (discover interactive elements with their CSS selectors — use this after navigating to find clickable/typeable elements), 'wait' (wait for element/time), 'close' (end session).",
+          enum: ["navigate", "screenshot", "click", "type", "scroll", "evaluate", "get_content", "get_elements", "wait", "close"],
         },
         sessionId: {
           type: "string",
@@ -5900,6 +5900,10 @@ const TOOL_DEFINITIONS = [
         state: {
           type: "string",
           description: "Element state to wait for: 'visible' (default), 'hidden', 'attached', 'detached' (for 'wait' action).",
+        },
+        limit: {
+          type: "integer",
+          description: "Maximum number of elements to return (for 'get_elements' action, default: 50, max: 100).",
         },
       },
       required: ["action"],

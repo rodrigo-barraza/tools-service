@@ -357,6 +357,106 @@ async function actionWait(page, { selector, timeout, state }) {
   }
 }
 
+async function actionGetElements(page, { selector, limit }) {
+  try {
+    const maxElements = Math.min(limit || 50, 100);
+    const scope = selector || "body";
+
+    const elements = await page.evaluate(
+      ({ scope, max }) => {
+        // eslint-disable-next-line no-undef
+        const root = document.querySelector(scope) || document.body;
+
+        // All interactive elements worth reporting to an LLM
+        const interactiveSelectors = [
+          "a[href]",
+          "button",
+          "input",
+          "textarea",
+          "select",
+          "[role='button']",
+          "[role='link']",
+          "[role='tab']",
+          "[role='menuitem']",
+          "[role='checkbox']",
+          "[role='radio']",
+          "[role='switch']",
+          "[role='combobox']",
+          "[role='searchbox']",
+          "[role='textbox']",
+          "[contenteditable='true']",
+        ];
+
+        const allElements = root.querySelectorAll(interactiveSelectors.join(", "));
+        const results = [];
+
+        for (const el of allElements) {
+          if (results.length >= max) break;
+
+          // Skip invisible elements
+          const rect = el.getBoundingClientRect();
+          // eslint-disable-next-line no-undef
+          const style = window.getComputedStyle(el);
+          if (
+            style.display === "none" ||
+            style.visibility === "hidden" ||
+            (rect.width === 0 && rect.height === 0)
+          ) continue;
+
+          // Build the best CSS selector for this element
+          let cssSelector = "";
+          if (el.id) {
+            cssSelector = `#${el.id}`;
+          } else if (el.getAttribute("data-testid")) {
+            cssSelector = `[data-testid="${el.getAttribute("data-testid")}"]`;
+          } else if (el.getAttribute("name")) {
+            cssSelector = `${el.tagName.toLowerCase()}[name="${el.getAttribute("name")}"]`;
+          } else if (el.getAttribute("aria-label")) {
+            cssSelector = `[aria-label="${el.getAttribute("aria-label")}"]`;
+          } else if (el.className && typeof el.className === "string") {
+            // Use first meaningful class
+            const cls = el.className.trim().split(/\s+/)[0];
+            if (cls) cssSelector = `${el.tagName.toLowerCase()}.${cls}`;
+          }
+
+          // Fallback: tag + nth-of-type
+          if (!cssSelector) {
+            cssSelector = el.tagName.toLowerCase();
+          }
+
+          const text = (el.innerText || el.textContent || "").trim().slice(0, 80);
+          const tag = el.tagName.toLowerCase();
+          const entry = { tag, selector: cssSelector };
+
+          if (text) entry.text = text;
+          if (el.getAttribute("type")) entry.type = el.getAttribute("type");
+          if (el.getAttribute("placeholder")) entry.placeholder = el.getAttribute("placeholder");
+          if (el.getAttribute("href")) entry.href = el.getAttribute("href").slice(0, 120);
+          if (el.getAttribute("value")) entry.value = el.getAttribute("value").slice(0, 60);
+          if (el.getAttribute("role")) entry.role = el.getAttribute("role");
+          if (el.disabled) entry.disabled = true;
+          if (el.getAttribute("aria-label")) entry.ariaLabel = el.getAttribute("aria-label");
+
+          results.push(entry);
+        }
+
+        return results;
+      },
+      { scope, max: maxElements },
+    );
+
+    return {
+      action: "get_elements",
+      url: page.url(),
+      title: await page.title(),
+      count: elements.length,
+      elements,
+    };
+  } catch (err) {
+    return { error: `Get elements failed: ${err.message}` };
+  }
+}
+
 // ────────────────────────────────────────────────────────────
 // Public API
 // ────────────────────────────────────────────────────────────
@@ -369,6 +469,7 @@ const ACTION_HANDLERS = {
   scroll: actionScroll,
   evaluate: actionEvaluate,
   get_content: actionGetContent,
+  get_elements: actionGetElements,
   wait: actionWait,
 };
 
