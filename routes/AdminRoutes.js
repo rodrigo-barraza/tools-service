@@ -8,6 +8,7 @@ import {
   getToolSchemasForAI,
   getDisabledTools,
 } from "../services/ToolSchemaService.js";
+import { asyncHandler } from "../utilities.js";
 
 const router = Router();
 
@@ -45,27 +46,21 @@ router.get("/tool-schemas/disabled", (_req, res) => {
  * Query params: method, path, status, minStatus, maxStatus,
  *               since, until, limit, skip
  */
-router.get("/requests", async (req, res) => {
-  try {
-    const result = await queryRequestLogs(req.query);
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+router.get("/requests", asyncHandler(
+  (req) => queryRequestLogs(req.query),
+  "Request log query",
+  500,
+));
 
 /**
  * GET /admin/requests/stats
  * Aggregated request statistics.
  * Query params: since (ISO date for time window)
  */
-router.get("/requests/stats", async (req, res) => {
-  try {
-    const stats = await getRequestStats(req.query.since);
-    res.json(stats);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+router.get("/requests/stats", asyncHandler(
+  (req) => getRequestStats(req.query.since),
+  "Request stats",
+  500,
+));
 
 export default router;

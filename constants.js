@@ -99,8 +99,6 @@ export const ASSET_CATEGORIES = {
   VOLATILITY: "volatility",
 };
 
-export const COMMODITY_CATEGORIES = ASSET_CATEGORIES;
-
 export const COMMODITY_TICKERS = {
   // Energy
   "CL=F": {
@@ -1224,133 +1222,34 @@ export const PRODUCT_SOURCES = {
   COSTCO_CA: "costco_ca",
 };
 
-// Costco US — category page slugs
-export const COSTCO_US_CATEGORIES = [
-  {
-    slug: "laptops.html",
-    name: "Laptops",
-    unified: PRODUCT_CATEGORIES.COMPUTERS,
-  },
-  {
-    slug: "desktop-computers.html",
-    name: "Desktops",
-    unified: PRODUCT_CATEGORIES.COMPUTERS,
-  },
-  {
-    slug: "computer-monitors.html",
-    name: "Monitors",
-    unified: PRODUCT_CATEGORIES.ELECTRONICS,
-  },
-  {
-    slug: "tvs.html",
-    name: "TVs",
-    unified: PRODUCT_CATEGORIES.TV_HOME_THEATER,
-  },
-  {
-    slug: "cell-phones.html",
-    name: "Cell Phones",
-    unified: PRODUCT_CATEGORIES.PHONES,
-  },
-  {
-    slug: "tablets.html",
-    name: "Tablets",
-    unified: PRODUCT_CATEGORIES.COMPUTERS,
-  },
-  {
-    slug: "headphones.html",
-    name: "Headphones",
-    unified: PRODUCT_CATEGORIES.AUDIO,
-  },
-  {
-    slug: "speakers.html",
-    name: "Speakers",
-    unified: PRODUCT_CATEGORIES.AUDIO,
-  },
-  {
-    slug: "cameras-camcorders.html",
-    name: "Cameras",
-    unified: PRODUCT_CATEGORIES.CAMERAS,
-  },
-  {
-    slug: "video-games.html",
-    name: "Video Games",
-    unified: PRODUCT_CATEGORIES.GAMING,
-  },
-  {
-    slug: "major-appliances.html",
-    name: "Major Appliances",
-    unified: PRODUCT_CATEGORIES.APPLIANCES,
-  },
-  {
-    slug: "small-appliances.html",
-    name: "Small Appliances",
-    unified: PRODUCT_CATEGORIES.APPLIANCES,
-  },
+// Costco — shared base categories (US and CA differ only in 2 slugs)
+const COSTCO_BASE_CATEGORIES = [
+  { slug: "laptops.html", name: "Laptops", unified: PRODUCT_CATEGORIES.COMPUTERS },
+  { slug: "desktop-computers.html", name: "Desktops", unified: PRODUCT_CATEGORIES.COMPUTERS },
+  { slug: "computer-monitors.html", name: "Monitors", unified: PRODUCT_CATEGORIES.ELECTRONICS },
+  { slug: "tvs.html", name: "TVs", unified: PRODUCT_CATEGORIES.TV_HOME_THEATER },
+  { slug: "cell-phones.html", name: "Cell Phones", unified: PRODUCT_CATEGORIES.PHONES },
+  { slug: "tablets.html", name: "Tablets", unified: PRODUCT_CATEGORIES.COMPUTERS },
+  { slug: "headphones.html", name: "Headphones", unified: PRODUCT_CATEGORIES.AUDIO },
+  { slug: "speakers.html", name: "Speakers", unified: PRODUCT_CATEGORIES.AUDIO },
+  { slug: "cameras-camcorders.html", name: "Cameras", unified: PRODUCT_CATEGORIES.CAMERAS },
+  { slug: "video-games.html", name: "Video Games", unified: PRODUCT_CATEGORIES.GAMING },
+  { slug: "major-appliances.html", name: "Major Appliances", unified: PRODUCT_CATEGORIES.APPLIANCES },
+  { slug: "small-appliances.html", name: "Small Appliances", unified: PRODUCT_CATEGORIES.APPLIANCES },
 ];
 
-// Costco CA — category page slugs (same products, Canadian pricing)
-export const COSTCO_CA_CATEGORIES = [
-  {
-    slug: "laptops.html",
-    name: "Laptops",
-    unified: PRODUCT_CATEGORIES.COMPUTERS,
-  },
-  {
-    slug: "desktop-computers.html",
-    name: "Desktops",
-    unified: PRODUCT_CATEGORIES.COMPUTERS,
-  },
-  {
-    slug: "computer-monitors.html",
-    name: "Monitors",
-    unified: PRODUCT_CATEGORIES.ELECTRONICS,
-  },
-  {
-    slug: "tvs.html",
-    name: "TVs",
-    unified: PRODUCT_CATEGORIES.TV_HOME_THEATER,
-  },
-  {
-    slug: "cell-phones.html",
-    name: "Cell Phones",
-    unified: PRODUCT_CATEGORIES.PHONES,
-  },
-  {
-    slug: "tablets.html",
-    name: "Tablets",
-    unified: PRODUCT_CATEGORIES.COMPUTERS,
-  },
-  {
-    slug: "headphones-earbuds.html",
-    name: "Headphones",
-    unified: PRODUCT_CATEGORIES.AUDIO,
-  },
-  {
-    slug: "speakers.html",
-    name: "Speakers",
-    unified: PRODUCT_CATEGORIES.AUDIO,
-  },
-  {
-    slug: "cameras-camcorders-drones.html",
-    name: "Cameras",
-    unified: PRODUCT_CATEGORIES.CAMERAS,
-  },
-  {
-    slug: "video-games.html",
-    name: "Video Games",
-    unified: PRODUCT_CATEGORIES.GAMING,
-  },
-  {
-    slug: "major-appliances.html",
-    name: "Major Appliances",
-    unified: PRODUCT_CATEGORIES.APPLIANCES,
-  },
-  {
-    slug: "small-appliances.html",
-    name: "Small Appliances",
-    unified: PRODUCT_CATEGORIES.APPLIANCES,
-  },
-];
+// Country-specific slug overrides (CA site uses different URL slugs for 2 categories)
+const COSTCO_CA_SLUG_OVERRIDES = {
+  "headphones.html": "headphones-earbuds.html",
+  "cameras-camcorders.html": "cameras-camcorders-drones.html",
+};
+
+export const COSTCO_US_CATEGORIES = COSTCO_BASE_CATEGORIES;
+
+export const COSTCO_CA_CATEGORIES = COSTCO_BASE_CATEGORIES.map((cat) => ({
+  ...cat,
+  slug: COSTCO_CA_SLUG_OVERRIDES[cat.slug] || cat.slug,
+}));
 
 export const AMAZON_REQUEST_DELAY_MS = 3_000;
 export const AMAZON_MAX_PRODUCTS_PER_CATEGORY = 20;
@@ -1915,6 +1814,104 @@ export const API_RATE_LIMITS = {
     qpd: null,
     requestDelayMs: 4_000, // 60000 / 15 QPM
   },
+
+  // ─── Knowledge Domain ─────────────────────────────────────────────
+  DICTIONARY: {
+    qps: null,
+    qpm: null,
+    qpd: null, // fully open, no documented limits
+    requestDelayMs: 500,
+  },
+  OPEN_LIBRARY: {
+    qps: null,
+    qpm: 100,
+    qpd: null, // ~100 req/min recommended
+    requestDelayMs: 600,
+  },
+  REST_COUNTRIES: {
+    qps: null,
+    qpm: null,
+    qpd: null, // fully open
+    requestDelayMs: 200,
+  },
+  ARXIV: {
+    qps: null,
+    qpm: 20,
+    qpd: null, // 3-second wait between requests
+    requestDelayMs: 3_000,
+  },
+  WIKIPEDIA_SUMMARY: {
+    qps: 200,
+    qpm: null,
+    qpd: null, // REST API, very generous
+    requestDelayMs: 100,
+  },
+  JIKAN: {
+    qps: 3,
+    qpm: 60,
+    qpd: null, // strict 3/sec, 60/min limit
+    requestDelayMs: 350,
+  },
+
+  // ─── Health Domain ────────────────────────────────────────────────
+  OPEN_FDA: {
+    qps: 4,
+    qpm: 240,
+    qpd: null, // 240/min with key, 40/min without
+    requestDelayMs: 250,
+  },
+
+  // ─── Transit Domain ───────────────────────────────────────────────
+  TRANSLINK: {
+    qps: null,
+    qpm: null,
+    qpd: 1_000, // ~1000 req/day
+    requestDelayMs: 500,
+  },
+
+  // ─── Utility Domain ───────────────────────────────────────────────
+  EXCHANGE_RATE: {
+    qps: null,
+    qpm: null,
+    qpd: 1_500, // 1500/month on free tier ≈ 50/day
+    requestDelayMs: 1_000,
+  },
+  TIMEZONE: {
+    qps: 1,
+    qpm: null,
+    qpd: null,
+    requestDelayMs: 1_000,
+  },
+  IPINFO: {
+    qps: null,
+    qpm: null,
+    qpd: 1_666, // 50000/month ≈ 1666/day
+    requestDelayMs: 200,
+  },
+
+  // ─── Finance Domain (FRED) ────────────────────────────────────────
+  FRED: {
+    qps: 2,
+    qpm: 120,
+    qpd: null, // no daily limit
+    requestDelayMs: 500, // 60000 / 120 QPM
+  },
+
+  // ─── Maritime Domain (AIS Stream) ─────────────────────────────────
+  AIS_STREAM: {
+    qps: 1,
+    qpm: null,
+    qpd: null, // WebSocket — 1 subscription update/second; persistent connection
+    requestDelayMs: 1_000, // only applies to subscription updates
+  },
+
+  // ─── Energy Domain (EIA) ──────────────────────────────────────────
+  EIA: {
+    qps: null,
+    qpm: null,
+    qpd: null, // undocumented; key auto-suspended if exceeded
+    requestDelayMs: 500, // conservative pacing
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -2039,112 +2036,6 @@ export const EXCHANGE_RATE_BASE_URL = "https://open.er-api.com/v6/latest";
 export const TIMEZONE_BASE_URL = "https://worldtimeapi.org/api";
 export const IPINFO_BASE_URL = "https://ipinfo.io";
 
-// ═══════════════════════════════════════════════════════════════
-//  API RATE LIMITS — New Domains
-// ═══════════════════════════════════════════════════════════════
-
-export const NEW_API_RATE_LIMITS = {
-  // ─── Knowledge Domain ─────────────────────────────────────────────
-  DICTIONARY: {
-    qps: null,
-    qpm: null,
-    qpd: null, // fully open, no documented limits
-    requestDelayMs: 500,
-  },
-  OPEN_LIBRARY: {
-    qps: null,
-    qpm: 100,
-    qpd: null, // ~100 req/min recommended
-    requestDelayMs: 600,
-  },
-  REST_COUNTRIES: {
-    qps: null,
-    qpm: null,
-    qpd: null, // fully open
-    requestDelayMs: 200,
-  },
-  ARXIV: {
-    qps: null,
-    qpm: 20,
-    qpd: null, // 3-second wait between requests
-    requestDelayMs: 3_000,
-  },
-  WIKIPEDIA_SUMMARY: {
-    qps: 200,
-    qpm: null,
-    qpd: null, // REST API, very generous
-    requestDelayMs: 100,
-  },
-  JIKAN: {
-    qps: 3,
-    qpm: 60,
-    qpd: null, // strict 3/sec, 60/min limit
-    requestDelayMs: 350,
-  },
-
-  // ─── Health Domain ────────────────────────────────────────────────
-
-  OPEN_FDA: {
-    qps: 4,
-    qpm: 240,
-    qpd: null, // 240/min with key, 40/min without
-    requestDelayMs: 250,
-  },
-
-  // ─── Transit Domain ───────────────────────────────────────────────
-  TRANSLINK: {
-    qps: null,
-    qpm: null,
-    qpd: 1_000, // ~1000 req/day
-    requestDelayMs: 500,
-  },
-
-  // ─── Utility Domain ───────────────────────────────────────────────
-  EXCHANGE_RATE: {
-    qps: null,
-    qpm: null,
-    qpd: 1_500, // 1500/month on free tier ≈ 50/day
-    requestDelayMs: 1_000,
-  },
-  TIMEZONE: {
-    qps: 1,
-    qpm: null,
-    qpd: null,
-    requestDelayMs: 1_000,
-  },
-
-  // ─── Finance Domain (FRED) ────────────────────────────────────────
-  FRED: {
-    qps: 2,
-    qpm: 120,
-    qpd: null, // no daily limit
-    requestDelayMs: 500, // 60000 / 120 QPM
-  },
-
-  // ─── Utility Domain (IPinfo) ──────────────────────────────────────
-  IPINFO: {
-    qps: null,
-    qpm: null,
-    qpd: 1_666, // 50000/month ≈ 1666/day
-    requestDelayMs: 200,
-  },
-
-  // ─── Maritime Domain (AIS Stream) ─────────────────────────────────
-  AIS_STREAM: {
-    qps: 1,
-    qpm: null,
-    qpd: null, // WebSocket — 1 subscription update/second; persistent connection
-    requestDelayMs: 1_000, // only applies to subscription updates
-  },
-
-  // ─── Energy Domain (EIA) ──────────────────────────────────────────
-  EIA: {
-    qps: null,
-    qpm: null,
-    qpd: null, // undocumented; key auto-suspended if exceeded
-    requestDelayMs: 500, // conservative pacing
-  },
-};
 
 // ═══════════════════════════════════════════════════════════════
 //  MARITIME DOMAIN (AIS Stream)

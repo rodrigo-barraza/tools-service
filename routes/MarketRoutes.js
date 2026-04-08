@@ -7,7 +7,7 @@ import {
   getCommoditySummary,
   getCommodityHealth,
 } from "../caches/CommodityCache.js";
-import { COMMODITY_CATEGORIES } from "../constants.js";
+import { ASSET_CATEGORIES } from "../constants.js";
 import { parseIntParam } from "../utilities.js";
 
 const router = Router();
@@ -21,12 +21,12 @@ router.get("/commodities/summary", (_req, res) => {
 });
 
 router.get("/commodities/categories", (_req, res) => {
-  res.json(Object.values(COMMODITY_CATEGORIES));
+  res.json(Object.values(ASSET_CATEGORIES));
 });
 
 router.get("/commodities/category/:category", (req, res) => {
   const category = req.params.category.toLowerCase();
-  const valid = Object.values(COMMODITY_CATEGORIES);
+  const valid = Object.values(ASSET_CATEGORIES);
   if (!valid.includes(category)) {
     return res.status(400).json({
       error: `Invalid category. Valid: ${valid.join(", ")}`,

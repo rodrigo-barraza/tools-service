@@ -87,61 +87,180 @@ import {
 } from "../caches/AvalancheCache.js";
 import { saveState, startCollectorLoop } from "../services/FreshnessService.js";
 
-// ─── Individual Collectors ─────────────────────────────────────────
+// ─── Collector Factory ─────────────────────────────────────────────
+// Standardizes the try/catch + saveState + error-logging boilerplate.
+// Each entry provides: label, collection, fetchFn, updateFn, setErrorFn,
+// and an optional logFn for domain-specific success messages.
 
-async function collectOpenMeteo() {
-  try {
-    const data = await fetchOpenMeteoWeather();
-    update("openmeteo", data);
-    await saveState("openmeteo", data);
-    console.log(
-      `[OpenMeteo] ✅ ${data.weatherDescription} | ${data.temperature}°C`,
-    );
-  } catch (error) {
-    setError("openmeteo", error);
-    console.error(`[OpenMeteo] ❌ ${error.message}`);
-  }
+function makeCollector({ label, collection, fetchFn, updateFn, setErrorFn, logFn }) {
+  return async () => {
+    try {
+      const data = await fetchFn();
+      updateFn(data);
+      await saveState(collection, data);
+      if (logFn) {
+        console.log(`[${label}] ✅ ${logFn(data)}`);
+      } else {
+        console.log(`[${label}] ✅ Collected`);
+      }
+    } catch (error) {
+      setErrorFn(error);
+      console.error(`[${label}] ❌ ${error.message}`);
+    }
+  };
 }
 
-async function collectAirQuality() {
-  try {
-    const data = await fetchAirQuality();
-    update("airquality", data);
-    await saveState("air_quality", data);
-    console.log(`[AirQuality] ✅ US AQI: ${data.usAqi} | PM2.5: ${data.pm25}`);
-  } catch (error) {
-    setError("airquality", error);
-    console.error(`[AirQuality] ❌ ${error.message}`);
-  }
-}
+// ─── Weather Cache Collectors (via factory) ────────────────────────
 
-async function collectTomorrowIORealtime() {
-  try {
-    const data = await fetchTomorrowIORealtime();
-    update("tomorrowio", data);
-    await saveState("tomorrowio", data);
-    console.log(
-      `[Tomorrow.io] ✅ ${data.weatherDescription} | Visibility: ${data.visibility}km | UV: ${data.uvIndex}`,
-    );
-  } catch (error) {
-    setError("tomorrowio", error);
-    console.error(`[Tomorrow.io] ❌ ${error.message}`);
-  }
-}
+const collectOpenMeteo = makeCollector({
+  label: "OpenMeteo", collection: "openmeteo",
+  fetchFn: fetchOpenMeteoWeather,
+  updateFn: (d) => update("openmeteo", d),
+  setErrorFn: (e) => setError("openmeteo", e),
+  logFn: (d) => `${d.weatherDescription} | ${d.temperature}°C`,
+});
 
-async function collectTomorrowIODaily() {
-  try {
-    const data = await fetchTomorrowIODailyForecast();
-    update("tomorrowio_daily", data);
-    await saveState("tomorrowio_daily", data);
-    console.log(
-      `[Tomorrow.io Daily] ✅ Moonrise: ${data.moonrise || "N/A"} | Moonset: ${data.moonset || "N/A"}`,
-    );
-  } catch (error) {
-    setError("tomorrowio_daily", error);
-    console.error(`[Tomorrow.io Daily] ❌ ${error.message}`);
-  }
-}
+const collectAirQuality = makeCollector({
+  label: "AirQuality", collection: "air_quality",
+  fetchFn: fetchAirQuality,
+  updateFn: (d) => update("airquality", d),
+  setErrorFn: (e) => setError("airquality", e),
+  logFn: (d) => `US AQI: ${d.usAqi} | PM2.5: ${d.pm25}`,
+});
+
+const collectTomorrowIORealtime = makeCollector({
+  label: "Tomorrow.io", collection: "tomorrowio",
+  fetchFn: fetchTomorrowIORealtime,
+  updateFn: (d) => update("tomorrowio", d),
+  setErrorFn: (e) => setError("tomorrowio", e),
+  logFn: (d) => `${d.weatherDescription} | Visibility: ${d.visibility}km | UV: ${d.uvIndex}`,
+});
+
+const collectTomorrowIODaily = makeCollector({
+  label: "Tomorrow.io Daily", collection: "tomorrowio_daily",
+  fetchFn: fetchTomorrowIODailyForecast,
+  updateFn: (d) => update("tomorrowio_daily", d),
+  setErrorFn: (e) => setError("tomorrowio_daily", e),
+  logFn: (d) => `Moonrise: ${d.moonrise || "N/A"} | Moonset: ${d.moonset || "N/A"}`,
+});
+
+const collectIssPosition = makeCollector({
+  label: "ISS", collection: "iss_position",
+  fetchFn: fetchIssPosition,
+  updateFn: updateIssPosition,
+  setErrorFn: setIssPositionError,
+  logFn: (d) => `Lat: ${d.latitude.toFixed(2)}, Lng: ${d.longitude.toFixed(2)}`,
+});
+
+const collectAstronauts = makeCollector({
+  label: "Astronauts", collection: "astronauts",
+  fetchFn: fetchAstronauts,
+  updateFn: updateAstronauts,
+  setErrorFn: setAstronautsError,
+  logFn: (d) => `${d.total} people in space`,
+});
+
+const collectKpIndex = makeCollector({
+  label: "Kp Index", collection: "kp_index",
+  fetchFn: fetchKpIndex,
+  updateFn: updateKpIndex,
+  setErrorFn: setKpIndexError,
+  logFn: (d) => `${d.length} readings | Current Kp: ${d[d.length - 1]?.kp ?? "?"}`,
+});
+
+const collectWildfires = makeCollector({
+  label: "Wildfire", collection: "wildfires",
+  fetchFn: fetchWildfires,
+  updateFn: updateWildfires,
+  setErrorFn: setWildfireError,
+  logFn: (d) => {
+    const largest = d.filter((e) => e.magnitudeValue != null)
+      .sort((a, b) => b.magnitudeValue - a.magnitudeValue)[0];
+    return `${d.length} active fires` +
+      (largest ? ` | Largest: ${largest.title} (${largest.magnitudeValue} ${largest.magnitudeUnit})` : "");
+  },
+});
+
+const collectTides = makeCollector({
+  label: "Tides", collection: "tide_predictions",
+  fetchFn: fetchTides,
+  updateFn: updateTides,
+  setErrorFn: setTideError,
+  logFn: (d) => {
+    const next = d.find((t) => new Date(t.time) > new Date());
+    return `${d.length} predictions` +
+      (next ? ` | Next: ${next.type} at ${next.time} (${next.height}m)` : "");
+  },
+});
+
+const collectSolarWind = makeCollector({
+  label: "Solar Wind", collection: "solar_wind",
+  fetchFn: fetchSolarWind,
+  updateFn: updateSolarWind,
+  setErrorFn: setSolarWindError,
+  logFn: (d) => `${d.counts.plasma}p/${d.counts.magnetic}m pts | Speed: ${d.latest.speed ?? "?"}km/s | Bz: ${d.latest.bz ?? "?"}nT`,
+});
+
+const collectGoogleAirQuality = makeCollector({
+  label: "Google AQ", collection: "google_air_quality",
+  fetchFn: fetchGoogleAirQuality,
+  updateFn: updateGoogleAirQuality,
+  setErrorFn: setGoogleAirQualityError,
+  logFn: (d) => `AQI: ${d.usEpaAqi ?? "?"} (${d.usEpaCategory ?? "?"}) | Dominant: ${d.usEpaDominantPollutant ?? "?"}`,
+});
+
+const collectPollen = makeCollector({
+  label: "Pollen", collection: "pollen",
+  fetchFn: fetchPollen,
+  updateFn: updatePollen,
+  setErrorFn: setPollenError,
+  logFn: (d) => {
+    const today = d.daily?.[0];
+    return `${d.daily?.length || 0}-day forecast | Grass: ${today?.grass?.indexInfo?.category ?? "?"} | Tree: ${today?.tree?.indexInfo?.category ?? "?"} | Weed: ${today?.weed?.indexInfo?.category ?? "?"}`;
+  },
+});
+
+const collectApod = makeCollector({
+  label: "APOD", collection: "apod",
+  fetchFn: fetchApod,
+  updateFn: updateApod,
+  setErrorFn: setApodError,
+  logFn: (d) => d.title,
+});
+
+const collectLaunches = makeCollector({
+  label: "Launches", collection: "launches",
+  fetchFn: fetchUpcomingLaunches,
+  updateFn: updateLaunches,
+  setErrorFn: setLaunchError,
+  logFn: (d) => `${d.length} upcoming` + (d[0] ? ` | Next: ${d[0].name} (${d[0].status})` : ""),
+});
+
+const collectTwilight = makeCollector({
+  label: "Twilight", collection: "twilight",
+  fetchFn: fetchTwilight,
+  updateFn: updateTwilight,
+  setErrorFn: setTwilightError,
+  logFn: (d) => `Civil: ${d.civilTwilightBegin} → ${d.civilTwilightEnd}`,
+});
+
+const collectEnvironmentCanada = makeCollector({
+  label: "Env Canada", collection: "env_canada_warnings",
+  fetchFn: fetchEnvironmentCanadaWarnings,
+  updateFn: updateWarnings,
+  setErrorFn: setWarningError,
+  logFn: (d) => `${d.length} active warnings/watches`,
+});
+
+const collectAvalanche = makeCollector({
+  label: "Avalanche", collection: "avalanche_forecasts",
+  fetchFn: fetchAvalancheForecast,
+  updateFn: updateAvalanche,
+  setErrorFn: setAvalancheError,
+  logFn: (d) => `${d.length} forecast regions`,
+});
+
+// ─── Complex Collectors (custom async flows) ──────────────────────
 
 async function collectEarthquakes() {
   try {
@@ -193,199 +312,6 @@ async function collectDonki() {
   } catch (error) {
     setSpaceWeatherError(error);
     console.error(`[DONKI] ❌ ${error.message}`);
-  }
-}
-
-async function collectIssPosition() {
-  try {
-    const position = await fetchIssPosition();
-    updateIssPosition(position);
-    await saveState("iss_position", position);
-    console.log(
-      `[ISS] ✅ Lat: ${position.latitude.toFixed(2)}, Lng: ${position.longitude.toFixed(2)}`,
-    );
-  } catch (error) {
-    setIssPositionError(error);
-    console.error(`[ISS Position] ❌ ${error.message}`);
-  }
-}
-
-async function collectAstronauts() {
-  try {
-    const data = await fetchAstronauts();
-    updateAstronauts(data);
-    await saveState("astronauts", data);
-    console.log(`[Astronauts] ✅ ${data.total} people in space`);
-  } catch (error) {
-    setAstronautsError(error);
-    console.error(`[Astronauts] ❌ ${error.message}`);
-  }
-}
-
-async function collectKpIndex() {
-  try {
-    const readings = await fetchKpIndex();
-    updateKpIndex(readings);
-    await saveState("kp_index", readings);
-    const latest = readings[readings.length - 1];
-    console.log(
-      `[Kp Index] ✅ ${readings.length} readings | Current Kp: ${latest?.kp ?? "?"}`,
-    );
-  } catch (error) {
-    setKpIndexError(error);
-    console.error(`[Kp Index] ❌ ${error.message}`);
-  }
-}
-
-async function collectWildfires() {
-  try {
-    const events = await fetchWildfires();
-    updateWildfires(events);
-    await saveState("wildfires", events);
-    const largest = events
-      .filter((e) => e.magnitudeValue != null)
-      .sort((a, b) => b.magnitudeValue - a.magnitudeValue)[0];
-    console.log(
-      `[Wildfire] ✅ ${events.length} active fires` +
-        (largest
-          ? ` | Largest: ${largest.title} (${largest.magnitudeValue} ${largest.magnitudeUnit})`
-          : ""),
-    );
-  } catch (error) {
-    setWildfireError(error);
-    console.error(`[Wildfire] ❌ ${error.message}`);
-  }
-}
-
-async function collectTides() {
-  try {
-    const predictions = await fetchTides();
-    updateTides(predictions);
-    await saveState("tide_predictions", predictions);
-    const next = predictions.find((t) => new Date(t.time) > new Date());
-    console.log(
-      `[Tides] ✅ ${predictions.length} predictions` +
-        (next ? ` | Next: ${next.type} at ${next.time} (${next.height}m)` : ""),
-    );
-  } catch (error) {
-    setTideError(error);
-    console.error(`[Tides] ❌ ${error.message}`);
-  }
-}
-
-async function collectSolarWind() {
-  try {
-    const data = await fetchSolarWind();
-    updateSolarWind(data);
-    await saveState("solar_wind", data);
-    const l = data.latest;
-    console.log(
-      `[Solar Wind] ✅ ${data.counts.plasma}p/${data.counts.magnetic}m pts | ` +
-        `Speed: ${l.speed ?? "?"}km/s | Bz: ${l.bz ?? "?"}nT`,
-    );
-  } catch (error) {
-    setSolarWindError(error);
-    console.error(`[Solar Wind] ❌ ${error.message}`);
-  }
-}
-
-async function collectGoogleAirQuality() {
-  try {
-    const data = await fetchGoogleAirQuality();
-    updateGoogleAirQuality(data);
-    await saveState("google_air_quality", data);
-    console.log(
-      `[Google AQ] ✅ AQI: ${data.usEpaAqi ?? "?"} (${data.usEpaCategory ?? "?"}) | ` +
-        `Dominant: ${data.usEpaDominantPollutant ?? "?"}`,
-    );
-  } catch (error) {
-    setGoogleAirQualityError(error);
-    console.error(`[Google AQ] ❌ ${error.message}`);
-  }
-}
-
-async function collectPollen() {
-  try {
-    const data = await fetchPollen();
-    updatePollen(data);
-    await saveState("pollen", data);
-    const today = data.daily?.[0];
-    const grass = today?.grass?.indexInfo?.category ?? "?";
-    const tree = today?.tree?.indexInfo?.category ?? "?";
-    const weed = today?.weed?.indexInfo?.category ?? "?";
-    console.log(
-      `[Pollen] ✅ ${data.daily?.length || 0}-day forecast | ` +
-        `Grass: ${grass} | Tree: ${tree} | Weed: ${weed}`,
-    );
-  } catch (error) {
-    setPollenError(error);
-    console.error(`[Pollen] ❌ ${error.message}`);
-  }
-}
-
-async function collectApod() {
-  try {
-    const data = await fetchApod();
-    updateApod(data);
-    await saveState("apod", data);
-    console.log(`[APOD] ✅ ${data.title}`);
-  } catch (error) {
-    setApodError(error);
-    console.error(`[APOD] ❌ ${error.message}`);
-  }
-}
-
-async function collectLaunches() {
-  try {
-    const launches = await fetchUpcomingLaunches();
-    updateLaunches(launches);
-    await saveState("launches", launches);
-    const next = launches[0];
-    console.log(
-      `[Launches] ✅ ${launches.length} upcoming` +
-        (next ? ` | Next: ${next.name} (${next.status})` : ""),
-    );
-  } catch (error) {
-    setLaunchError(error);
-    console.error(`[Launches] ❌ ${error.message}`);
-  }
-}
-
-async function collectTwilight() {
-  try {
-    const data = await fetchTwilight();
-    updateTwilight(data);
-    await saveState("twilight", data);
-    console.log(
-      `[Twilight] ✅ Civil: ${data.civilTwilightBegin} → ${data.civilTwilightEnd}`,
-    );
-  } catch (error) {
-    setTwilightError(error);
-    console.error(`[Twilight] ❌ ${error.message}`);
-  }
-}
-
-async function collectEnvironmentCanada() {
-  try {
-    const warnings = await fetchEnvironmentCanadaWarnings();
-    updateWarnings(warnings);
-    await saveState("env_canada_warnings", warnings);
-    console.log(`[Env Canada] ✅ ${warnings.length} active warnings/watches`);
-  } catch (error) {
-    setWarningError(error);
-    console.error(`[Env Canada] ❌ ${error.message}`);
-  }
-}
-
-async function collectAvalanche() {
-  try {
-    const forecasts = await fetchAvalancheForecast();
-    updateAvalanche(forecasts);
-    await saveState("avalanche_forecasts", forecasts);
-    console.log(`[Avalanche] ✅ ${forecasts.length} forecast regions`);
-  } catch (error) {
-    setAvalancheError(error);
-    console.error(`[Avalanche] ❌ ${error.message}`);
   }
 }
 
