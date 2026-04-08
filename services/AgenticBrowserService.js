@@ -33,6 +33,13 @@ let cleanupInterval = null;
 async function getBrowser() {
   if (browser && browser.isConnected()) return browser;
 
+  // Browser died or never existed — purge all stale sessions that belonged
+  // to the old instance before launching a fresh one
+  if (sessions.size > 0) {
+    logger.warn(`[AgenticBrowser] Browser disconnected, purging ${sessions.size} stale sessions`);
+    sessions.clear();
+  }
+
   browser = await chromium.launch({
     headless: false,
     args: [
@@ -58,8 +65,21 @@ async function getBrowser() {
 async function getSession(sessionId) {
   if (sessions.has(sessionId)) {
     const session = sessions.get(sessionId);
-    session.lastUsed = Date.now();
-    return session;
+
+    // Validate the cached session is still alive — the page or browser context
+    // may have been closed externally (manual window close, browser crash, etc.)
+    const pageAlive = session.page && !session.page.isClosed();
+    const browserAlive = browser && browser.isConnected();
+
+    if (pageAlive && browserAlive) {
+      session.lastUsed = Date.now();
+      return session;
+    }
+
+    // Stale session — evict silently and fall through to create a new one
+    logger.warn(`[AgenticBrowser] Session "${sessionId}" stale (page=${pageAlive}, browser=${browserAlive}), recreating`);
+    try { await session.context.close(); } catch { /* already dead */ }
+    sessions.delete(sessionId);
   }
 
   if (sessions.size >= MAX_SESSIONS) {
@@ -89,6 +109,7 @@ async function getSession(sessionId) {
   logger.info(`[AgenticBrowser] Session "${sessionId}" created (${sessions.size}/${MAX_SESSIONS})`);
   return session;
 }
+
 
 /**
  * Close and clean up a session.
