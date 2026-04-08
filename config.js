@@ -50,6 +50,10 @@ import {
 
   // Energy
   EIA_API_KEY,
+
+  // Communication (Twilio)
+  TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN,
 } from "./secrets.js";
 
 const CONFIG = {
@@ -112,6 +116,10 @@ const CONFIG = {
 
   // ─── Energy ──────────────────────────────────────────────────────
   EIA_API_KEY,
+
+  // ─── Communication (Twilio) ─────────────────────────────────────
+  TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN,
 };
 
 /**

@@ -97,3 +97,11 @@ export const AIS_STREAM_API_KEY = "";
 //    Free — undocumented rate limit; key auto-suspended if exceeded.
 
 export const EIA_API_KEY = "";
+
+// ─── Communication Domain (Twilio) ────────────────────────────────
+//    Twilio — Programmable SMS, Voice, Lookup.
+//    Register at https://www.twilio.com/console
+//    Free trial includes a phone number + $15 credit.
+
+export const TWILIO_ACCOUNT_SID = "";
+export const TWILIO_AUTH_TOKEN = "";

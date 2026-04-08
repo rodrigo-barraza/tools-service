@@ -5909,6 +5909,102 @@ const TOOL_DEFINITIONS = [
       required: ["action"],
     },
   },
+
+  // ── Communication (Twilio) ────────────────────────────────
+  {
+    name: "send_sms",
+    dataSource: onDemand("Twilio"),
+    description:
+      "Send an SMS text message to a phone number. The recipient must be in E.164 international format (e.g. +14155551234). " +
+      "Returns the message SID, delivery status, and metadata. Message body is limited to 1,600 characters.",
+    endpoint: { path: "/communication/sms/send", method: "POST" },
+    parameters: {
+      type: "object",
+      properties: {
+        to: {
+          type: "string",
+          description: "Destination phone number in E.164 format (e.g. +14155551234)",
+        },
+        body: {
+          type: "string",
+          description: "The SMS message body text (max 1,600 characters)",
+        },
+        from: {
+          type: "string",
+          description: "Optional sender phone number in E.164 format. If omitted, uses the first available Twilio number on the account.",
+        },
+      },
+      required: ["to", "body"],
+    },
+  },
+  {
+    name: "list_sms_messages",
+    dataSource: onDemand("Twilio"),
+    description:
+      "List recent SMS messages sent and received on the Twilio account. " +
+      "Can filter by sender or recipient phone number. Returns message SIDs, bodies, statuses, and timestamps.",
+    endpoint: { path: "/communication/sms/messages", queryParams: ["to", "from", "limit"] },
+    parameters: {
+      type: "object",
+      properties: {
+        to: {
+          type: "string",
+          description: "Filter by destination phone number (E.164 format)",
+        },
+        from: {
+          type: "string",
+          description: "Filter by sender phone number (E.164 format)",
+        },
+        limit: {
+          type: "integer",
+          description: "Maximum number of messages to return (default: 20, max: 100)",
+        },
+      },
+    },
+  },
+  {
+    name: "get_twilio_account",
+    dataSource: onDemand("Twilio"),
+    description:
+      "Get Twilio account information including account SID, friendly name, status, " +
+      "account type, balance, and currency. Useful for checking remaining credits.",
+    endpoint: { path: "/communication/account" },
+    parameters: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    name: "lookup_phone_number",
+    dataSource: onDemand("Twilio Lookup v2"),
+    description:
+      "Look up detailed information about a phone number using Twilio Lookup API v2. " +
+      "Returns the phone number's country code, national format, validity, carrier info, " +
+      "and line type intelligence (mobile, landline, VoIP, etc.).",
+    endpoint: { path: "/communication/lookup/:phone", pathParams: ["phone"] },
+    parameters: {
+      type: "object",
+      properties: {
+        phone: {
+          type: "string",
+          description: "Phone number to look up in E.164 format (e.g. +14155551234)",
+        },
+      },
+      required: ["phone"],
+    },
+  },
+  {
+    name: "list_twilio_numbers",
+    dataSource: onDemand("Twilio"),
+    description:
+      "List all phone numbers owned by the Twilio account. Returns phone number SIDs, " +
+      "formatted numbers, friendly names, and capabilities (SMS, MMS, voice, fax).",
+    endpoint: { path: "/communication/numbers" },
+    parameters: {
+      type: "object",
+      properties: {},
+    },
+  },
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -6130,6 +6226,13 @@ const TOOL_DOMAINS = {
 
   // Agentic — Browser Automation
   browser_action: "Agentic: Browser",
+
+  // Communication (Twilio)
+  send_sms: "Communication",
+  list_sms_messages: "Communication",
+  get_twilio_account: "Communication",
+  lookup_phone_number: "Communication",
+  list_twilio_numbers: "Communication",
 };
 
 // ────────────────────────────────────────────────────────────
@@ -6206,6 +6309,13 @@ const TOOL_REQUIRED_KEYS = {
 
   // Web Search (Brave primary — whole-web; Google CSE fallback — site-restricted)
   web_search: ["BRAVE_SEARCH_API_KEY"],
+
+  // Communication (Twilio — all require account SID + auth token)
+  send_sms: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"],
+  list_sms_messages: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"],
+  get_twilio_account: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"],
+  lookup_phone_number: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"],
+  list_twilio_numbers: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"],
 };
 
 /**
