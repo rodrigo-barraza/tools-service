@@ -17,6 +17,7 @@ import { setupSolarFlareCollection } from "./models/SolarFlare.js";
 import { setupCmeCollection } from "./models/Cme.js";
 import { setupGeomagneticStormCollection } from "./models/GeomagneticStorm.js";
 import { setupWebcamCollection } from "./models/Webcam.js";
+import { setupClockCrewCollections } from "./models/ClockCrewPost.js";
 
 // ─── Routes ────────────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ import maritimeRoutes, { getMaritimeHealth } from "./routes/MaritimeRoutes.js";
 import energyRoutes, { getEnergyHealth } from "./routes/EnergyRoutes.js";
 import agenticRoutes, { getAgenticHealth } from "./routes/AgenticRoutes.js";
 import communicationRoutes, { getCommunicationHealth } from "./routes/CommunicationRoutes.js";
+import clockcrewRoutes, { getClockCrewHealth } from "./routes/ClockCrewRoutes.js";
 import adminRoutes from "./routes/AdminRoutes.js";
 import { mountMcpRoutes } from "./services/McpAdapter.js";
 
@@ -81,6 +83,7 @@ app.use("/maritime", maritimeRoutes);
 app.use("/energy", energyRoutes);
 app.use("/agentic", agenticRoutes);
 app.use("/communication", communicationRoutes);
+app.use("/clockcrew", clockcrewRoutes);
 app.use("/admin", adminRoutes);
 mountMcpRoutes(app);
 
@@ -106,6 +109,7 @@ app.get("/health", (_req, res) => {
       energy: getEnergyHealth(),
       agentic: getAgenticHealth(),
       communication: getCommunicationHealth(),
+      clockcrew: getClockCrewHealth(),
     },
   });
 });
@@ -137,6 +141,7 @@ async function start() {
       setupCmeCollection(),
       setupGeomagneticStormCollection(),
       setupWebcamCollection(),
+      setupClockCrewCollections(),
     ]);
   } catch (error) {
     console.error(`Failed to connect to MongoDB: ${error.message}`);
@@ -159,10 +164,10 @@ async function start() {
     console.log(`🔧 Tools API running on port ${port}`);
     console.log(`   Database: ${CONFIG.MONGODB_URI}`);
     console.log(
-      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy, agentic, communication",
+      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy, agentic, communication, clockcrew",
     );
     console.log(
-      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*, /agentic/*, /communication/*",
+      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*, /agentic/*, /communication/*, /clockcrew/*",
     );
   });
 }
