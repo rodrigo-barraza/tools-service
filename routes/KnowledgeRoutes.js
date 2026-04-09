@@ -54,6 +54,7 @@ import {
   getDiscoveryStats,
   getHabitableZonePlanets,
 } from "../fetchers/knowledge/ExoplanetFetcher.js";
+import { getYouTubeVideoInfo } from "../fetchers/knowledge/YouTubeFetcher.js";
 import { parseIntParam, asyncHandler } from "../utilities.js";
 
 const router = Router();
@@ -420,6 +421,24 @@ router.get("/exoplanets/habitable", asyncHandler(
   500,
 ));
 
+// ─── YouTube ───────────────────────────────────────────────────────
+
+router.get("/youtube/video", async (req, res) => {
+  const { url, lang, transcript, timestamps } = req.query;
+  if (!url) {
+    return res.status(400).json({ error: "Query parameter 'url' is required (YouTube URL or video ID)" });
+  }
+  const result = await getYouTubeVideoInfo(url, {
+    lang,
+    includeTranscript: transcript !== "false",
+    includeTimestamps: timestamps !== "false",
+  });
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
 // ─── Health ────────────────────────────────────────────────────────
 
 export function getKnowledgeHealth() {
@@ -435,6 +454,7 @@ export function getKnowledgeHealth() {
     periodicTable: "on-demand (in-memory, 119 elements)",
     worldBankIndicators: "on-demand (in-memory, 217 countries)",
     nasaExoplanets: "on-demand (in-memory, ~6,153 planets)",
+    youtube: "on-demand (oEmbed + youtube-transcript)",
   };
 }
 

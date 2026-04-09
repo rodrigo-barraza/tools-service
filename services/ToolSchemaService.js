@@ -666,6 +666,25 @@ const FIELDS = {
   // On This Day: from WikipediaSummaryFetcher.getOnThisDay()
   ON_THIS_DAY: ["date", "type", "count", "events"],
 
+  // YouTube Video: from YouTubeFetcher.getYouTubeVideoInfo()
+  YOUTUBE_VIDEO: [
+    "videoId",
+    "url",
+    "title",
+    "author",
+    "authorUrl",
+    "channelId",
+    "description",
+    "publishDate",
+    "duration",
+    "genre",
+    "viewCount",
+    "isFamilyFriendly",
+    "keywords",
+    "thumbnailUrl",
+    "transcript",
+  ],
+
   // Anime: from JikanFetcher
   ANIME: [
     "malId",
@@ -2291,6 +2310,45 @@ const TOOL_DEFINITIONS = [
         ...fieldsParam(FIELDS.PAPERS),
       },
       required: ["q"],
+    },
+  },
+  {
+    name: "get_youtube_video",
+    dataSource: onDemand("YouTube oEmbed + youtube-transcript"),
+    description:
+      "Get full metadata and transcript for a YouTube video. Returns title, author, description, publish date, duration, view count, keywords, and the full timestamped transcript/captions. Accepts any YouTube URL format (youtube.com/watch, youtu.be, shorts, live) or a raw 11-character video ID. Useful for summarizing video content, extracting quotes, or analyzing spoken content without watching.",
+    endpoint: {
+      path: "/knowledge/youtube/video",
+      queryParams: ["url", "lang", "transcript", "timestamps"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        url: {
+          type: "string",
+          description:
+            "YouTube video URL or 11-character video ID (e.g. 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'https://youtu.be/dQw4w9WgXcQ', or 'dQw4w9WgXcQ')",
+        },
+        lang: {
+          type: "string",
+          description:
+            "Preferred transcript language code (e.g. 'en', 'es', 'fr'). Defaults to 'en'.",
+        },
+        transcript: {
+          type: "string",
+          description:
+            "Set to 'false' to skip transcript fetching and only return metadata. Defaults to true.",
+          enum: ["true", "false"],
+        },
+        timestamps: {
+          type: "string",
+          description:
+            "Set to 'false' to get plain text without timestamps. Defaults to true (timestamped format).",
+          enum: ["true", "false"],
+        },
+        ...fieldsParam(FIELDS.YOUTUBE_VIDEO),
+      },
+      required: ["url"],
     },
   },
   {
@@ -6097,6 +6155,7 @@ const TOOL_DOMAINS = {
   rank_exoplanets: "Knowledge",
   exoplanet_discovery_stats: "Knowledge",
   habitable_zone_exoplanets: "Knowledge",
+  get_youtube_video: "Knowledge",
 
   // Movies & TV
   search_movies: "Movies & TV",
