@@ -685,6 +685,158 @@ const FIELDS = {
     "transcript",
   ],
 
+  // GitHub Repo: from GitHubFetcher.getGitHubRepo()
+  GITHUB_REPO: [
+    "fullName",
+    "description",
+    "url",
+    "homepage",
+    "stars",
+    "forks",
+    "openIssues",
+    "watchers",
+    "language",
+    "languages",
+    "license",
+    "topics",
+    "defaultBranch",
+    "isArchived",
+    "isFork",
+    "createdAt",
+    "updatedAt",
+    "pushedAt",
+    "sizeKb",
+    "readme",
+  ],
+
+  // Reddit Thread: from RedditFetcher.getRedditThread()
+  REDDIT_THREAD: [
+    "title",
+    "author",
+    "subreddit",
+    "score",
+    "upvoteRatio",
+    "url",
+    "externalUrl",
+    "selfText",
+    "commentCount",
+    "createdUtc",
+    "flair",
+    "isNsfw",
+    "domain",
+    "comments",
+  ],
+
+  // NPM Package: from NpmFetcher.getNpmPackage()
+  NPM_PACKAGE: [
+    "name",
+    "version",
+    "description",
+    "license",
+    "homepage",
+    "repository",
+    "keywords",
+    "author",
+    "dependencies",
+    "devDependencies",
+    "peerDependencies",
+    "engines",
+    "types",
+    "weeklyDownloads",
+    "distTags",
+    "createdAt",
+    "lastPublished",
+    "deprecated",
+    "readme",
+  ],
+
+  // PyPI Package: from PyPiFetcher.getPyPiPackage()
+  PYPI_PACKAGE: [
+    "name",
+    "version",
+    "summary",
+    "description",
+    "author",
+    "maintainer",
+    "license",
+    "homepage",
+    "projectUrls",
+    "keywords",
+    "requiresPython",
+    "requiresDist",
+    "classifiers",
+  ],
+
+  // PDF: from PdfFetcher.readPdfUrl()
+  PDF: [
+    "url",
+    "pageCount",
+    "info",
+    "text",
+    "charCount",
+    "truncated",
+  ],
+
+  // RSS Feed: from RssFetcher.readRssFeed()
+  RSS_FEED: [
+    "format",
+    "feedUrl",
+    "title",
+    "description",
+    "link",
+    "language",
+    "itemCount",
+    "items",
+  ],
+
+  // Twitter/X Post: from TwitterFetcher.getTwitterPost()
+  TWITTER_POST: [
+    "tweetId",
+    "url",
+    "author",
+    "authorHandle",
+    "text",
+    "createdAt",
+    "likes",
+    "retweets",
+    "replies",
+    "views",
+    "media",
+    "quotedTweet",
+  ],
+
+  // Hacker News Thread: from HackerNewsFetcher.getHackerNewsThread()
+  HACKERNEWS_THREAD: [
+    "id",
+    "type",
+    "title",
+    "url",
+    "hnUrl",
+    "author",
+    "score",
+    "commentCount",
+    "time",
+    "text",
+    "comments",
+  ],
+
+  // Stack Overflow Question: from StackOverflowFetcher.getStackOverflowQuestion()
+  STACKOVERFLOW_QUESTION: [
+    "questionId",
+    "title",
+    "url",
+    "author",
+    "body",
+    "tags",
+    "score",
+    "viewCount",
+    "answerCount",
+    "isAnswered",
+    "acceptedAnswerId",
+    "createdAt",
+    "answers",
+  ],
+
   // Anime: from JikanFetcher
   ANIME: [
     "malId",
@@ -2349,6 +2501,79 @@ const TOOL_DEFINITIONS = [
         ...fieldsParam(FIELDS.YOUTUBE_VIDEO),
       },
       required: ["url"],
+    },
+  },
+
+  // ── Unified Web Extraction Tools ─────────────────────────────
+  {
+    name: "get_web_content",
+    dataSource: onDemand("Auto-detected platform API"),
+    description:
+      "Extract structured content from a URL on any supported platform. Auto-detects: GitHub (repo metadata + README + languages), Reddit (post + comments), Twitter/X (tweet + metrics + media), Hacker News (post + comments), Stack Overflow (question + answers with code blocks). Pass the URL and optional platform-specific parameters.",
+    endpoint: {
+      path: "/knowledge/web/content",
+      queryParams: ["url", "commentLimit", "answerLimit", "readme", "languages"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        url: {
+          type: "string",
+          description:
+            "URL from GitHub, Reddit, Twitter/X, Hacker News, or Stack Overflow. Also accepts GitHub 'owner/repo' shorthand or Stack Overflow question IDs.",
+        },
+        commentLimit: {
+          type: "number",
+          description:
+            "Max comments to fetch (Reddit default: 20, HN default: 25)",
+        },
+        answerLimit: {
+          type: "number",
+          description:
+            "Max answers to fetch for Stack Overflow (default: 5, max: 10)",
+        },
+        readme: {
+          type: "string",
+          description: "Include repository README for GitHub (default: true)",
+          enum: ["true", "false"],
+        },
+        languages: {
+          type: "string",
+          description: "Include language breakdown for GitHub (default: true)",
+          enum: ["true", "false"],
+        },
+      },
+      required: ["url"],
+    },
+  },
+  {
+    name: "get_package_info",
+    dataSource: onDemand("NPM Registry / PyPI JSON API"),
+    description:
+      "Look up a package on NPM or PyPI. Returns version, description, dependencies, license, README, weekly downloads (NPM), Python version requirements (PyPI), and more. Specify the registry to search.",
+    endpoint: {
+      path: "/knowledge/package/info",
+      queryParams: ["name", "registry", "readme"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "Package name (e.g. 'express', '@types/node', 'requests', 'numpy')",
+        },
+        registry: {
+          type: "string",
+          description: "Which package registry to search",
+          enum: ["npm", "pypi"],
+        },
+        readme: {
+          type: "string",
+          description: "Include README content (NPM only, default: true)",
+          enum: ["true", "false"],
+        },
+      },
+      required: ["name", "registry"],
     },
   },
   {
@@ -6156,6 +6381,10 @@ const TOOL_DOMAINS = {
   exoplanet_discovery_stats: "Knowledge",
   habitable_zone_exoplanets: "Knowledge",
   get_youtube_video: "Knowledge",
+  get_web_content: "Knowledge",
+  get_package_info: "Knowledge",
+  read_pdf_url: "Knowledge",
+  read_rss_feed: "Knowledge",
 
   // Movies & TV
   search_movies: "Movies & TV",
@@ -6388,6 +6617,260 @@ function isToolAvailable(toolName) {
 }
 
 // ────────────────────────────────────────────────────────────
+// Tool Labels — multi-value categorization for filtering
+// ────────────────────────────────────────────────────────────
+// Labels are orthogonal to domains. A tool can have multiple
+// labels (e.g. ["coding", "web"]). Consumers can filter tools
+// by label to surface relevant capabilities per context.
+// ────────────────────────────────────────────────────────────
+
+const TOOL_LABELS = {
+  // ── Weather & Environment ───────────────────────────────
+  get_weather: ["location"],
+  get_weather_forecast: ["location"],
+  get_weather_history: ["location"],
+  get_weather_marine: ["location"],
+  get_weather_astronomy: ["location"],
+  get_weather_alerts: ["location"],
+  get_weather_warnings: ["location"],
+  get_avalanche_forecast: ["location"],
+  get_google_air_quality: ["location", "health"],
+  get_pollen: ["location", "health"],
+  get_current_weather: ["location"],
+  get_air_quality: ["location", "health"],
+  get_earthquakes: ["location"],
+  get_solar_activity: ["reference"],
+  get_aurora_forecast: ["location"],
+  get_twilight: ["location"],
+  get_tides: ["location"],
+  get_wildfires: ["location"],
+  get_iss_position: ["reference"],
+  get_near_earth_objects: ["reference"],
+  get_solar_wind: ["reference"],
+  get_apod: ["reference"],
+  get_launches: ["reference"],
+
+  // ── Sports ───────────────────────────────────────────────
+  get_live_scores: ["sports"],
+  get_upcoming_matches: ["sports"],
+  get_recent_results: ["sports"],
+  get_league_standings: ["sports"],
+  get_match_details: ["sports"],
+  get_head_to_head: ["sports"],
+  search_teams: ["sports"],
+  search_players: ["sports"],
+  get_team_squad: ["sports"],
+  get_league_top_scorers: ["sports"],
+
+  // ── Events ───────────────────────────────────────────────
+  search_events: ["location"],
+  get_upcoming_events: ["location"],
+  get_events_today: ["location"],
+  get_event_summary: ["location"],
+
+  // ── Markets & Commodities ────────────────────────────────
+  get_commodities_summary: ["finance"],
+  get_commodity_by_category: ["finance"],
+  get_commodity_ticker: ["finance"],
+  get_commodity_categories: ["finance"],
+  get_commodity_history: ["finance"],
+
+  // ── Trends ───────────────────────────────────────────────
+  get_trends: ["web"],
+  get_hot_trends: ["web"],
+  get_top_trends: ["web"],
+
+  // ── Products ─────────────────────────────────────────────
+  search_products: ["shopping"],
+  get_trending_products: ["shopping"],
+  get_product_availability: ["shopping"],
+  check_product_availability: ["shopping"],
+  get_costco_us_products: ["shopping"],
+  get_costco_ca_products: ["shopping"],
+
+  // ── Finance ──────────────────────────────────────────────
+  get_stock_quote: ["finance"],
+  get_company_profile: ["finance"],
+  get_market_news: ["finance"],
+  get_earnings_calendar: ["finance"],
+  get_stock_recommendation: ["finance"],
+  get_stock_financials: ["finance"],
+  get_macro_indicators: ["finance"],
+  search_macro_series: ["finance"],
+  get_macro_series_info: ["finance"],
+  get_macro_observations: ["finance"],
+
+  // ── Knowledge ────────────────────────────────────────────
+  define_word: ["reference"],
+  search_books: ["reference"],
+  get_book_details: ["reference"],
+  get_author_info: ["reference"],
+  get_country_info: ["reference"],
+  get_country_by_code: ["reference"],
+  search_papers: ["reference", "coding"],
+  get_youtube_video: ["web"],
+  get_web_content: ["web", "coding"],
+  get_package_info: ["coding"],
+  read_pdf_url: ["web"],
+  read_rss_feed: ["web"],
+  get_wikipedia_summary: ["reference"],
+  get_on_this_day: ["reference"],
+  search_anime: ["media"],
+  get_top_anime: ["media"],
+  get_current_season_anime: ["media"],
+  get_anime_details: ["media"],
+  search_elements: ["reference"],
+  get_element: ["reference"],
+  rank_elements: ["reference"],
+  get_element_categories: ["reference"],
+  get_country_indicators: ["reference"],
+  rank_countries_by_indicator: ["reference"],
+  compare_countries: ["reference"],
+  list_development_indicators: ["reference"],
+  search_exoplanets: ["reference"],
+  get_exoplanet: ["reference"],
+  rank_exoplanets: ["reference"],
+  exoplanet_discovery_stats: ["reference"],
+  habitable_zone_exoplanets: ["reference"],
+
+  // ── Movies & TV ──────────────────────────────────────────
+  search_movies: ["media"],
+  get_movie_details: ["media"],
+  get_movie_credits: ["media"],
+  get_trending_movies: ["media"],
+  discover_movies: ["media"],
+  get_movie_genres: ["media"],
+  search_tv_shows: ["media"],
+  get_tv_show_details: ["media"],
+  get_tv_show_credits: ["media"],
+  get_tv_season_details: ["media"],
+  get_trending_tv_shows: ["media"],
+  discover_tv_shows: ["media"],
+  get_tv_genres: ["media"],
+
+  // ── Health ───────────────────────────────────────────────
+  search_drug_info: ["health"],
+  get_drug_adverse_events: ["health"],
+  get_drug_recalls: ["health"],
+  search_gym_exercises: ["health"],
+  get_gym_exercise_categories: ["health"],
+  get_gym_exercise_by_id: ["health"],
+  search_usda_nutrition: ["health"],
+  rank_foods_by_nutrient: ["health"],
+  compare_food_nutrition: ["health"],
+  get_food_categories: ["health"],
+  get_nutrient_types: ["health"],
+  list_category_nutrients: ["health"],
+  top_foods_by_macro: ["health"],
+  top_foods_by_mineral: ["health"],
+  top_foods_by_vitamin: ["health"],
+  top_foods_by_amino_acid: ["health"],
+  top_foods_by_lipid: ["health"],
+  top_foods_by_carb: ["health"],
+  top_foods_by_sterol: ["health"],
+  search_foods_by_taxonomy: ["health"],
+  browse_food_taxonomy: ["health"],
+  search_fda_drugs: ["health"],
+  get_drug_by_ndc: ["health"],
+  list_drug_dosage_forms: ["health"],
+  search_drugs_by_ingredient: ["health"],
+  search_drugs_by_pharm_class: ["health"],
+
+  // ── Transit ──────────────────────────────────────────────
+  get_next_bus: ["location"],
+  get_transit_stop_info: ["location"],
+  find_transit_stops_nearby: ["location"],
+  get_transit_route_info: ["location"],
+
+  // ── Utilities ────────────────────────────────────────────
+  execute_python: ["coding", "data"],
+  precise_calculator: ["data"],
+  convert_currency: ["finance", "data"],
+  get_time_in_timezone: ["data"],
+  lookup_ip: ["data"],
+  search_nearby_places: ["location"],
+  search_places: ["location"],
+  generate_map: ["location"],
+  generate_chart: ["data"],
+  search_airports: ["location"],
+  get_airport_by_code: ["location"],
+  get_airports_by_country: ["location"],
+  find_nearest_airports: ["location"],
+  get_public_webcams: ["location"],
+
+  // ── Compute ──────────────────────────────────────────────
+  execute_javascript: ["coding", "data"],
+  execute_shell: ["coding"],
+  convert_units: ["data"],
+  parse_datetime: ["data"],
+  transform_json: ["coding", "data"],
+  generate_csv: ["data"],
+  generate_qr_code: ["data"],
+  render_latex: ["data"],
+  generate_diagram: ["data"],
+  diff_text: ["coding", "data"],
+  generate_hash: ["coding", "data"],
+  regex_tester: ["coding"],
+  encode_decode: ["coding", "data"],
+  convert_color: ["data"],
+
+  // ── Maritime ─────────────────────────────────────────────
+  get_tracked_vessels: ["maritime"],
+  get_vessel_by_mmsi: ["maritime"],
+  search_vessels: ["maritime"],
+  get_vessels_in_area: ["maritime"],
+  get_ais_messages: ["maritime"],
+
+  // ── Energy ───────────────────────────────────────────────
+  get_energy_indicators: ["energy"],
+  browse_energy_data: ["energy"],
+  get_energy_facets: ["energy"],
+  query_energy_data: ["energy"],
+  get_electricity_retail_sales: ["energy"],
+  get_petroleum_prices: ["energy"],
+  get_natural_gas_prices: ["energy"],
+
+  // ── Agentic: File Operations ─────────────────────────────
+  read_file: ["coding"],
+  write_file: ["coding"],
+  str_replace_file: ["coding"],
+  patch_file: ["coding"],
+  multi_file_read: ["coding"],
+  file_info: ["coding"],
+  file_diff: ["coding"],
+  move_file: ["coding"],
+  delete_file: ["coding"],
+
+  // ── Agentic: Search & Discovery ──────────────────────────
+  list_directory: ["coding"],
+  grep_search: ["coding"],
+  glob_files: ["coding"],
+  project_summary: ["coding"],
+
+  // ── Agentic: Web ─────────────────────────────────────────
+  fetch_url: ["web"],
+  web_search: ["web"],
+
+  // ── Agentic: Command Execution ───────────────────────────
+  run_command: ["coding"],
+
+  // ── Agentic: Git ─────────────────────────────────────────
+  git_status: ["coding"],
+  git_diff: ["coding"],
+  git_log: ["coding"],
+
+  // ── Agentic: Browser ─────────────────────────────────────
+  browser_action: ["web"],
+
+  // ── Communication ────────────────────────────────────────
+  send_sms: ["communication"],
+  list_sms_messages: ["communication"],
+  get_twilio_account: ["communication"],
+  lookup_phone_number: ["communication"],
+  list_twilio_numbers: ["communication"],
+};
+
+// ────────────────────────────────────────────────────────────
 // Public API
 // ────────────────────────────────────────────────────────────
 
@@ -6403,6 +6886,7 @@ export function getToolSchemas() {
     .map((t) => ({
       ...t,
       domain: TOOL_DOMAINS[t.name] || "Other",
+      labels: TOOL_LABELS[t.name] || [],
     }));
 }
 

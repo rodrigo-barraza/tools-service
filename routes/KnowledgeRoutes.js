@@ -55,6 +55,17 @@ import {
   getHabitableZonePlanets,
 } from "../fetchers/knowledge/ExoplanetFetcher.js";
 import { getYouTubeVideoInfo } from "../fetchers/knowledge/YouTubeFetcher.js";
+import { getGitHubRepo } from "../fetchers/web/GitHubFetcher.js";
+import { getRedditThread } from "../fetchers/web/RedditFetcher.js";
+import { getNpmPackage } from "../fetchers/web/NpmFetcher.js";
+import { getPyPiPackage } from "../fetchers/web/PyPiFetcher.js";
+import { readPdfUrl } from "../fetchers/web/PdfFetcher.js";
+import { readRssFeed } from "../fetchers/web/RssFetcher.js";
+import { getTwitterPost } from "../fetchers/web/TwitterFetcher.js";
+import { getHackerNewsThread } from "../fetchers/web/HackerNewsFetcher.js";
+import { getStackOverflowQuestion } from "../fetchers/web/StackOverflowFetcher.js";
+import { getWebContent } from "../fetchers/web/WebContentFetcher.js";
+import { getPackageInfo } from "../fetchers/web/PackageFetcher.js";
 import { parseIntParam, asyncHandler } from "../utilities.js";
 
 const router = Router();
@@ -439,6 +450,171 @@ router.get("/youtube/video", async (req, res) => {
   res.json(result);
 });
 
+// ─── GitHub ────────────────────────────────────────────────────────
+
+router.get("/github/repo", async (req, res) => {
+  const { url, readme, languages } = req.query;
+  if (!url) {
+    return res.status(400).json({ error: "Query parameter 'url' is required (GitHub URL or owner/repo)" });
+  }
+  const result = await getGitHubRepo(url, {
+    includeReadme: readme !== "false",
+    includeLanguages: languages !== "false",
+  });
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+// ─── Reddit ────────────────────────────────────────────────────────
+
+router.get("/reddit/thread", async (req, res) => {
+  const { url, commentLimit } = req.query;
+  if (!url) {
+    return res.status(400).json({ error: "Query parameter 'url' is required (Reddit URL)" });
+  }
+  const result = await getRedditThread(url, {
+    commentLimit: commentLimit ? parseIntParam(commentLimit, 20) : undefined,
+  });
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+// ─── NPM ───────────────────────────────────────────────────────────
+
+router.get("/npm/package", async (req, res) => {
+  const { name, readme } = req.query;
+  if (!name) {
+    return res.status(400).json({ error: "Query parameter 'name' is required (NPM package name)" });
+  }
+  const result = await getNpmPackage(name, {
+    includeReadme: readme !== "false",
+  });
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+// ─── PyPI ──────────────────────────────────────────────────────────
+
+router.get("/pypi/package", asyncHandler(
+  (req) => getPyPiPackage(req.query.name),
+  "PyPI lookup",
+));
+
+// ─── PDF ───────────────────────────────────────────────────────────
+
+router.get("/pdf/read", async (req, res) => {
+  const { url, maxPages } = req.query;
+  if (!url) {
+    return res.status(400).json({ error: "Query parameter 'url' is required (URL to a PDF file)" });
+  }
+  const result = await readPdfUrl(url, { maxPages });
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+// ─── RSS ───────────────────────────────────────────────────────────
+
+router.get("/rss/feed", async (req, res) => {
+  const { url, limit } = req.query;
+  if (!url) {
+    return res.status(400).json({ error: "Query parameter 'url' is required (RSS/Atom feed URL)" });
+  }
+  const result = await readRssFeed(url, {
+    limit: limit ? parseIntParam(limit, 20) : undefined,
+  });
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+// ─── Twitter/X ─────────────────────────────────────────────────────
+
+router.get("/twitter/post", async (req, res) => {
+  const { url } = req.query;
+  if (!url) {
+    return res.status(400).json({ error: "Query parameter 'url' is required (Twitter/X URL or tweet ID)" });
+  }
+  const result = await getTwitterPost(url);
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+// ─── Hacker News ───────────────────────────────────────────────────
+
+router.get("/hackernews/thread", async (req, res) => {
+  const { url, commentLimit } = req.query;
+  if (!url) {
+    return res.status(400).json({ error: "Query parameter 'url' is required (HN URL or item ID)" });
+  }
+  const result = await getHackerNewsThread(url, {
+    commentLimit: commentLimit ? parseIntParam(commentLimit, 25) : undefined,
+  });
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+// ─── Stack Overflow ────────────────────────────────────────────────
+
+router.get("/stackoverflow/question", async (req, res) => {
+  const { url, answerLimit } = req.query;
+  if (!url) {
+    return res.status(400).json({ error: "Query parameter 'url' is required (Stack Overflow URL or question ID)" });
+  }
+  const result = await getStackOverflowQuestion(url, {
+    answerLimit: answerLimit ? parseIntParam(answerLimit, 5) : undefined,
+  });
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+// ─── Unified: Web Content (YouTube/Reddit/Twitter/HN/SO/GitHub) ───
+
+router.get("/web/content", async (req, res) => {
+  const { url, commentLimit, answerLimit, transcript, lang, readme, languages } = req.query;
+  if (!url) {
+    return res.status(400).json({ error: "Query parameter 'url' is required" });
+  }
+  const result = await getWebContent(url, {
+    commentLimit, answerLimit, transcript, lang, readme, languages,
+  });
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+// ─── Unified: Package Info (NPM/PyPI) ─────────────────────────────
+
+router.get("/package/info", async (req, res) => {
+  const { name, registry, readme } = req.query;
+  if (!name) {
+    return res.status(400).json({ error: "Query parameter 'name' is required" });
+  }
+  if (!registry) {
+    return res.status(400).json({ error: "Query parameter 'registry' is required ('npm' or 'pypi')" });
+  }
+  const result = await getPackageInfo(name, registry, { readme });
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
 // ─── Health ────────────────────────────────────────────────────────
 
 export function getKnowledgeHealth() {
@@ -455,6 +631,17 @@ export function getKnowledgeHealth() {
     worldBankIndicators: "on-demand (in-memory, 217 countries)",
     nasaExoplanets: "on-demand (in-memory, ~6,153 planets)",
     youtube: "on-demand (oEmbed + youtube-transcript)",
+    github: "on-demand (GitHub REST API v3)",
+    reddit: "on-demand (.json API)",
+    npm: "on-demand (NPM Registry)",
+    pypi: "on-demand (PyPI JSON API)",
+    pdf: "on-demand (pdf-parse)",
+    rss: "on-demand (xml2js)",
+    twitter: "on-demand (fxtwitter + oembed)",
+    hackerNews: "on-demand (Firebase API)",
+    stackOverflow: "on-demand (Stack Exchange API v2.3)",
+    webContent: "unified (YouTube/Reddit/Twitter/HN/SO/GitHub)",
+    packageInfo: "unified (NPM/PyPI)",
   };
 }
 
