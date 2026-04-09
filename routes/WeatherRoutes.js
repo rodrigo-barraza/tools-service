@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { fetchLiveWeather } from "../fetchers/weather/LiveWeatherFetcher.js";
 import {
   getRecentEarthquakes,
   getEarthquakeById,
@@ -199,6 +200,39 @@ router.get("/warnings/count", (_req, res) => res.json(getWarningCount()));
 // ─── Avalanche ─────────────────────────────────────────────────────
 
 router.get("/avalanche", (_req, res) => res.json(getAvalanche()));
+
+// ── Live Weather (on-demand, any location) ────────────────────────
+
+router.get("/live", async (req, res) => {
+  const { location, latitude, longitude, units } = req.query;
+  if (!location && (latitude == null || longitude == null)) {
+    return res.status(400).json({
+      error: "Query parameter 'location' (city name) or 'latitude' + 'longitude' are required",
+      examples: [
+        "/weather/live?location=Tokyo",
+        "/weather/live?location=Paris,FR",
+        "/weather/live?latitude=48.8566&longitude=2.3522",
+        "/weather/live?location=New+York&units=imperial",
+      ],
+    });
+  }
+
+  try {
+    const result = await fetchLiveWeather({
+      location,
+      latitude: latitude != null ? parseFloat(latitude) : undefined,
+      longitude: longitude != null ? parseFloat(longitude) : undefined,
+      units: units || "metric",
+    });
+
+    if (result.error) {
+      return res.status(404).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: `Weather fetch failed: ${err.message}` });
+  }
+});
 
 // ── Unified Environment Dispatcher ─────────────────────────────────
 

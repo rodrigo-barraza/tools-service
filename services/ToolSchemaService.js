@@ -1482,10 +1482,42 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
-    name: "get_environment_data",
+    name: "get_weather",
+    dataSource: onDemand("Open-Meteo Geocoding + Forecast"),
+    description:
+      "Get live current weather and 3-day forecast for any location worldwide. Accepts a city name (geocoded automatically) or direct latitude/longitude coordinates. Returns temperature, humidity, wind, precipitation, UV index, pressure, cloud cover, sunrise/sunset, and daily forecasts. Supports metric and imperial units.",
+    endpoint: {
+      path: "/weather/live",
+      queryParams: ["location", "latitude", "longitude", "units"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        location: {
+          type: "string",
+          description: "City name, optionally with country code (e.g. 'Tokyo', 'Paris, FR', 'New York')",
+        },
+        latitude: {
+          type: "number",
+          description: "Latitude (use instead of location for precise coordinates)",
+        },
+        longitude: {
+          type: "number",
+          description: "Longitude (use instead of location for precise coordinates)",
+        },
+        units: {
+          type: "string",
+          description: "Unit system: metric (°C, km/h, mm) or imperial (°F, mph, inch). Default: metric",
+          enum: ["metric", "imperial"],
+        },
+      },
+    },
+  },
+  {
+    name: "get_local_environment",
     dataSource: onDemand("Multiple APIs"),
     description:
-      "Get environmental, weather, or space data. Select a source: current_weather (temp/wind/humidity), air_quality (AQI/pollutants), earthquakes (seismic), solar_activity (flares/storms), aurora (Kp index), twilight (sunrise/sunset), tides, wildfires, iss (ISS position), neo (near-Earth objects), solar_wind, pollen, apod (NASA pic of the day), launches (rockets), warnings (NWS alerts), air_quality_google.",
+      "Get cached environmental, weather, or space data for the server's local area. This returns pre-fetched data for the server's IP-based location — for weather at a specific place, use get_weather instead. Select a source: current_weather (temp/wind/humidity), air_quality (AQI/pollutants), earthquakes (seismic), solar_activity (flares/storms), aurora (Kp index), twilight (sunrise/sunset), tides, wildfires, iss (ISS position), neo (near-Earth objects), solar_wind, pollen, apod (NASA pic of the day), launches (rockets), warnings (NWS alerts), air_quality_google.",
     endpoint: {
       path: "/weather/environment",
       queryParams: ["source"],
@@ -4743,7 +4775,8 @@ const TOOL_DEFINITIONS = [
 
 const TOOL_DOMAINS = {
   // Weather & Environment
-  get_environment_data: "Weather & Environment",
+  get_weather: "Weather & Environment",
+  get_local_environment: "Weather & Environment",
   get_weather_forecast: "Weather & Environment",
   get_avalanche_forecast: "Weather & Environment",
 
@@ -5004,7 +5037,8 @@ function isToolAvailable(toolName) {
 // ────────────────────────────────────────────────────────────
 
 const TOOL_LABELS = {
-  get_environment_data: ["location"],
+  get_weather: ["location"],
+  get_local_environment: ["location"],
   rank_foods: ["health"],
   search_drugs: ["health"],
   search_media: ["media"],
@@ -5026,7 +5060,6 @@ const TOOL_LABELS = {
   get_stock_data: ["finance"],
   get_macro_data: ["finance"],
   // ── Weather & Environment ───────────────────────────────
-  get_weather: ["location"],
   get_weather_forecast: ["location"],
   get_weather_history: ["location"],
   get_weather_marine: ["location"],
