@@ -265,4 +265,33 @@ export function getHealthDomainHealth() {
   };
 }
 
+
+// ── Unified Drug Search Dispatcher ─────────────────────────────────
+
+router.get("/drugs/unified", async (req, res) => {
+  const { q, searchBy, limit, dosageForm, productType } = req.query;
+  if (!q) return res.status(400).json({ error: "'q' is required" });
+
+  const mode = searchBy || "name";
+  switch (mode) {
+    case "name":
+      req.url = `/drugs/search?q=${encodeURIComponent(q)}&limit=${limit || 10}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "ndc_search":
+      req.url = `/drugs/ndc/search?q=${encodeURIComponent(q)}&limit=${limit || 10}&dosageForm=${dosageForm || ""}&productType=${productType || ""}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "ndc_lookup":
+      req.url = `/drugs/ndc/lookup/${encodeURIComponent(q)}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "ingredient":
+      req.url = `/drugs/ndc/ingredient?q=${encodeURIComponent(q)}&limit=${limit || 10}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "pharm_class":
+      req.url = `/drugs/ndc/pharm-class?q=${encodeURIComponent(q)}&limit=${limit || 10}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    default:
+      return res.status(400).json({ error: `Unknown searchBy: ${mode}`, validModes: ["name", "ndc_search", "ndc_lookup", "ingredient", "pharm_class"] });
+  }
+});
+
 export default router;

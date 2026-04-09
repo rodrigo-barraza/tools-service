@@ -574,4 +574,19 @@ export function getAgenticHealth() {
   };
 }
 
+
+// ── Unified Git Dispatcher ─────────────────────────────────────────
+
+router.post("/git", async (req, res) => {
+  const { action, ...params } = req.body;
+  if (!action) return res.status(400).json({ error: "'action' is required", actions: ["status", "diff", "log"] });
+
+  const pathMap = { status: "/git/status", diff: "/git/diff", log: "/git/log" };
+  if (!pathMap[action]) return res.status(400).json({ error: `Unknown action: ${action}`, actions: Object.keys(pathMap) });
+
+  req.url = pathMap[action];
+  req.body = params;
+  return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+});
+
 export default router;

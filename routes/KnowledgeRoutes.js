@@ -645,4 +645,184 @@ export function getKnowledgeHealth() {
   };
 }
 
+
+// ═══════════════════════════════════════════════════════════════════
+// UNIFIED DISPATCHERS
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Unified Book Lookup ────────────────────────────────────────────
+
+router.get("/books/lookup", async (req, res) => {
+  const { action, q, workKey, authorKey, limit } = req.query;
+  if (!action) return res.status(400).json({ error: "'action' is required", actions: ["search", "work", "author"] });
+
+  switch (action) {
+    case "search":
+      req.url = `/books/search?q=${q || ""}&limit=${limit || 10}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "work":
+      req.url = `/books/work/${workKey || ""}`;
+      req.params.workKey = workKey;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "author":
+      req.url = `/books/author/${authorKey || ""}`;
+      req.params.authorKey = authorKey;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    default:
+      return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["search", "work", "author"] });
+  }
+});
+
+// ── Unified Country Data ───────────────────────────────────────────
+
+router.get("/countries/data", async (req, res) => {
+  const { action, name, code, indicator, countries, limit, order } = req.query;
+  if (!action) return res.status(400).json({ error: "'action' is required", actions: ["info", "code", "indicators", "rank", "compare"] });
+
+  switch (action) {
+    case "info":
+      req.url = `/countries/search/${encodeURIComponent(name || "")}`;
+      req.params.name = name;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "code":
+      req.url = `/countries/code/${code || ""}`;
+      req.params.code = code;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "indicators":
+      req.url = `/indicators/country/${code || ""}`;
+      req.params.code = code;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "rank":
+      req.url = `/indicators/rank?indicator=${indicator || ""}&limit=${limit || 10}&order=${order || "desc"}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "compare":
+      req.url = `/indicators/compare?countries=${countries || ""}&indicator=${indicator || ""}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    default:
+      return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["info", "code", "indicators", "rank", "compare"] });
+  }
+});
+
+// ── Unified Element Data ───────────────────────────────────────────
+
+router.get("/elements/data", async (req, res) => {
+  const { action, q, symbol, property, limit, order, category, block } = req.query;
+  if (!action) return res.status(400).json({ error: "'action' is required", actions: ["search", "lookup", "rank", "categories"] });
+
+  switch (action) {
+    case "search":
+      req.url = `/elements/search?q=${q || ""}&limit=${limit || 10}&category=${category || ""}&block=${block || ""}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "lookup":
+      req.url = `/elements/${symbol || ""}`;
+      req.params.symbol = symbol;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "rank":
+      req.url = `/elements/rank?property=${property || ""}&limit=${limit || 10}&order=${order || "desc"}&category=${category || ""}&block=${block || ""}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "categories":
+      req.url = "/elements/categories";
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    default:
+      return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["search", "lookup", "rank", "categories"] });
+  }
+});
+
+// ── Unified Exoplanet Data ─────────────────────────────────────────
+
+router.get("/exoplanets/data", async (req, res) => {
+  const { action, q, name, field, limit, order, method } = req.query;
+  if (!action) return res.status(400).json({ error: "'action' is required", actions: ["search", "lookup", "rank", "stats", "habitable"] });
+
+  switch (action) {
+    case "search":
+      req.url = `/exoplanets/search?q=${q || ""}&limit=${limit || 10}&method=${method || ""}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "lookup":
+      req.url = `/exoplanets/lookup/${encodeURIComponent(name || "")}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "rank":
+      req.url = `/exoplanets/rank?field=${field || ""}&limit=${limit || 10}&order=${order || "desc"}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "stats":
+      req.url = "/exoplanets/stats";
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "habitable":
+      req.url = `/exoplanets/habitable?limit=${limit || 10}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    default:
+      return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["search", "lookup", "rank", "stats", "habitable"] });
+  }
+});
+
+// ── Unified Anime Data ─────────────────────────────────────────────
+
+router.get("/anime/data", async (req, res) => {
+  const { action, q, id, limit } = req.query;
+  if (!action) return res.status(400).json({ error: "'action' is required", actions: ["search", "top", "season", "details"] });
+
+  switch (action) {
+    case "search":
+      req.url = `/anime/search?q=${q || ""}&limit=${limit || 10}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "top":
+      req.url = `/anime/top?limit=${limit || 10}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "season":
+      req.url = `/anime/season/now?limit=${limit || 10}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "details":
+      req.url = `/anime/${id || ""}`;
+      req.params.id = id;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    default:
+      return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["search", "top", "season", "details"] });
+  }
+});
+
+// ── Unified Media (Movies & TV) ────────────────────────────────────
+
+router.get("/media/search", async (req, res) => {
+  const { type, q, year, page } = req.query;
+  if (!type || !q) return res.status(400).json({ error: "'type' and 'q' are required" });
+  req.url = `/${type === "tv" ? "tv" : "movies"}/search?q=${q}&year=${year || ""}&page=${page || 1}${type === "tv" ? "&firstAirDateYear=" + (year || "") : ""}`;
+  return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+});
+
+router.get("/media/trending", async (req, res) => {
+  const { type, timeWindow, limit } = req.query;
+  if (!type) return res.status(400).json({ error: "'type' is required" });
+  req.url = `/${type === "tv" ? "tv" : "movies"}/trending?timeWindow=${timeWindow || "week"}&limit=${limit || 10}`;
+  return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+});
+
+router.get("/media/discover", async (req, res) => {
+  const { type, genreId, year, sortBy, page, minVoteAverage, minVoteCount } = req.query;
+  if (!type) return res.status(400).json({ error: "'type' is required" });
+  const yearParam = type === "tv" ? `firstAirDateYear=${year || ""}` : `year=${year || ""}`;
+  req.url = `/${type === "tv" ? "tv" : "movies"}/discover?${yearParam}&genreId=${genreId || ""}&sortBy=${sortBy || ""}&page=${page || 1}&minVoteAverage=${minVoteAverage || ""}&minVoteCount=${minVoteCount || ""}`;
+  return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+});
+
+router.get("/media/genres", async (req, res) => {
+  const { type } = req.query;
+  if (!type) return res.status(400).json({ error: "'type' is required" });
+  req.url = `/${type === "tv" ? "tv" : "movies"}/genres`;
+  return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+});
+
+router.get("/media/:id/credits", async (req, res) => {
+  const { type } = req.query;
+  if (!type) return res.status(400).json({ error: "'type' is required" });
+  req.url = `/${type === "tv" ? "tv" : "movies"}/${req.params.id}/credits`;
+  return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+});
+
+router.get("/media/:id", async (req, res) => {
+  const { type } = req.query;
+  if (!type) return res.status(400).json({ error: "'type' is required" });
+  req.url = `/${type === "tv" ? "tv" : "movies"}/${req.params.id}`;
+  return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+});
+
 export default router;

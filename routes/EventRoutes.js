@@ -63,6 +63,34 @@ router.get("/:source/:id", async (req, res) => {
   res.json(event);
 });
 
+// ── Unified Events Dispatcher ──────────────────────────────────────
+
+router.get("/events", async (req, res) => {
+  const { action, q, source, category, days, limit: rawLimit } = req.query;
+  if (!action) return res.status(400).json({ error: "'action' is required", actions: ["search", "upcoming", "today", "summary"] });
+  const limit = rawLimit ? parseInt(rawLimit, 10) : undefined;
+
+  switch (action) {
+    case "search": {
+      const events = await searchEvents({ q, category, source, limit: limit || 100 });
+      return res.json({ action, count: events.length, query: { q, category, source }, events });
+    }
+    case "upcoming": {
+      const d = days ? parseInt(days, 10) : 30;
+      const events = await getEventsUpcoming(d, limit || 200);
+      return res.json({ action, count: events.length, days: d, events });
+    }
+    case "today": {
+      const events = await getEventsToday(CONFIG.TIMEZONE);
+      return res.json({ action, count: events.length, timezone: CONFIG.TIMEZONE, events });
+    }
+    case "summary":
+      return res.json({ action, ...getEventSummary() });
+    default:
+      return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["search", "upcoming", "today", "summary"] });
+  }
+});
+
 // ─── Domain Health ─────────────────────────────────────────────────
 
 export function getEventHealth() {

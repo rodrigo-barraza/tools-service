@@ -27,34 +27,13 @@
 // ────────────────────────────────────────────────────────────
 
 import {
-  // Weather domain
+  // Weather domain — still used by get_weather_forecast, get_avalanche_forecast
   OPEN_METEO_INTERVAL_MS,
-  AIR_QUALITY_INTERVAL_MS,
-  EARTHQUAKE_INTERVAL_MS,
-  DONKI_INTERVAL_MS,
-  KP_INDEX_INTERVAL_MS,
-  TWILIGHT_INTERVAL_MS,
-  TIDE_INTERVAL_MS,
-  WILDFIRE_INTERVAL_MS,
-  ISS_POSITION_INTERVAL_MS,
-  NEO_INTERVAL_MS,
-  SOLAR_WIND_INTERVAL_MS,
-  GOOGLE_POLLEN_INTERVAL_MS,
-  APOD_INTERVAL_MS,
-  LAUNCH_INTERVAL_MS,
-  ENV_CANADA_INTERVAL_MS,
   AVALANCHE_INTERVAL_MS,
-  GOOGLE_AIR_QUALITY_INTERVAL_MS,
-  // Event domain
-  TICKETMASTER_INTERVAL_MS,
-  // Market domain
-  COMMODITIES_INTERVAL_MS,
   // Product domain
   BESTBUY_INTERVAL_MS,
   BESTBUY_CA_AVAILABILITY_INTERVAL_MS,
   COSTCO_INTERVAL_MS,
-  // Trend domain
-  GOOGLE_TRENDS_INTERVAL_MS,
   // Finance domain
   FINNHUB_NEWS_INTERVAL_MS,
   FINNHUB_EARNINGS_INTERVAL_MS,
@@ -1473,18 +1452,6 @@ function fieldsParam(fieldEnum) {
 const TOOL_DEFINITIONS = [
   // ── Weather / Environment ──────────────────────────────────
   {
-    name: "get_current_weather",
-    dataSource: cached("Open-Meteo", OPEN_METEO_INTERVAL_MS),
-    description:
-      "Get current weather conditions including temperature, humidity, wind, UV index, feels-like temperature, precipitation, and air quality indicators.",
-    endpoint: { path: "/weather/weather/current" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.WEATHER_CURRENT) },
-      required: ["fields"],
-    },
-  },
-  {
     name: "get_weather_forecast",
     dataSource: cached("Open-Meteo", OPEN_METEO_INTERVAL_MS),
     description:
@@ -1503,174 +1470,6 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
-    name: "get_air_quality",
-    dataSource: cached("Open-Meteo", AIR_QUALITY_INTERVAL_MS),
-    description:
-      "Get current air quality data including AQI (US and European), PM2.5, PM10, ozone, and pollutant concentrations.",
-    endpoint: { path: "/weather/weather/air" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.AIR_QUALITY) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_earthquakes",
-    dataSource: cached("USGS", EARTHQUAKE_INTERVAL_MS),
-    description:
-      "Get recent earthquake data. Each earthquake includes magnitude, location, depth, time, and alert level.",
-    endpoint: { path: "/weather/earthquakes" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.EARTHQUAKES) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_solar_activity",
-    dataSource: cached("NASA DONKI", DONKI_INTERVAL_MS),
-    description:
-      "Get current solar activity summary including solar flare count, CME count, geomagnetic storm count, strongest flare, fastest CME, and Earth-directed CME details.",
-    endpoint: { path: "/weather/space-weather/summary" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.SOLAR_ACTIVITY) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_aurora_forecast",
-    dataSource: cached("NOAA SWPC", KP_INDEX_INTERVAL_MS),
-    description:
-      "Get aurora/northern lights forecast including current Kp index, storm classification, and 24h peak.",
-    endpoint: { path: "/weather/kp/current" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.AURORA) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_twilight",
-    dataSource: cached("Sunrise-Sunset API", TWILIGHT_INTERVAL_MS),
-    description:
-      "Get sunrise, sunset, solar noon, day length, and civil/nautical/astronomical twilight times for today.",
-    endpoint: { path: "/weather/twilight" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.TWILIGHT) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_tides",
-    dataSource: cached("NOAA CO-OPS", TIDE_INTERVAL_MS),
-    description:
-      "Get tidal predictions including high and low tide times, heights, and type.",
-    endpoint: { path: "/weather/tides" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.TIDES) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_wildfires",
-    dataSource: cached("NASA EONET", WILDFIRE_INTERVAL_MS),
-    description:
-      "Get active wildfire data including fire title, location coordinates, magnitude, and status (open/closed).",
-    endpoint: { path: "/weather/wildfires" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.WILDFIRES) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_iss_position",
-    dataSource: cached("Open Notify", ISS_POSITION_INTERVAL_MS),
-    description:
-      "Get the current position (lat/lng) of the International Space Station and the list of astronauts currently aboard.",
-    endpoint: { path: "/weather/iss" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.ISS) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_near_earth_objects",
-    dataSource: cached("NASA NeoWs", NEO_INTERVAL_MS),
-    description:
-      "Get today's near-Earth objects (asteroids) summary including total count, hazardous count, closest approach, and largest object.",
-    endpoint: { path: "/weather/neo/summary" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.NEO) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_solar_wind",
-    dataSource: cached("NOAA SWPC", SOLAR_WIND_INTERVAL_MS),
-    description:
-      "Get latest solar wind conditions including plasma speed, density, temperature, and interplanetary magnetic field (Bz, Bt). Important for aurora and space weather assessment.",
-    endpoint: { path: "/weather/solar-wind/latest" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.SOLAR_WIND) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_pollen",
-    dataSource: cached("Google Pollen API", GOOGLE_POLLEN_INTERVAL_MS),
-    description:
-      "Get today's pollen forecast including grass, tree, and weed pollen index values, categories, and whether each type is in season.",
-    endpoint: { path: "/weather/pollen/today" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.POLLEN) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_apod",
-    dataSource: cached("NASA APOD", APOD_INTERVAL_MS),
-    description:
-      "Get NASA's Astronomy Picture of the Day including title, explanation, image URL, and copyright information.",
-    endpoint: { path: "/weather/apod" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.APOD) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_launches",
-    dataSource: cached("Launch Library 2", LAUNCH_INTERVAL_MS),
-    description:
-      "Get upcoming rocket launch summary including next launch details, provider, rocket, mission, pad location, and launch window.",
-    endpoint: { path: "/weather/launches/summary" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.LAUNCHES) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_weather_warnings",
-    dataSource: cached("Environment Canada", ENV_CANADA_INTERVAL_MS),
-    description:
-      "Get active Environment Canada weather warnings, watches, advisories, and special weather statements for Metro Vancouver.",
-    endpoint: { path: "/weather/warnings" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.WEATHER_WARNINGS) },
-      required: ["fields"],
-    },
-  },
-  {
     name: "get_avalanche_forecast",
     dataSource: cached("Avalanche Canada", AVALANCHE_INTERVAL_MS),
     description:
@@ -1683,276 +1482,112 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
-    name: "get_google_air_quality",
-    dataSource: cached("Google Air Quality API", GOOGLE_AIR_QUALITY_INTERVAL_MS),
+    name: "get_environment_data",
+    dataSource: onDemand("Multiple APIs"),
     description:
-      "Get detailed air quality from Google's Air Quality API including universal AQI, US EPA AQI, dominant pollutant, pollutant concentrations, and health recommendations.",
-    endpoint: { path: "/weather/airquality/google" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.GOOGLE_AIR_QUALITY) },
-      required: ["fields"],
-    },
-  },
-
-  // ── Events ─────────────────────────────────────────────────
-  {
-    name: "search_events",
-    dataSource: cached("Ticketmaster / SeatGeek / TMDB / Google Places", TICKETMASTER_INTERVAL_MS),
-    description:
-      "Search for local events including concerts, sports games, festivals, community gatherings, and movie releases. Can filter by source, category, and text search.",
+      "Get environmental, weather, or space data. Select a source: current_weather (temp/wind/humidity), air_quality (AQI/pollutants), earthquakes (seismic), solar_activity (flares/storms), aurora (Kp index), twilight (sunrise/sunset), tides, wildfires, iss (ISS position), neo (near-Earth objects), solar_wind, pollen, apod (NASA pic of the day), launches (rockets), warnings (NWS alerts), air_quality_google.",
     endpoint: {
-      path: "/event/search",
-      queryParams: ["q", "source", "category", "limit"],
+      path: "/weather/environment",
+      queryParams: ["source"],
     },
     parameters: {
       type: "object",
       properties: {
-        q: {
-          type: "string",
-          description: "Text search query for event names or descriptions",
-        },
         source: {
           type: "string",
-          description:
-            "Filter by event source (e.g. ticketmaster, seatgeek, craigslist, ubc, sfu, city_of_vancouver, nhl, whitecaps, bc_lions, tmdb, google_places)",
-        },
-        category: {
-          type: "string",
-          description:
-            "Filter by event category (music, sports, arts, comedy, family, film, food, tech, other)",
-        },
-        limit: {
-          type: "number",
-          description: "Maximum number of events to return (default: 20)",
-        },
-        ...fieldsParam(FIELDS.EVENTS),
-      },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_upcoming_events",
-    dataSource: cached("Ticketmaster / SeatGeek / TMDB / Google Places", TICKETMASTER_INTERVAL_MS),
-    description:
-      "Get upcoming events in chronological order. Good for 'what's happening this weekend' type questions.",
-    endpoint: {
-      path: "/event/upcoming",
-      queryParams: ["days", "limit"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        days: {
-          type: "number",
-          description: "Number of days ahead to look (default: 7)",
-        },
-        limit: {
-          type: "number",
-          description: "Maximum number of events to return (default: 20)",
-        },
-        ...fieldsParam(FIELDS.EVENTS),
-      },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_events_today",
-    dataSource: cached("Ticketmaster / SeatGeek / TMDB / Google Places", TICKETMASTER_INTERVAL_MS),
-    description:
-      "Get all events happening today. Returns events with venue, category, and timing information.",
-    endpoint: { path: "/event/today" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.EVENTS) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_event_summary",
-    dataSource: cached("internal", TICKETMASTER_INTERVAL_MS),
-    description:
-      "Get a statistical summary of all cached events: total count, today's count, upcoming count, breakdown by category and source.",
-    endpoint: { path: "/event/summary" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.EVENT_SUMMARY) },
-      required: ["fields"],
-    },
-  },
-
-  // ── Commodities / Markets ──────────────────────────────────
-  {
-    name: "get_commodities_summary",
-    dataSource: cached("Yahoo Finance", COMMODITIES_INTERVAL_MS),
-    description:
-      "Get a summary of all commodity/market prices including top gainers, top losers, and breakdown by category. Each item shows ticker, name, price, change, and percent change.",
-    endpoint: { path: "/market/commodities/summary" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.COMMODITIES_SUMMARY) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_commodity_by_category",
-    dataSource: cached("Yahoo Finance", COMMODITIES_INTERVAL_MS),
-    description:
-      "Get commodity prices filtered by category. Returns an array of commodities with ticker, name, price, change, and percent change.",
-    endpoint: {
-      path: "/market/commodities/category/:category",
-      pathParams: ["category"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        category: {
-          type: "string",
-          description:
-            "Commodity category: energy, precious_metals, industrial_metals, agriculture, softs, livestock, lumber, index_futures, indices, bonds, forex, crypto, volatility",
+          description: "Which environmental data source to query",
           enum: [
-            "energy",
-            "precious_metals",
-            "industrial_metals",
-            "agriculture",
-            "softs",
-            "livestock",
-            "lumber",
-            "index_futures",
-            "indices",
-            "bonds",
-            "forex",
-            "crypto",
-            "volatility",
+            "current_weather", "air_quality", "earthquakes", "solar_activity",
+            "aurora", "twilight", "tides", "wildfires", "iss", "neo",
+            "solar_wind", "pollen", "apod", "launches", "warnings", "air_quality_google",
           ],
         },
-        ...fieldsParam(FIELDS.COMMODITY),
+        fields: { type: "string", description: "Comma-separated fields to return (varies by source)" },
       },
-      required: ["category", "fields"],
-    },
-  },
-  {
-    name: "get_commodity_ticker",
-    dataSource: cached("Yahoo Finance", COMMODITIES_INTERVAL_MS),
-    description:
-      "Get detailed data for a specific commodity/market ticker symbol.",
-    endpoint: {
-      path: "/market/commodities/ticker/:ticker",
-      pathParams: ["ticker"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        ticker: {
-          type: "string",
-          description:
-            "Ticker symbol (e.g. CL=F for crude oil, GC=F for gold, SI=F for silver, BTC-USD for Bitcoin, ^GSPC for S&P 500)",
-        },
-        ...fieldsParam(FIELDS.COMMODITY),
-      },
-      required: ["ticker", "fields"],
-    },
-  },
-  {
-    name: "get_commodity_categories",
-    dataSource: cached("Yahoo Finance", COMMODITIES_INTERVAL_MS),
-    description:
-      "Get a list of all available commodity categories (energy, precious_metals, crypto, forex, etc.).",
-    endpoint: { path: "/market/commodities/categories" },
-    parameters: {
-      type: "object",
-      properties: {},
-    },
-  },
-  {
-    name: "get_commodity_history",
-    dataSource: cached("Yahoo Finance / MongoDB", COMMODITIES_INTERVAL_MS),
-    description:
-      "Get price history snapshots for a specific commodity ticker over a time window.",
-    endpoint: {
-      path: "/market/commodities/history/:ticker",
-      pathParams: ["ticker"],
-      queryParams: ["hours"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        ticker: {
-          type: "string",
-          description:
-            "Ticker symbol (e.g. GC=F for gold, BTC-USD for Bitcoin)",
-        },
-        hours: {
-          type: "number",
-          description: "Time window in hours (default: 24)",
-        },
-        ...fieldsParam(FIELDS.COMMODITY_HISTORY),
-      },
-      required: ["ticker", "fields"],
+      required: ["source"],
     },
   },
 
-  // ── Trends ─────────────────────────────────────────────────
+  // ── Events (4 → 1) ────────────────────────────────────────
+  {
+    name: "get_events",
+    dataSource: onDemand("Beacon event aggregation"),
+    description:
+      "Get community events. Actions: 'search' (full-text with optional source/category), 'upcoming' (next N days), 'today' (today's events), 'summary' (aggregate stats).",
+    endpoint: {
+      path: "/event/events",
+      queryParams: ["action", "q", "source", "category", "days", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          description: "Event query mode",
+          enum: ["search", "upcoming", "today", "summary"],
+        },
+        q: { type: "string", description: "Search query (action=search)" },
+        source: { type: "string", description: "Event source filter (action=search)" },
+        category: { type: "string", description: "Category filter (action=search)" },
+        days: { type: "number", description: "Days ahead (action=upcoming, default: 7)" },
+        limit: { type: "number", description: "Max results (default: 20)" },
+        fields: { type: "string", description: "Comma-separated fields to return" },
+      },
+      required: ["action"],
+    },
+  },
+
+  // ── Commodities (5 → 1) ───────────────────────────────────
+  {
+    name: "get_commodities",
+    dataSource: onDemand("YAML-sourced commodities"),
+    description:
+      "Get commodity market data. Actions: 'summary' (all overview), 'category' (by category), 'ticker' (specific ticker), 'categories' (list categories), 'history' (price history).",
+    endpoint: {
+      path: "/market/commodities/data",
+      queryParams: ["action", "category", "ticker", "hours"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          description: "Query mode",
+          enum: ["summary", "category", "ticker", "categories", "history"],
+        },
+        category: { type: "string", description: "Category name (action=category)" },
+        ticker: { type: "string", description: "Commodity ticker (action=ticker or history)" },
+        hours: { type: "number", description: "Lookback hours (action=history, default: 24)" },
+        ...fieldsParam(FIELDS.COMMODITY),
+      },
+      required: ["action"],
+    },
+  },
+
+  // ── Trends (3 → 1) ────────────────────────────────────────
   {
     name: "get_trends",
-    dataSource: cached("Google Trends / Reddit / Wikipedia / HackerNews / X / Mastodon / Bluesky / GitHub / ProductHunt / TVMaze / Google News", GOOGLE_TRENDS_INTERVAL_MS),
+    dataSource: onDemand("Trend aggregation"),
     description:
-      "Get currently trending topics aggregated from multiple sources including Google Trends, Reddit, Wikipedia, Hacker News, X (Twitter), Bluesky, Mastodon, and news.",
+      "Get trending topics. Actions: 'current' (by source), 'hot' (hottest), 'top' (top over N hours).",
     endpoint: {
-      path: "/trend/trends",
-      conditionalPath: {
-        param: "source",
-        template: "/trend/trends/source/:source",
-      },
+      path: "/trend/data",
+      queryParams: ["action", "source", "hours", "limit"],
     },
     parameters: {
       type: "object",
       properties: {
-        source: {
+        action: {
           type: "string",
-          description:
-            "Filter by trend source: google_trends, reddit, wikipedia, hackernews, x, mastodon, bluesky, google_news, producthunt, tv, github",
+          description: "Trend query mode",
+          enum: ["current", "hot", "top"],
         },
+        source: { type: "string", description: "Source filter (action=current)" },
+        hours: { type: "number", description: "Lookback hours (action=top, default: 24)" },
+        limit: { type: "number", description: "Max results (default: 20)" },
         ...fieldsParam(FIELDS.TRENDS),
       },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_hot_trends",
-    dataSource: cached("internal", GOOGLE_TRENDS_INTERVAL_MS),
-    description:
-      "Get cross-platform correlated trending topics — topics appearing in 2+ sources simultaneously. Shows which topics are truly viral across Google, Reddit, X, news, etc.",
-    endpoint: { path: "/trend/trends/hot" },
-    parameters: {
-      type: "object",
-      properties: { ...fieldsParam(FIELDS.TRENDS) },
-      required: ["fields"],
-    },
-  },
-  {
-    name: "get_top_trends",
-    dataSource: cached("internal / MongoDB", GOOGLE_TRENDS_INTERVAL_MS),
-    description:
-      "Get the highest-volume trending topics from the database over a configurable time window. Aggregated across all sources.",
-    endpoint: {
-      path: "/trend/trends/top",
-      queryParams: ["hours", "limit"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        hours: {
-          type: "number",
-          description: "Time window in hours (default: 24)",
-        },
-        limit: {
-          type: "number",
-          description: "Maximum number of trends to return (default: 20)",
-        },
-        ...fieldsParam(FIELDS.TRENDS),
-      },
-      required: ["fields"],
+      required: ["action"],
     },
   },
 
@@ -2071,48 +1706,6 @@ const TOOL_DEFINITIONS = [
 
   // ── Finance / Stocks (Finnhub) ─────────────────────────────
   {
-    name: "get_stock_quote",
-    dataSource: onDemand("Finnhub"),
-    description:
-      "Get real-time stock quote. Fields: c=current price, d=change, dp=percent change, h=day high, l=day low, o=open, pc=previous close, t=timestamp.",
-    endpoint: {
-      path: "/finance/quote/:symbol",
-      pathParams: ["symbol"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        symbol: {
-          type: "string",
-          description: "Stock ticker symbol (e.g. AAPL, MSFT, GOOGL)",
-        },
-        ...fieldsParam(FIELDS.STOCK_QUOTE),
-      },
-      required: ["symbol", "fields"],
-    },
-  },
-  {
-    name: "get_company_profile",
-    dataSource: onDemand("Finnhub"),
-    description:
-      "Get company profile including name, industry, market capitalization, shares outstanding, logo, and website.",
-    endpoint: {
-      path: "/finance/profile/:symbol",
-      pathParams: ["symbol"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        symbol: {
-          type: "string",
-          description: "Stock ticker symbol (e.g. AAPL)",
-        },
-        ...fieldsParam(FIELDS.COMPANY_PROFILE),
-      },
-      required: ["symbol", "fields"],
-    },
-  },
-  {
     name: "get_market_news",
     dataSource: cached("Finnhub", FINNHUB_NEWS_INTERVAL_MS),
     description:
@@ -2146,157 +1739,204 @@ const TOOL_DEFINITIONS = [
       required: ["fields"],
     },
   },
+
+  // ── Finance: Stocks (4 → 1) ───────────────────────────────────
   {
-    name: "get_stock_recommendation",
-    dataSource: onDemand("Finnhub"),
+    name: "get_stock_data",
+    dataSource: onDemand("Finnhub API"),
     description:
-      "Get analyst recommendation trends for a stock, including buy/hold/sell/strongBuy/strongSell counts per period.",
+      "Get stock market data by symbol. Actions: 'quote' (real-time price/change), 'profile' (company info, sector, market cap), 'recommendation' (analyst consensus), 'financials' (key financial metrics).",
     endpoint: {
-      path: "/finance/recommendation/:symbol",
-      pathParams: ["symbol"],
+      path: "/finance/stock/data",
+      queryParams: ["action", "symbol"],
     },
     parameters: {
       type: "object",
       properties: {
+        action: {
+          type: "string",
+          description: "Data type to retrieve",
+          enum: ["quote", "profile", "recommendation", "financials"],
+        },
         symbol: {
           type: "string",
-          description: "Stock ticker symbol (e.g. AAPL)",
+          description: "Stock ticker symbol (e.g. 'AAPL', 'MSFT', 'TSLA')",
         },
-        ...fieldsParam(FIELDS.RECOMMENDATION),
+        fields: { type: "string", description: "Comma-separated fields to return" },
       },
-      required: ["symbol", "fields"],
-    },
-  },
-  {
-    name: "get_stock_financials",
-    dataSource: onDemand("Finnhub"),
-    description:
-      "Get basic financial metrics for a stock including P/E ratio, EPS, 52-week high/low, beta, dividend yield, market cap, revenue, and profit margins.",
-    endpoint: {
-      path: "/finance/financials/:symbol",
-      pathParams: ["symbol"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        symbol: {
-          type: "string",
-          description: "Stock ticker symbol (e.g. AAPL)",
-        },
-        ...fieldsParam(FIELDS.FINANCIALS),
-      },
-      required: ["symbol", "fields"],
+      required: ["action", "symbol"],
     },
   },
 
-  // ── Finance (FRED Macroeconomics) ──────────────────────────────
+  // ── Finance: Macro/FRED (4 → 1) ───────────────────────────────
   {
-    name: "get_macro_indicators",
-    dataSource: onDemand("FRED (St. Louis Fed)"),
+    name: "get_macro_data",
+    dataSource: onDemand("FRED (Federal Reserve)"),
     description:
-      "Get the latest snapshot of key macroeconomic indicators including inflation (CPI, PCE), interest rates (Fed Funds, 10Y Yield), unemployment, GDP, and consumer sentiment from the St. Louis Fed (FRED).",
+      "Access macroeconomic data from FRED. Actions: 'indicators' (key indicator summary), 'search' (search data series), 'series' (series metadata by ID), 'observations' (time series data points).",
     endpoint: {
-      path: "/finance/macro/indicators",
+      path: "/finance/macro/data",
+      queryParams: ["action", "q", "seriesId", "limit", "orderBy", "sortOrder", "observationStart", "observationEnd"],
     },
     parameters: {
       type: "object",
       properties: {
-        ...fieldsParam(FIELDS.MACRO_INDICATORS),
+        action: {
+          type: "string",
+          description: "Query mode",
+          enum: ["indicators", "search", "series", "observations"],
+        },
+        q: { type: "string", description: "Search query (action=search)" },
+        seriesId: { type: "string", description: "FRED series ID like 'GDP', 'UNRATE' (action=series or observations)" },
+        limit: { type: "number", description: "Max results (default: 10)" },
+        orderBy: { type: "string", description: "Sort field (action=search)" },
+        sortOrder: { type: "string", enum: ["asc", "desc"], description: "Sort direction (action=observations)" },
+        observationStart: { type: "string", description: "Start date YYYY-MM-DD (action=observations)" },
+        observationEnd: { type: "string", description: "End date YYYY-MM-DD (action=observations)" },
+        fields: { type: "string", description: "Comma-separated fields to return" },
       },
-    },
-  },
-  {
-    name: "search_macro_series",
-    dataSource: onDemand("FRED (St. Louis Fed)"),
-    description:
-      "Search for macroeconomic data series by keywords (e.g. 'housing prices', 'credit card debt', 'wheat prices') from FRED. Returns series IDs required for fetching specific observations.",
-    endpoint: {
-      path: "/finance/macro/search",
-      queryParams: ["q", "limit", "orderBy"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        q: {
-          type: "string",
-          description: "Search keywords (e.g. 'inflation')",
-        },
-        limit: {
-          type: "number",
-          description: "Max number of results to return (default: 10)",
-        },
-        orderBy: {
-          type: "string",
-          description:
-            "Sort order: search_rank, series_id, title, frequency, popularity, observation_start, observation_end. Default is search_rank.",
-        },
-        ...fieldsParam(FIELDS.MACRO_SERIES_SEARCH),
-      },
-      required: ["q"],
-    },
-  },
-  {
-    name: "get_macro_series_info",
-    dataSource: onDemand("FRED (St. Louis Fed)"),
-    description:
-      "Get detailed metadata about a specific FRED macroeconomic data series by its ID, including unit description, frequency, and notes.",
-    endpoint: {
-      path: "/finance/macro/series/:seriesId",
-      pathParams: ["seriesId"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        seriesId: {
-          type: "string",
-          description: "The FRED series ID (e.g., 'UNRATE', 'CPIAUCSL')",
-        },
-        ...fieldsParam(FIELDS.MACRO_SERIES_INFO),
-      },
-      required: ["seriesId"],
-    },
-  },
-  {
-    name: "get_macro_observations",
-    dataSource: onDemand("FRED (St. Louis Fed)"),
-    description:
-      "Get historical observations (data points) for a specific FRED macroeconomic data series by its ID.",
-    endpoint: {
-      path: "/finance/macro/series/:seriesId/observations",
-      pathParams: ["seriesId"],
-      queryParams: ["limit", "sortOrder", "observationStart", "observationEnd"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        seriesId: {
-          type: "string",
-          description: "The FRED series ID (e.g., 'UNRATE', 'CPIAUCSL')",
-        },
-        limit: {
-          type: "number",
-          description: "Maximum number of observations to return (default 50)",
-        },
-        sortOrder: {
-          type: "string",
-          description: "Sort direction: 'asc' or 'desc' (default: 'desc')",
-          enum: ["asc", "desc"],
-        },
-        observationStart: {
-          type: "string",
-          description: "Start date for filtering in YYYY-MM-DD format",
-        },
-        observationEnd: {
-          type: "string",
-          description: "End date for filtering in YYYY-MM-DD format",
-        },
-        ...fieldsParam(FIELDS.MACRO_OBSERVATIONS),
-      },
-      required: ["seriesId"],
+      required: ["action"],
     },
   },
 
-  // ── Knowledge ──────────────────────────────────────────────────
+  // ── Knowledge (consolidated tools) ────────────────────────────
+  {
+    name: "lookup_book",
+    dataSource: onDemand("Open Library API"),
+    description:
+      "Search or look up books/authors from Open Library. Actions: 'search' (full-text search), 'work' (book details by work key), 'author' (author info by key).",
+    endpoint: {
+      path: "/knowledge/books/lookup",
+      queryParams: ["action", "q", "workKey", "authorKey", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          description: "Lookup mode",
+          enum: ["search", "work", "author"],
+        },
+        q: { type: "string", description: "Search query (action=search)" },
+        workKey: { type: "string", description: "Open Library work key like 'OL45804W' (action=work)" },
+        authorKey: { type: "string", description: "Open Library author key like 'OL34184A' (action=author)" },
+        limit: { type: "number", description: "Max results (action=search, default: 10)" },
+        fields: { type: "string", description: "Comma-separated fields to return" },
+      },
+      required: ["action"],
+    },
+  },
+  {
+    name: "get_country_data",
+    dataSource: onDemand("REST Countries + World Bank"),
+    description:
+      "Look up country info or development indicators. Actions: 'info' (by name), 'code' (by ISO code), 'indicators' (development data for a country), 'rank' (rank countries by indicator), 'compare' (compare multiple countries).",
+    endpoint: {
+      path: "/knowledge/countries/data",
+      queryParams: ["action", "name", "code", "indicator", "countries", "limit", "order"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          description: "Query mode",
+          enum: ["info", "code", "indicators", "rank", "compare"],
+        },
+        name: { type: "string", description: "Country name (action=info)" },
+        code: { type: "string", description: "ISO 2/3-letter code (action=code or indicators)" },
+        indicator: { type: "string", description: "World Bank indicator ID (action=rank or compare)" },
+        countries: { type: "string", description: "Comma-separated country codes (action=compare)" },
+        limit: { type: "number", description: "Max results (action=rank, default: 10)" },
+        order: { type: "string", enum: ["asc", "desc"], description: "Sort order (action=rank)" },
+        fields: { type: "string", description: "Comma-separated fields to return" },
+      },
+      required: ["action"],
+    },
+  },
+  {
+    name: "get_element_data",
+    dataSource: staticDataset("Periodic Table (119 elements)"),
+    description:
+      "Query the periodic table. Actions: 'search' (text search), 'lookup' (by symbol), 'rank' (rank by property), 'categories' (list categories).",
+    endpoint: {
+      path: "/knowledge/elements/data",
+      queryParams: ["action", "q", "symbol", "property", "limit", "order", "category", "block"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          description: "Query mode",
+          enum: ["search", "lookup", "rank", "categories"],
+        },
+        q: { type: "string", description: "Search query (action=search)" },
+        symbol: { type: "string", description: "Element symbol like 'Fe', 'Au' (action=lookup)" },
+        property: { type: "string", description: "Property to rank by (action=rank)" },
+        limit: { type: "number", description: "Max results (default: 10)" },
+        order: { type: "string", enum: ["asc", "desc"], description: "Sort order (action=rank)" },
+        category: { type: "string", description: "Filter by element category" },
+        block: { type: "string", description: "Filter by block (s, p, d, f)" },
+        ...fieldsParam(FIELDS.ELEMENTS),
+      },
+      required: ["action"],
+    },
+  },
+  {
+    name: "get_exoplanet_data",
+    dataSource: staticDataset("NASA Exoplanet Archive (~6,153 planets)"),
+    description:
+      "Query the NASA exoplanet database. Actions: 'search' (text search), 'lookup' (by name), 'rank' (rank by property), 'stats' (discovery statistics), 'habitable' (habitable zone planets).",
+    endpoint: {
+      path: "/knowledge/exoplanets/data",
+      queryParams: ["action", "q", "name", "field", "limit", "order", "method"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          description: "Query mode",
+          enum: ["search", "lookup", "rank", "stats", "habitable"],
+        },
+        q: { type: "string", description: "Search query (action=search)" },
+        name: { type: "string", description: "Planet name (action=lookup)" },
+        field: { type: "string", description: "Property to rank by (action=rank)" },
+        limit: { type: "number", description: "Max results (default: 10)" },
+        order: { type: "string", enum: ["asc", "desc"], description: "Sort order" },
+        method: { type: "string", description: "Discovery method filter (action=search)" },
+        fields: { type: "string", description: "Comma-separated fields to return" },
+      },
+      required: ["action"],
+    },
+  },
+  {
+    name: "get_anime",
+    dataSource: onDemand("Jikan (MyAnimeList)"),
+    description:
+      "Search and browse anime. Actions: 'search' (text search), 'top' (top rated), 'season' (current season), 'details' (full details by MAL ID).",
+    endpoint: {
+      path: "/knowledge/anime/data",
+      queryParams: ["action", "q", "id", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          description: "Query mode",
+          enum: ["search", "top", "season", "details"],
+        },
+        q: { type: "string", description: "Search query (action=search)" },
+        id: { type: "number", description: "MyAnimeList ID (action=details)" },
+        limit: { type: "number", description: "Max results (default: 10)" },
+        ...fieldsParam(FIELDS.ANIME),
+      },
+      required: ["action"],
+    },
+  },
+
   {
     name: "define_word",
     dataSource: onDemand("Free Dictionary API"),
@@ -2316,117 +1956,6 @@ const TOOL_DEFINITIONS = [
         ...fieldsParam(FIELDS.DICTIONARY),
       },
       required: ["word"],
-    },
-  },
-  {
-    name: "search_books",
-    dataSource: onDemand("Open Library"),
-    description:
-      "Search for books by title, author, or query. Returns book metadata, cover images, ratings, author names, publication year, and edition count from Open Library (3M+ books).",
-    endpoint: {
-      path: "/knowledge/books/search",
-      queryParams: ["q", "limit"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        q: {
-          type: "string",
-          description: "Search query (title, author, or keywords)",
-        },
-        limit: {
-          type: "number",
-          description: "Max results (default: 10)",
-        },
-        ...fieldsParam(FIELDS.BOOKS),
-      },
-      required: ["q"],
-    },
-  },
-  {
-    name: "get_book_details",
-    dataSource: onDemand("Open Library"),
-    description:
-      "Get detailed information about a specific book by its Open Library work key. Returns description, subjects, cover image, links, and publication date.",
-    endpoint: {
-      path: "/knowledge/books/work/:workKey",
-      pathParams: ["workKey"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        workKey: {
-          type: "string",
-          description: "Open Library work key (e.g. 'OL45883W')",
-        },
-        ...fieldsParam(FIELDS.BOOK_DETAILS),
-      },
-      required: ["workKey"],
-    },
-  },
-  {
-    name: "get_author_info",
-    dataSource: onDemand("Open Library"),
-    description:
-      "Get author biography, birth/death dates, photo, and Wikipedia link from Open Library.",
-    endpoint: {
-      path: "/knowledge/books/author/:authorKey",
-      pathParams: ["authorKey"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        authorKey: {
-          type: "string",
-          description: "Open Library author key (e.g. 'OL23919A')",
-        },
-        ...fieldsParam(FIELDS.AUTHOR),
-      },
-      required: ["authorKey"],
-    },
-  },
-  {
-    name: "get_country_info",
-    dataSource: onDemand("REST Countries"),
-    description:
-      "Get detailed information about a country by name. Returns population, capital, languages, currencies, timezones, borders, flag, continent, calling codes, and more.",
-    endpoint: {
-      path: "/knowledge/countries/search/:name",
-      pathParams: ["name"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        name: {
-          type: "string",
-          description:
-            "Country name (partial match supported, e.g. 'Canada', 'Japan')",
-        },
-        ...fieldsParam(FIELDS.COUNTRIES),
-      },
-      required: ["name"],
-    },
-  },
-  {
-    name: "get_country_by_code",
-    dataSource: onDemand("REST Countries"),
-    description:
-      "Get country information by ISO country code (2 or 3 letter). Returns full country details.",
-    endpoint: {
-      path: "/knowledge/countries/code/:code",
-      pathParams: ["code"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        code: {
-          type: "string",
-          description:
-            "ISO 3166-1 alpha-2 or alpha-3 code (e.g. 'CA', 'CAN', 'US', 'JP')",
-        },
-        ...fieldsParam(FIELDS.COUNTRIES),
-      },
-      required: ["code"],
     },
   },
   {
@@ -2628,462 +2157,184 @@ const TOOL_DEFINITIONS = [
       },
     },
   },
+
+  // ── Movies & TV (12 → 6 unified + get_tv_season_details) ──────
   {
-    name: "search_anime",
-    dataSource: onDemand("Jikan (MyAnimeList)"),
-    description: "Search for anime titles on MyAnimeList (via Jikan API).",
+    name: "search_media",
+    dataSource: onDemand("TMDB API"),
+    description: "Search for movies or TV shows by title. Returns matching results with overview, release date, ratings, and poster images.",
     endpoint: {
-      path: "/knowledge/anime/search",
-      queryParams: ["q", "limit"],
+      path: "/knowledge/media/search",
+      queryParams: ["type", "q", "year", "page"],
     },
     parameters: {
       type: "object",
       properties: {
-        q: {
-          type: "string",
-          description: "Anime title or keyword to search for",
-        },
-        limit: {
-          type: "number",
-          description: "Max number of results to return (default: 10)",
-        },
-        ...fieldsParam(FIELDS.ANIME),
+        type: { type: "string", enum: ["movie", "tv"], description: "Search movies or TV shows" },
+        q: { type: "string", description: "Search query (title)" },
+        year: { type: "number", description: "Filter by release/first air date year" },
+        page: { type: "number", description: "Page number (default: 1)" },
+        fields: { type: "string", description: "Comma-separated fields to return" },
       },
-      required: ["q"],
+      required: ["type", "q"],
     },
   },
   {
-    name: "get_top_anime",
-    dataSource: onDemand("Jikan (MyAnimeList)"),
-    description: "Get the top-ranked anime from MyAnimeList (via Jikan API).",
+    name: "get_media_details",
+    dataSource: onDemand("TMDB API"),
+    description: "Get full details for a movie or TV show by TMDB ID — overview, genres, runtime, ratings, revenue, production companies, seasons (TV).",
     endpoint: {
-      path: "/knowledge/anime/top",
-      queryParams: ["limit"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        limit: {
-          type: "number",
-          description: "Max number of results to return (default: 10)",
-        },
-        ...fieldsParam(FIELDS.ANIME),
-      },
-    },
-  },
-  {
-    name: "get_current_season_anime",
-    dataSource: onDemand("Jikan (MyAnimeList)"),
-    description:
-      "Get currently airing seasonal anime from MyAnimeList (via Jikan API).",
-    endpoint: {
-      path: "/knowledge/anime/season/now",
-      queryParams: ["limit"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        limit: {
-          type: "number",
-          description: "Max number of results to return (default: 10)",
-        },
-        ...fieldsParam(FIELDS.ANIME),
-      },
-    },
-  },
-  {
-    name: "get_anime_details",
-    dataSource: onDemand("Jikan (MyAnimeList)"),
-    description:
-      "Get comprehensive details for a specific anime by its MyAnimeList ID.",
-    endpoint: {
-      path: "/knowledge/anime/:id",
+      path: "/knowledge/media/:id",
       pathParams: ["id"],
+      queryParams: ["type"],
     },
     parameters: {
       type: "object",
       properties: {
-        id: {
-          type: "number",
-          description: "The MyAnimeList ID of the anime",
-        },
-        ...fieldsParam(FIELDS.ANIME),
+        type: { type: "string", enum: ["movie", "tv"], description: "Movie or TV show" },
+        id: { type: "number", description: "TMDB ID" },
+        fields: { type: "string", description: "Comma-separated fields to return" },
       },
-      required: ["id"],
+      required: ["type", "id"],
+    },
+  },
+  {
+    name: "get_media_credits",
+    dataSource: onDemand("TMDB API"),
+    description: "Get cast and crew credits for a movie or TV show by TMDB ID.",
+    endpoint: {
+      path: "/knowledge/media/:id/credits",
+      pathParams: ["id"],
+      queryParams: ["type"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        type: { type: "string", enum: ["movie", "tv"], description: "Movie or TV show" },
+        id: { type: "number", description: "TMDB ID" },
+        fields: { type: "string", description: "Comma-separated fields to return" },
+      },
+      required: ["type", "id"],
+    },
+  },
+  {
+    name: "get_trending_media",
+    dataSource: onDemand("TMDB API"),
+    description: "Get trending movies or TV shows for the day or week.",
+    endpoint: {
+      path: "/knowledge/media/trending",
+      queryParams: ["type", "timeWindow", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        type: { type: "string", enum: ["movie", "tv"], description: "Movie or TV show" },
+        timeWindow: { type: "string", enum: ["day", "week"], description: "Trending window (default: week)" },
+        limit: { type: "number", description: "Max results (default: 10)" },
+        fields: { type: "string", description: "Comma-separated fields to return" },
+      },
+      required: ["type"],
+    },
+  },
+  {
+    name: "discover_media",
+    dataSource: onDemand("TMDB API"),
+    description: "Discover movies or TV shows by genre, year, rating, and vote count. Useful for browsing, not by name.",
+    endpoint: {
+      path: "/knowledge/media/discover",
+      queryParams: ["type", "genreId", "year", "sortBy", "page", "minVoteAverage", "minVoteCount"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        type: { type: "string", enum: ["movie", "tv"], description: "Movie or TV show" },
+        genreId: { type: "number", description: "Genre ID (use get_media_genres)" },
+        year: { type: "number", description: "Release/first air date year" },
+        sortBy: { type: "string", description: "Sort: popularity.desc, vote_average.desc, etc." },
+        minVoteAverage: { type: "number", description: "Min vote average (0-10)" },
+        minVoteCount: { type: "number", description: "Min vote count" },
+        page: { type: "number", description: "Page number (default: 1)" },
+        fields: { type: "string", description: "Comma-separated fields to return" },
+      },
+      required: ["type"],
+    },
+  },
+  {
+    name: "get_media_genres",
+    dataSource: onDemand("TMDB API"),
+    description: "Get the list of genre IDs and names for movies or TV shows. Use these IDs with discover_media.",
+    endpoint: {
+      path: "/knowledge/media/genres",
+      queryParams: ["type"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        type: { type: "string", enum: ["movie", "tv"], description: "Movie or TV show" },
+      },
+      required: ["type"],
     },
   },
 
-  // ── Movies (TMDb) ──────────────────────────────────────────────
+  // ── TV Series (TV-only) ────────────────────────────────────────
+
+  // ── Health (consolidated tools) ────────────────────────────────
   {
-    name: "search_movies",
-    dataSource: onDemand("TMDb"),
+    name: "rank_foods",
+    dataSource: staticDataset("USDA SR Legacy"),
     description:
-      "Search for movies by title. Returns matching movies with posters, ratings, release dates, and overviews from TMDb.",
+      "Find foods highest in a specific nutrient. Choose a category (macros, minerals, vitamins, amino_acids, lipids, carbs, sterols) and nutrient to rank by. Examples: 'foods high in protein' → category='macros', nutrient='protein'. 'Best omega-3 sources' → category='lipids', nutrient='c22_d6_n3_dha'. Use list_category_nutrients to discover valid nutrient names per category.",
     endpoint: {
-      path: "/knowledge/movies/search",
-      queryParams: ["q", "page", "year"],
+      path: "/health/nutrition/top",
+      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
     },
     parameters: {
       type: "object",
       properties: {
-        q: {
+        category: {
           type: "string",
-          description: "Movie title or keyword to search for",
+          description: "Nutrient category",
+          enum: ["macros", "minerals", "vitamins", "amino_acids", "lipids", "carbs", "sterols"],
         },
-        year: {
-          type: "number",
-          description: "Filter by release year",
+        nutrient: {
+          type: "string",
+          description: "Specific nutrient to rank by (use list_category_nutrients for valid values)",
         },
-        page: {
-          type: "number",
-          description: "Page number for paginated results (default: 1)",
+        limit: { type: "number", description: "Max results (default: 10)" },
+        kingdom: { type: "string", enum: ["animalia", "plantae", "fungi"] },
+        foodType: { type: "string" },
+        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
+      },
+      required: ["category", "nutrient"],
+    },
+  },
+  {
+    name: "search_drugs",
+    dataSource: onDemand("OpenFDA + FDA NDC API"),
+    description:
+      "Search for drug information. Use searchBy to control mode: 'name' (general search), 'ndc_search' (FDA NDC directory), 'ndc_lookup' (exact NDC code), 'ingredient' (by active ingredient), 'pharm_class' (by pharmacological class).",
+    endpoint: {
+      path: "/health/drugs/unified",
+      queryParams: ["q", "searchBy", "limit", "dosageForm", "productType"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        q: { type: "string", description: "Search query — drug name, NDC code, ingredient, or class" },
+        searchBy: {
+          type: "string",
+          description: "Search mode",
+          enum: ["name", "ndc_search", "ndc_lookup", "ingredient", "pharm_class"],
         },
-        ...fieldsParam(FIELDS.MOVIES),
+        limit: { type: "number", description: "Max results (default: 10)" },
+        dosageForm: { type: "string", description: "Dosage form filter (ndc_search only)" },
+        productType: { type: "string", description: "Product type filter (ndc_search only)" },
+        fields: { type: "string", description: "Comma-separated fields to return" },
       },
       required: ["q"],
-    },
-  },
-  {
-    name: "get_movie_details",
-    dataSource: onDemand("TMDb"),
-    description:
-      "Get comprehensive details for a specific movie by its TMDb ID, including budget, revenue, runtime, production companies, and IMDB link.",
-    endpoint: {
-      path: "/knowledge/movies/:id",
-      pathParams: ["id"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        id: {
-          type: "number",
-          description: "The TMDb ID of the movie",
-        },
-        ...fieldsParam(FIELDS.MOVIE_DETAILS),
-      },
-      required: ["id"],
-    },
-  },
-  {
-    name: "get_movie_credits",
-    dataSource: onDemand("TMDb"),
-    description:
-      "Get the cast and key crew (director, writer, producer, cinematographer, composer) for a movie by its TMDb ID.",
-    endpoint: {
-      path: "/knowledge/movies/:id/credits",
-      pathParams: ["id"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        id: {
-          type: "number",
-          description: "The TMDb ID of the movie",
-        },
-        ...fieldsParam(FIELDS.MOVIE_CREDITS),
-      },
-      required: ["id"],
-    },
-  },
-  {
-    name: "get_trending_movies",
-    dataSource: onDemand("TMDb"),
-    description:
-      "Get currently trending movies. Reflects real-time popularity across TMDb users.",
-    endpoint: {
-      path: "/knowledge/movies/trending",
-      queryParams: ["timeWindow", "limit"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        timeWindow: {
-          type: "string",
-          description: "Time window: 'day' or 'week' (default: 'day')",
-          enum: ["day", "week"],
-        },
-        limit: {
-          type: "number",
-          description: "Max number of results (default: 10)",
-        },
-        ...fieldsParam(FIELDS.MOVIES),
-      },
-    },
-  },
-  {
-    name: "discover_movies",
-    dataSource: onDemand("TMDb"),
-    description:
-      "Discover movies using filters like genre, year, minimum rating, and sort order. Good for 'best sci-fi movies of 2024' type queries.",
-    endpoint: {
-      path: "/knowledge/movies/discover",
-      queryParams: [
-        "genreId",
-        "year",
-        "sortBy",
-        "page",
-        "minVoteAverage",
-        "minVoteCount",
-      ],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        genreId: {
-          type: "number",
-          description:
-            "TMDb genre ID to filter by (use get_movie_genres to find IDs)",
-        },
-        year: {
-          type: "number",
-          description: "Filter by release year",
-        },
-        sortBy: {
-          type: "string",
-          description:
-            "Sort order: popularity.desc, revenue.desc, vote_average.desc, primary_release_date.desc (default: popularity.desc)",
-        },
-        minVoteAverage: {
-          type: "number",
-          description: "Minimum vote average (e.g. 7.0)",
-        },
-        minVoteCount: {
-          type: "number",
-          description: "Minimum number of votes (e.g. 100)",
-        },
-        page: {
-          type: "number",
-          description: "Page number (default: 1)",
-        },
-        ...fieldsParam(FIELDS.MOVIES),
-      },
-    },
-  },
-  {
-    name: "get_movie_genres",
-    dataSource: onDemand("TMDb"),
-    description:
-      "Get the list of official TMDb movie genres with their IDs. Use this to find genre IDs for the discover_movies tool.",
-    endpoint: {
-      path: "/knowledge/movies/genres",
-    },
-    parameters: {
-      type: "object",
-      properties: {},
     },
   },
 
-  // ── TV Series (TMDb) ───────────────────────────────────────────
-  {
-    name: "search_tv_shows",
-    dataSource: onDemand("TMDb"),
-    description:
-      "Search for TV series by name. Returns matching shows with posters, ratings, air dates, and overviews from TMDb.",
-    endpoint: {
-      path: "/knowledge/tv/search",
-      queryParams: ["q", "page", "firstAirDateYear"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        q: {
-          type: "string",
-          description: "TV show name or keyword to search for",
-        },
-        firstAirDateYear: {
-          type: "number",
-          description: "Filter by first air date year",
-        },
-        page: {
-          type: "number",
-          description: "Page number (default: 1)",
-        },
-        ...fieldsParam(FIELDS.TV_SHOWS),
-      },
-      required: ["q"],
-    },
-  },
-  {
-    name: "get_tv_show_details",
-    dataSource: onDemand("TMDb"),
-    description:
-      "Get comprehensive details for a TV series by its TMDb ID, including seasons, episodes, networks, creators, and production info.",
-    endpoint: {
-      path: "/knowledge/tv/:id",
-      pathParams: ["id"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        id: {
-          type: "number",
-          description: "The TMDb ID of the TV show",
-        },
-        ...fieldsParam(FIELDS.TV_SHOW_DETAILS),
-      },
-      required: ["id"],
-    },
-  },
-  {
-    name: "get_tv_show_credits",
-    dataSource: onDemand("TMDb"),
-    description:
-      "Get the aggregate cast and key crew for a TV series across all seasons.",
-    endpoint: {
-      path: "/knowledge/tv/:id/credits",
-      pathParams: ["id"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        id: {
-          type: "number",
-          description: "The TMDb ID of the TV show",
-        },
-        ...fieldsParam(FIELDS.TV_CREDITS),
-      },
-      required: ["id"],
-    },
-  },
-  {
-    name: "get_tv_season_details",
-    dataSource: onDemand("TMDb"),
-    description:
-      "Get details for a specific TV season including all episodes with names, air dates, runtimes, and ratings.",
-    endpoint: {
-      path: "/knowledge/tv/:id/season/:seasonNumber",
-      pathParams: ["id", "seasonNumber"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        id: {
-          type: "number",
-          description: "The TMDb ID of the TV show",
-        },
-        seasonNumber: {
-          type: "number",
-          description: "Season number (0 for specials)",
-        },
-        ...fieldsParam(FIELDS.TV_SEASON),
-      },
-      required: ["id", "seasonNumber"],
-    },
-  },
-  {
-    name: "get_trending_tv_shows",
-    dataSource: onDemand("TMDb"),
-    description:
-      "Get currently trending TV series. Reflects real-time popularity across TMDb users.",
-    endpoint: {
-      path: "/knowledge/tv/trending",
-      queryParams: ["timeWindow", "limit"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        timeWindow: {
-          type: "string",
-          description: "Time window: 'day' or 'week' (default: 'day')",
-          enum: ["day", "week"],
-        },
-        limit: {
-          type: "number",
-          description: "Max number of results (default: 10)",
-        },
-        ...fieldsParam(FIELDS.TV_SHOWS),
-      },
-    },
-  },
-  {
-    name: "discover_tv_shows",
-    dataSource: onDemand("TMDb"),
-    description:
-      "Discover TV series using filters like genre, year, minimum rating, and sort order. Good for 'best drama series of 2025' type queries.",
-    endpoint: {
-      path: "/knowledge/tv/discover",
-      queryParams: [
-        "genreId",
-        "firstAirDateYear",
-        "sortBy",
-        "page",
-        "minVoteAverage",
-        "minVoteCount",
-      ],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        genreId: {
-          type: "number",
-          description: "TMDb genre ID (use get_tv_genres to find IDs)",
-        },
-        firstAirDateYear: {
-          type: "number",
-          description: "Filter by first air date year",
-        },
-        sortBy: {
-          type: "string",
-          description:
-            "Sort order: popularity.desc, vote_average.desc, first_air_date.desc (default: popularity.desc)",
-        },
-        minVoteAverage: {
-          type: "number",
-          description: "Minimum vote average (e.g. 7.0)",
-        },
-        minVoteCount: {
-          type: "number",
-          description: "Minimum number of votes (e.g. 100)",
-        },
-        page: {
-          type: "number",
-          description: "Page number (default: 1)",
-        },
-        ...fieldsParam(FIELDS.TV_SHOWS),
-      },
-    },
-  },
-  {
-    name: "get_tv_genres",
-    dataSource: onDemand("TMDb"),
-    description:
-      "Get the list of official TMDb TV genres with their IDs. Use this to find genre IDs for the discover_tv_shows tool.",
-    endpoint: {
-      path: "/knowledge/tv/genres",
-    },
-    parameters: {
-      type: "object",
-      properties: {},
-    },
-  },
-
-  // ── Health ─────────────────────────────────────────────────────
-  {
-    name: "search_drug_info",
-    dataSource: onDemand("openFDA"),
-    description:
-      "Search FDA drug labels by brand or generic name. Returns indications, warnings, side effects, dosage, contraindications, and drug interactions.",
-    endpoint: {
-      path: "/health/drugs/search",
-      queryParams: ["q", "limit"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        q: {
-          type: "string",
-          description:
-            "Drug name (brand or generic, e.g. 'Tylenol', 'Acetaminophen')",
-        },
-        limit: {
-          type: "number",
-          description: "Max results (default: 5)",
-        },
-        ...fieldsParam(FIELDS.DRUG_LABEL),
-      },
-      required: ["q"],
-    },
-  },
   {
     name: "get_drug_adverse_events",
     dataSource: onDemand("openFDA"),
@@ -3386,295 +2637,6 @@ const TOOL_DEFINITIONS = [
         },
       },
       required: ["category"],
-    },
-  },
-  {
-    name: "top_foods_by_macro",
-    dataSource: staticDataset("USDA SR Legacy"),
-    description:
-      "Find foods highest in a specific macronutrient — protein, fat, carbs, calories, fiber, sugar, water, or alcohol. Example: 'what foods have the most protein?' → nutrient='protein'.",
-    endpoint: {
-      path: "/health/nutrition/top",
-      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        category: { type: "string", enum: ["macros"], description: "Fixed category — always 'macros'" },
-        nutrient: {
-          type: "string",
-          description: "Which macronutrient to rank by",
-          enum: [
-            "protein",
-            "lipid",
-            "carbohydrate",
-            "kilocalories",
-            "fiber",
-            "sugar",
-            "water",
-            "ethanol",
-          ],
-        },
-        limit: { type: "number", description: "Max results (default: 10)" },
-        kingdom: {
-          type: "string",
-          enum: ["animalia", "plantae", "fungi"],
-        },
-        foodType: { type: "string" },
-        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
-      },
-      required: ["category", "nutrient"],
-    },
-  },
-  {
-    name: "top_foods_by_mineral",
-    dataSource: staticDataset("USDA SR Legacy"),
-    description:
-      "Find foods highest in a specific mineral — calcium, iron, magnesium, potassium, zinc, selenium, etc. Example: 'what foods are high in iron?' → nutrient='iron'.",
-    endpoint: {
-      path: "/health/nutrition/top",
-      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        category: { type: "string", enum: ["minerals"], description: "Fixed category — always 'minerals'" },
-        nutrient: {
-          type: "string",
-          description: "Which mineral to rank by",
-          enum: [
-            "calcium",
-            "iron",
-            "magnesium",
-            "phosphorus",
-            "potassium",
-            "sodium",
-            "zinc",
-            "copper",
-            "manganese",
-            "selenium",
-            "fluoride",
-          ],
-        },
-        limit: { type: "number", description: "Max results (default: 10)" },
-        kingdom: {
-          type: "string",
-          enum: ["animalia", "plantae", "fungi"],
-        },
-        foodType: { type: "string" },
-        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
-      },
-      required: ["category", "nutrient"],
-    },
-  },
-  {
-    name: "top_foods_by_vitamin",
-    dataSource: staticDataset("USDA SR Legacy"),
-    description:
-      "Find foods highest in a specific vitamin — vitamin A, B1-B12, C, D, E, K, folate, choline, carotenoids, etc. Example: 'best sources of vitamin C?' → nutrient='ascorbic_acid'.",
-    endpoint: {
-      path: "/health/nutrition/top",
-      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        category: { type: "string", enum: ["vitamins"], description: "Fixed category — always 'vitamins'" },
-        nutrient: {
-          type: "string",
-          description: "Which vitamin to rank by",
-          enum: [
-            "ascorbic_acid",
-            "thiamin",
-            "riboflavin",
-            "niacin",
-            "pantothenic_acid",
-            "vitamin_b6",
-            "folate_total",
-            "cyanocobalamin",
-            "choline",
-            "vitamin_a_rae",
-            "retinol",
-            "beta_carotene",
-            "alpha_tocopherol",
-            "vitamin_d",
-            "phylloquinone",
-            "lycopene",
-            "lutein_and_zeaxanthin",
-          ],
-        },
-        limit: { type: "number", description: "Max results (default: 10)" },
-        kingdom: {
-          type: "string",
-          enum: ["animalia", "plantae", "fungi"],
-        },
-        foodType: { type: "string" },
-        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
-      },
-      required: ["category", "nutrient"],
-    },
-  },
-  {
-    name: "top_foods_by_amino_acid",
-    dataSource: staticDataset("USDA SR Legacy"),
-    description:
-      "Find foods highest in a specific amino acid — tryptophan, leucine, lysine, methionine, etc. Essential for protein quality analysis. Example: 'foods with most leucine?' → nutrient='leucine'.",
-    endpoint: {
-      path: "/health/nutrition/top",
-      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        category: { type: "string", enum: ["amino_acids"], description: "Fixed category — always 'amino_acids'" },
-        nutrient: {
-          type: "string",
-          description: "Which amino acid to rank by",
-          enum: [
-            "tryptophan",
-            "threonine",
-            "isoleucine",
-            "leucine",
-            "lysine",
-            "methionine",
-            "cystine",
-            "phenylalanine",
-            "tyrosine",
-            "valine",
-            "arginine",
-            "histidine",
-            "alanine",
-            "aspartic_acid",
-            "glutamic_acid",
-            "glycine",
-            "proline",
-            "serine",
-          ],
-        },
-        limit: { type: "number", description: "Max results (default: 10)" },
-        kingdom: {
-          type: "string",
-          enum: ["animalia", "plantae", "fungi"],
-        },
-        foodType: { type: "string" },
-        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
-      },
-      required: ["category", "nutrient"],
-    },
-  },
-  {
-    name: "top_foods_by_lipid",
-    dataSource: staticDataset("USDA SR Legacy"),
-    description:
-      "Find foods highest in a specific fat/lipid — saturated fat, omega-3 (DHA, EPA, ALA), omega-6, monounsaturated, polyunsaturated, or trans fats. Example: 'best omega-3 DHA sources?' → nutrient='c22_d6_n3_dha'.",
-    endpoint: {
-      path: "/health/nutrition/top",
-      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        category: { type: "string", enum: ["lipids"], description: "Fixed category — always 'lipids'" },
-        nutrient: {
-          type: "string",
-          description: "Which lipid/fat to rank by",
-          enum: [
-            "saturated_fat",
-            "monounsaturated_fat",
-            "polyunsaturated_fat",
-            "trans_monoenoic_fat",
-            "trans_polyenoic_fat",
-            "c18_d3_n3_cis_cis_cis",
-            "c20_d5_n3",
-            "c22_d6_n3_dha",
-            "c22_d5_n3",
-            "c18_d2_n6_cis_cis",
-            "c20_d4_undifferentiated",
-          ],
-        },
-        limit: { type: "number", description: "Max results (default: 10)" },
-        kingdom: {
-          type: "string",
-          enum: ["animalia", "plantae", "fungi"],
-        },
-        foodType: { type: "string" },
-        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
-      },
-      required: ["category", "nutrient"],
-    },
-  },
-  {
-    name: "top_foods_by_carb",
-    dataSource: staticDataset("USDA SR Legacy"),
-    description:
-      "Find foods highest in a specific carbohydrate type — starch, glucose, fructose, sucrose, lactose, maltose, fiber, or total sugar. Example: 'foods highest in fiber?' → nutrient='fiber'.",
-    endpoint: {
-      path: "/health/nutrition/top",
-      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        category: { type: "string", enum: ["carbs"], description: "Fixed category — always 'carbs'" },
-        nutrient: {
-          type: "string",
-          description: "Which carbohydrate type to rank by",
-          enum: [
-            "starch",
-            "sucrose",
-            "glucose",
-            "fructose",
-            "lactose",
-            "maltose",
-            "galactose",
-            "fiber",
-            "sugar",
-          ],
-        },
-        limit: { type: "number", description: "Max results (default: 10)" },
-        kingdom: {
-          type: "string",
-          enum: ["animalia", "plantae", "fungi"],
-        },
-        foodType: { type: "string" },
-        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
-      },
-      required: ["category", "nutrient"],
-    },
-  },
-  {
-    name: "top_foods_by_sterol",
-    dataSource: staticDataset("USDA SR Legacy"),
-    description:
-      "Find foods highest in a specific sterol — cholesterol, phytosterol, stigmasterol, campesterol, or beta-sitosterol. Example: 'foods highest in cholesterol?' → nutrient='cholesterol'.",
-    endpoint: {
-      path: "/health/nutrition/top",
-      queryParams: ["category", "nutrient", "limit", "kingdom", "foodType"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        category: { type: "string", enum: ["sterols"], description: "Fixed category — always 'sterols'" },
-        nutrient: {
-          type: "string",
-          description: "Which sterol to rank by",
-          enum: [
-            "cholesterol",
-            "phytosterol",
-            "stigmasterol",
-            "campesterol",
-            "beta_sitosterol",
-          ],
-        },
-        limit: { type: "number", description: "Max results (default: 10)" },
-        kingdom: {
-          type: "string",
-          enum: ["animalia", "plantae", "fungi"],
-        },
-        foodType: { type: "string" },
-        ...fieldsParam(FIELDS.USDA_NUTRIENT_RANKING),
-      },
-      required: ["category", "nutrient"],
     },
   },
   {
@@ -4643,226 +3605,8 @@ const TOOL_DEFINITIONS = [
   },
 
   // ── Periodic Table ─────────────────────────────────────────
-  {
-    name: "search_elements",
-    dataSource: staticDataset("Periodic Table"),
-    description:
-      "Search the periodic table by element name, symbol, or atomic number. Returns full element data including atomic mass, density, melting/boiling points, electronegativity, electron configuration, and more. Optionally filter by category (e.g. 'noble gas', 'transition metal') or block (s, p, d, f).",
-    endpoint: {
-      path: "/knowledge/elements/search",
-      queryParams: ["q", "limit", "category", "block"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        q: {
-          type: "string",
-          description:
-            "Search query — element name (e.g. 'iron'), symbol (e.g. 'Fe'), or atomic number (e.g. '26')",
-        },
-        limit: { type: "number", description: "Max results (default: 10)" },
-        category: {
-          type: "string",
-          description:
-            "Filter by element category (e.g. 'noble gas', 'transition metal', 'alkali metal', 'metalloid')",
-        },
-        block: {
-          type: "string",
-          description: "Filter by electron block",
-          enum: ["s", "p", "d", "f"],
-        },
-        ...fieldsParam(FIELDS.ELEMENTS),
-      },
-      required: ["q"],
-    },
-  },
-  {
-    name: "get_element",
-    dataSource: staticDataset("Periodic Table"),
-    description:
-      "Get full details of a specific chemical element by its symbol (e.g. 'Fe' for Iron, 'Au' for Gold). Returns atomic mass, density, melting/boiling points, electron configuration, discovery info, and a summary.",
-    endpoint: {
-      path: "/knowledge/elements/:symbol",
-      pathParams: ["symbol"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        symbol: {
-          type: "string",
-          description: "Element symbol (e.g. 'Fe', 'Au', 'H', 'O')",
-        },
-        ...fieldsParam(FIELDS.ELEMENTS),
-      },
-      required: ["symbol"],
-    },
-  },
-  {
-    name: "rank_elements",
-    dataSource: staticDataset("Periodic Table"),
-    description:
-      "Rank chemical elements by a numeric property — atomic mass, density, melting point, boiling point, electronegativity, ionization energy, or electron affinity. Example: 'densest elements' → property='density_g_cm3'.",
-    endpoint: {
-      path: "/knowledge/elements/rank",
-      queryParams: ["property", "limit", "order", "category", "block"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        property: {
-          type: "string",
-          description: "Which property to rank by",
-          enum: [
-            "atomic_mass",
-            "electronegativity",
-            "density_g_cm3",
-            "molar_heat_j_mol_k",
-            "electron_affinity_kj_mol",
-            "first_ionization_energy_kj_mol",
-            "melting_point_k",
-            "boiling_point_k",
-          ],
-        },
-        limit: { type: "number", description: "Max results (default: 10)" },
-        order: {
-          type: "string",
-          description: "Sort order",
-          enum: ["asc", "desc"],
-        },
-        category: { type: "string", description: "Filter by element category" },
-        block: {
-          type: "string",
-          description: "Filter by block",
-          enum: ["s", "p", "d", "f"],
-        },
-        ...fieldsParam(FIELDS.ELEMENT_RANKING),
-      },
-      required: ["property"],
-    },
-  },
-  {
-    name: "get_element_categories",
-    dataSource: staticDataset("Periodic Table"),
-    description:
-      "List all element categories (noble gas, transition metal, etc.), blocks (s, p, d, f), phases at STP, and available rankable properties. Use this for discovery before searching or ranking.",
-    endpoint: { path: "/knowledge/elements/categories" },
-    parameters: {
-      type: "object",
-      properties: {},
-    },
-  },
 
   // ── World Bank Indicators ───────────────────────────────────
-  {
-    name: "get_country_indicators",
-    dataSource: staticDataset("World Bank"),
-    description:
-      "Get development indicators for a specific country by ISO alpha-3 code or name. Returns GDP, population, life expectancy, CO2 emissions, unemployment, literacy, internet penetration, and more. Data from World Bank.",
-    endpoint: {
-      path: "/knowledge/indicators/country/:code",
-      pathParams: ["code"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        code: {
-          type: "string",
-          description:
-            "ISO 3166-1 alpha-3 country code (e.g. 'USA', 'CAN', 'JPN', 'GBR') or country name",
-        },
-        ...fieldsParam(FIELDS.WORLD_BANK_COUNTRY),
-      },
-      required: ["code"],
-    },
-  },
-  {
-    name: "rank_countries_by_indicator",
-    dataSource: staticDataset("World Bank"),
-    description:
-      "Rank countries by a specific development indicator. Example: 'countries with highest GDP per capita' \u2192 indicator='gdp_per_capita_usd'. Supports ascending/descending order.",
-    endpoint: {
-      path: "/knowledge/indicators/rank",
-      queryParams: ["indicator", "limit", "order"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        indicator: {
-          type: "string",
-          description: "Which indicator to rank by",
-          enum: [
-            "gdp_usd",
-            "gdp_per_capita_usd",
-            "population",
-            "life_expectancy",
-            "infant_mortality_per_1k",
-            "co2_per_capita_tons",
-            "literacy_rate_pct",
-            "internet_users_pct",
-            "unemployment_pct",
-            "inflation_cpi_pct",
-            "forest_area_pct",
-            "renewable_energy_pct",
-            "gini_index",
-            "electricity_access_pct",
-            "health_expenditure_per_capita_usd",
-          ],
-        },
-        limit: { type: "number", description: "Max results (default: 10)" },
-        order: {
-          type: "string",
-          description: "Sort order (default: desc)",
-          enum: ["asc", "desc"],
-        },
-        ...fieldsParam(FIELDS.WORLD_BANK_RANKING),
-      },
-      required: ["indicator"],
-    },
-  },
-  {
-    name: "compare_countries",
-    dataSource: staticDataset("World Bank"),
-    description:
-      "Compare development indicators between multiple countries side-by-side. Pass comma-separated ISO alpha-3 codes. Optionally focus on a single indicator. Example: 'compare USA, CAN, GBR on life expectancy'.",
-    endpoint: {
-      path: "/knowledge/indicators/compare",
-      queryParams: ["countries", "indicator"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        countries: {
-          type: "string",
-          description:
-            "Comma-separated ISO alpha-3 codes (e.g. 'USA,CAN,JPN,GBR')",
-        },
-        indicator: {
-          type: "string",
-          description:
-            "Optional: focus comparison on one indicator (e.g. 'life_expectancy')",
-          enum: [
-            "gdp_usd",
-            "gdp_per_capita_usd",
-            "population",
-            "life_expectancy",
-            "infant_mortality_per_1k",
-            "co2_per_capita_tons",
-            "literacy_rate_pct",
-            "internet_users_pct",
-            "unemployment_pct",
-            "inflation_cpi_pct",
-            "forest_area_pct",
-            "renewable_energy_pct",
-            "gini_index",
-            "electricity_access_pct",
-            "health_expenditure_per_capita_usd",
-          ],
-        },
-        ...fieldsParam(FIELDS.WORLD_BANK_COUNTRY),
-      },
-      required: ["countries"],
-    },
-  },
   {
     name: "list_development_indicators",
     dataSource: staticDataset("World Bank"),
@@ -4875,85 +3619,36 @@ const TOOL_DEFINITIONS = [
     },
   },
 
-  // ── Airport Tools ──────────────────────────────────────────────
+  // ── Airports (4 → 1) ──────────────────────────────────────────
+  {
+    name: "lookup_airport",
+    dataSource: staticDataset("OpenFlights (7,698 airports)"),
+    description:
+      "Look up airports. Actions: 'search' (by name/city), 'code' (by IATA/ICAO code), 'country' (list by country), 'nearest' (find nearest to coordinates).",
+    endpoint: {
+      path: "/utility/airports/lookup",
+      queryParams: ["action", "q", "code", "country", "lat", "lng", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          description: "Lookup mode",
+          enum: ["search", "code", "country", "nearest"],
+        },
+        q: { type: "string", description: "Search query (action=search)" },
+        code: { type: "string", description: "IATA/ICAO code or country code (action=code or country)" },
+        lat: { type: "number", description: "Latitude (action=nearest)" },
+        lng: { type: "number", description: "Longitude (action=nearest)" },
+        limit: { type: "number", description: "Max results (default: 10)" },
+        country: { type: "string", description: "Country code filter (action=search)" },
+        fields: { type: "string", description: "Comma-separated fields to return" },
+      },
+      required: ["action"],
+    },
+  },
 
-  {
-    name: "search_airports",
-    dataSource: staticDataset("OurAirports CSV"),
-    description:
-      "Search for airports by name, IATA/ICAO code, city, or country. Returns matching airports with codes, location, and type. Use this when the user asks about airports, flight routes, or travel.",
-    endpoint: { path: "/utility/airports/search" },
-    parameters: {
-      type: "object",
-      properties: {
-        q: {
-          type: "string",
-          description: "Search query: airport name, IATA code (e.g. 'YVR'), city name, etc.",
-        },
-        limit: { type: "integer", description: "Max results (default 10)" },
-        country: {
-          type: "string",
-          description: "ISO country code to filter by (e.g. 'CA', 'US', 'JP')",
-        },
-        ...fieldsParam(FIELDS.AIRPORTS),
-      },
-      required: ["q"],
-    },
-  },
-  {
-    name: "get_airport_by_code",
-    dataSource: staticDataset("OurAirports CSV"),
-    description:
-      "Look up a specific airport by its IATA or ICAO code. Returns full details including coordinates.",
-    endpoint: { path: "/utility/airports/code/{code}" },
-    parameters: {
-      type: "object",
-      properties: {
-        code: {
-          type: "string",
-          description: "IATA (e.g. 'YVR', 'LAX') or ICAO (e.g. 'CYVR') code",
-        },
-        ...fieldsParam(FIELDS.AIRPORTS),
-      },
-      required: ["code"],
-    },
-  },
-  {
-    name: "get_airports_by_country",
-    dataSource: staticDataset("OurAirports CSV"),
-    description:
-      "List all medium and large airports in a country. Results sorted by size (large airports first).",
-    endpoint: { path: "/utility/airports/country/{code}" },
-    parameters: {
-      type: "object",
-      properties: {
-        code: {
-          type: "string",
-          description: "ISO country code (e.g. 'CA', 'US', 'JP', 'DE')",
-        },
-        limit: { type: "integer", description: "Max results (default 50)" },
-        ...fieldsParam(FIELDS.AIRPORTS),
-      },
-      required: ["code"],
-    },
-  },
-  {
-    name: "find_nearest_airports",
-    dataSource: staticDataset("OurAirports CSV"),
-    description:
-      "Find the nearest airports to a given latitude/longitude coordinate. Uses Haversine distance calculation. Great for travel planning.",
-    endpoint: { path: "/utility/airports/nearest" },
-    parameters: {
-      type: "object",
-      properties: {
-        lat: { type: "number", description: "Latitude (decimal degrees)" },
-        lng: { type: "number", description: "Longitude (decimal degrees)" },
-        limit: { type: "integer", description: "Max results (default 5)" },
-        ...fieldsParam(FIELDS.AIRPORTS_NEAREST),
-      },
-      required: ["lat", "lng"],
-    },
-  },
   {
     name: "get_public_webcams",
     dataSource: onDemand("Municipal Open Data APIs"),
@@ -4987,158 +3682,9 @@ const TOOL_DEFINITIONS = [
 
   // ── Exoplanet Tools ────────────────────────────────────────────
 
-  {
-    name: "search_exoplanets",
-    dataSource: staticDataset("NASA Exoplanet Archive"),
-    description:
-      "Search confirmed exoplanets from the NASA Exoplanet Archive by name or host star. Database contains ~6,100 planets.",
-    endpoint: { path: "/knowledge/exoplanets/search" },
-    parameters: {
-      type: "object",
-      properties: {
-        q: {
-          type: "string",
-          description: "Planet name or host star name (e.g. 'TRAPPIST-1', 'Kepler-442', 'Proxima')",
-        },
-        limit: { type: "integer", description: "Max results (default 10)" },
-        method: {
-          type: "string",
-          description: "Filter by discovery method (e.g. 'Transit', 'Radial Velocity', 'Imaging', 'Microlensing')",
-        },
-        ...fieldsParam(FIELDS.EXOPLANETS),
-      },
-      required: ["q"],
-    },
-  },
-  {
-    name: "get_exoplanet",
-    dataSource: staticDataset("NASA Exoplanet Archive"),
-    description:
-      "Get detailed information about a specific exoplanet by exact name.",
-    endpoint: { path: "/knowledge/exoplanets/lookup/{name}" },
-    parameters: {
-      type: "object",
-      properties: {
-        name: {
-          type: "string",
-          description: "Exact planet name (e.g. 'TRAPPIST-1 e', 'Kepler-442 b', 'Proxima Cen b')",
-        },
-        ...fieldsParam(FIELDS.EXOPLANETS),
-      },
-      required: ["name"],
-    },
-  },
-  {
-    name: "rank_exoplanets",
-    dataSource: staticDataset("NASA Exoplanet Archive"),
-    description:
-      "Rank exoplanets by a physical property like mass, radius, temperature, or orbital period.",
-    endpoint: { path: "/knowledge/exoplanets/rank" },
-    parameters: {
-      type: "object",
-      properties: {
-        field: {
-          type: "string",
-          description: "Field to rank by",
-          enum: [
-            "pl_orbper",
-            "pl_rade",
-            "pl_bmasse",
-            "pl_orbsmax",
-            "pl_orbeccen",
-            "pl_eqt",
-            "st_mass",
-            "st_rad",
-            "st_teff",
-            "sy_dist",
-          ],
-        },
-        limit: { type: "integer", description: "Max results (default 10)" },
-        order: {
-          type: "string",
-          enum: ["asc", "desc"],
-          description: "Sort order (default 'desc')",
-        },
-        ...fieldsParam(FIELDS.EXOPLANET_RANKING),
-      },
-      required: ["field"],
-    },
-  },
-  {
-    name: "exoplanet_discovery_stats",
-    dataSource: staticDataset("NASA Exoplanet Archive"),
-    description:
-      "Get statistics about exoplanet discoveries: methods, facilities, year ranges, and counts.",
-    endpoint: { path: "/knowledge/exoplanets/stats" },
-    parameters: {
-      type: "object",
-      properties: {
-        ...fieldsParam(FIELDS.EXOPLANET_STATS),
-      },
-    },
-  },
-  {
-    name: "habitable_zone_exoplanets",
-    dataSource: staticDataset("NASA Exoplanet Archive"),
-    description:
-      "Find exoplanets in the habitable zone (equilibrium temperature 200-320K or appropriate orbit around sun-like stars). Sorted by Earth similarity.",
-    endpoint: { path: "/knowledge/exoplanets/habitable" },
-    parameters: {
-      type: "object",
-      properties: {
-        limit: { type: "integer", description: "Max results (default 20)" },
-        ...fieldsParam(FIELDS.EXOPLANETS),
-      },
-    },
-  },
 
   // ── FDA Drug NDC Tools ─────────────────────────────────────────
 
-  {
-    name: "search_fda_drugs",
-    dataSource: staticDataset("FDA NDC Directory"),
-    description:
-      "Search FDA-registered drug products by name, brand, ingredient, or manufacturer. Database contains ~26,000 NDC products. For informational use only.",
-    endpoint: { path: "/health/drugs/ndc/search" },
-    parameters: {
-      type: "object",
-      properties: {
-        q: {
-          type: "string",
-          description: "Drug name, brand name, ingredient, or manufacturer (e.g. 'ibuprofen', 'Tylenol', 'Pfizer')",
-        },
-        limit: { type: "integer", description: "Max results (default 10)" },
-        dosageForm: {
-          type: "string",
-          description: "Filter by dosage form (e.g. 'TABLET', 'CAPSULE', 'INJECTION', 'CREAM')",
-        },
-        productType: {
-          type: "string",
-          description: "Filter by product type (e.g. 'HUMAN PRESCRIPTION DRUG', 'HUMAN OTC DRUG')",
-        },
-        ...fieldsParam(FIELDS.FDA_DRUGS),
-      },
-      required: ["q"],
-    },
-  },
-  {
-    name: "get_drug_by_ndc",
-    dataSource: staticDataset("FDA NDC Directory"),
-    description:
-      "Look up a specific FDA drug product by its NDC (National Drug Code) identifier.",
-    endpoint: { path: "/health/drugs/ndc/lookup/{ndc}" },
-    parameters: {
-      type: "object",
-      properties: {
-        ndc: {
-          type: "string",
-          description: "Product NDC code (e.g. '0069-0770')",
-        },
-        ...fieldsParam(FIELDS.FDA_DRUGS),
-      },
-      required: ["ndc"],
-    },
-  },
   {
     name: "list_drug_dosage_forms",
     dataSource: staticDataset("FDA NDC Directory"),
@@ -5150,44 +3696,6 @@ const TOOL_DEFINITIONS = [
       properties: {
         ...fieldsParam(FIELDS.FDA_DOSAGE_FORMS),
       },
-    },
-  },
-  {
-    name: "search_drugs_by_ingredient",
-    dataSource: staticDataset("FDA NDC Directory"),
-    description:
-      "Find all FDA drug products containing a specific active ingredient.",
-    endpoint: { path: "/health/drugs/ndc/ingredient" },
-    parameters: {
-      type: "object",
-      properties: {
-        q: {
-          type: "string",
-          description: "Active ingredient name (e.g. 'acetaminophen', 'ibuprofen', 'amoxicillin')",
-        },
-        limit: { type: "integer", description: "Max results (default 20)" },
-        ...fieldsParam(FIELDS.FDA_DRUGS),
-      },
-      required: ["q"],
-    },
-  },
-  {
-    name: "search_drugs_by_pharm_class",
-    dataSource: staticDataset("FDA NDC Directory"),
-    description:
-      "Find FDA drug products by pharmacological class (e.g. 'beta-blocker', 'antibiotic', 'analgesic').",
-    endpoint: { path: "/health/drugs/ndc/pharm-class" },
-    parameters: {
-      type: "object",
-      properties: {
-        q: {
-          type: "string",
-          description: "Pharmacological class (e.g. 'Beta Adrenergic Blocker', 'Nonsteroidal Anti-inflammatory', 'Opioid Agonist')",
-        },
-        limit: { type: "integer", description: "Max results (default 20)" },
-        ...fieldsParam(FIELDS.FDA_DRUGS),
-      },
-      required: ["q"],
     },
   },
 
@@ -6005,97 +4513,6 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
-    name: "git_status",
-    dataSource: compute("git subprocess"),
-    description:
-      "Get the git status of a repository — current branch, ahead/behind counts, staged/unstaged/untracked files. Equivalent to 'git status --short --branch'. Use this to understand the current state of a repo before making changes or to check if there are uncommitted modifications.",
-    endpoint: {
-      method: "POST",
-      path: "/agentic/git/status",
-      bodyParams: ["path"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        path: {
-          type: "string",
-          description: "Absolute path to a directory inside the git repository.",
-        },
-      },
-      required: ["path"],
-    },
-  },
-  {
-    name: "git_diff",
-    dataSource: compute("git subprocess"),
-    description:
-      "Get git diff output — see what's changed in the working tree or staging area. Supports diffing against specific commits/branches and filtering by file path. Returns a unified diff with addition/deletion counts.",
-    endpoint: {
-      method: "POST",
-      path: "/agentic/git/diff",
-      bodyParams: ["path", "staged", "file", "ref"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        path: {
-          type: "string",
-          description: "Absolute path to a directory inside the git repository.",
-        },
-        staged: {
-          type: "boolean",
-          description: "If true, show staged (cached) changes instead of working tree changes.",
-        },
-        file: {
-          type: "string",
-          description: "Optional absolute file path to limit the diff to a specific file.",
-        },
-        ref: {
-          type: "string",
-          description: "Optional git reference to diff against (e.g. 'HEAD~3', 'main', a commit hash).",
-        },
-      },
-      required: ["path"],
-    },
-  },
-  {
-    name: "git_log",
-    dataSource: compute("git subprocess"),
-    description:
-      "Get git commit log — recent commits with hash, author, date, and message. Supports filtering by author, date range, and file path. Returns up to 100 commits.",
-    endpoint: {
-      method: "POST",
-      path: "/agentic/git/log",
-      bodyParams: ["path", "limit", "author", "since", "file"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        path: {
-          type: "string",
-          description: "Absolute path to a directory inside the git repository.",
-        },
-        limit: {
-          type: "integer",
-          description: "Number of commits to return (default: 20, max: 100).",
-        },
-        author: {
-          type: "string",
-          description: "Filter commits by author name or email.",
-        },
-        since: {
-          type: "string",
-          description: "Show commits after this date (e.g. '2024-01-01', '1 week ago', '3 days ago').",
-        },
-        file: {
-          type: "string",
-          description: "Show only commits affecting this file path.",
-        },
-      },
-      required: ["path"],
-    },
-  },
-  {
     name: "project_summary",
     dataSource: compute("fs scan"),
     description:
@@ -6117,6 +4534,36 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
+    name: "git",
+    dataSource: compute("git subprocess"),
+    description:
+      "Run git operations on a repository. Actions: 'status' (branch, staged/unstaged/untracked files), 'diff' (show changes — optionally staged, specific file, or against a ref), 'log' (commit history — filter by author, date, file).",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/git",
+      bodyParams: ["action", "path", "staged", "file", "ref", "limit", "author", "since"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          description: "Git operation",
+          enum: ["status", "diff", "log"],
+        },
+        path: { type: "string", description: "Absolute path to the repo root" },
+        staged: { type: "boolean", description: "Show staged changes only (diff)" },
+        file: { type: "string", description: "Specific file to diff or filter log" },
+        ref: { type: "string", description: "Git ref to diff against" },
+        limit: { type: "number", description: "Max commits (log, default: 10)" },
+        author: { type: "string", description: "Filter by author (log)" },
+        since: { type: "string", description: "Since date, e.g. '2 weeks ago' (log)" },
+      },
+      required: ["action", "path"],
+    },
+  },
+  {
+
     name: "browser_action",
     dataSource: compute("headless Chromium (Playwright)"),
     description:
@@ -6296,42 +4743,18 @@ const TOOL_DEFINITIONS = [
 
 const TOOL_DOMAINS = {
   // Weather & Environment
-  get_current_weather: "Weather & Environment",
+  get_environment_data: "Weather & Environment",
   get_weather_forecast: "Weather & Environment",
-  get_air_quality: "Weather & Environment",
-  get_earthquakes: "Weather & Environment",
-  get_solar_activity: "Weather & Environment",
-  get_aurora_forecast: "Weather & Environment",
-  get_twilight: "Weather & Environment",
-  get_tides: "Weather & Environment",
-  get_wildfires: "Weather & Environment",
-  get_iss_position: "Weather & Environment",
-  get_near_earth_objects: "Weather & Environment",
-  get_solar_wind: "Weather & Environment",
-  get_pollen: "Weather & Environment",
-  get_apod: "Weather & Environment",
-  get_launches: "Weather & Environment",
-  get_weather_warnings: "Weather & Environment",
   get_avalanche_forecast: "Weather & Environment",
-  get_google_air_quality: "Weather & Environment",
 
   // Events
-  search_events: "Events",
-  get_upcoming_events: "Events",
-  get_events_today: "Events",
-  get_event_summary: "Events",
+  get_events: "Events",
 
   // Markets & Commodities
-  get_commodities_summary: "Markets & Commodities",
-  get_commodity_by_category: "Markets & Commodities",
-  get_commodity_ticker: "Markets & Commodities",
-  get_commodity_categories: "Markets & Commodities",
-  get_commodity_history: "Markets & Commodities",
+  get_commodities: "Markets & Commodities",
 
   // Trends
   get_trends: "Trends",
-  get_hot_trends: "Trends",
-  get_top_trends: "Trends",
 
   // Products
   search_products: "Products",
@@ -6342,44 +4765,22 @@ const TOOL_DOMAINS = {
   get_costco_ca_products: "Products",
 
   // Finance
-  get_stock_quote: "Finance",
-  get_company_profile: "Finance",
+  get_stock_data: "Finance",
+  get_macro_data: "Finance",
   get_market_news: "Finance",
   get_earnings_calendar: "Finance",
-  get_stock_recommendation: "Finance",
-  get_stock_financials: "Finance",
-  get_macro_indicators: "Finance",
-  search_macro_series: "Finance",
-  get_macro_series_info: "Finance",
-  get_macro_observations: "Finance",
 
   // Knowledge
+  lookup_book: "Knowledge",
+  get_country_data: "Knowledge",
+  get_element_data: "Knowledge",
+  get_exoplanet_data: "Knowledge",
+  get_anime: "Knowledge",
   define_word: "Knowledge",
-  search_books: "Knowledge",
-  get_book_details: "Knowledge",
-  get_author_info: "Knowledge",
-  get_country_info: "Knowledge",
-  get_country_by_code: "Knowledge",
   search_papers: "Knowledge",
   get_wikipedia_summary: "Knowledge",
   get_on_this_day: "Knowledge",
-  search_anime: "Knowledge",
-  get_top_anime: "Knowledge",
-  get_current_season_anime: "Knowledge",
-  get_anime_details: "Knowledge",
-  search_elements: "Knowledge",
-  get_element: "Knowledge",
-  rank_elements: "Knowledge",
-  get_element_categories: "Knowledge",
-  get_country_indicators: "Knowledge",
-  rank_countries_by_indicator: "Knowledge",
-  compare_countries: "Knowledge",
   list_development_indicators: "Knowledge",
-  search_exoplanets: "Knowledge",
-  get_exoplanet: "Knowledge",
-  rank_exoplanets: "Knowledge",
-  exoplanet_discovery_stats: "Knowledge",
-  habitable_zone_exoplanets: "Knowledge",
   get_youtube_video: "Knowledge",
   get_web_content: "Knowledge",
   get_package_info: "Knowledge",
@@ -6387,22 +4788,16 @@ const TOOL_DOMAINS = {
   read_rss_feed: "Knowledge",
 
   // Movies & TV
-  search_movies: "Movies & TV",
-  get_movie_details: "Movies & TV",
-  get_movie_credits: "Movies & TV",
-  get_trending_movies: "Movies & TV",
-  discover_movies: "Movies & TV",
-  get_movie_genres: "Movies & TV",
-  search_tv_shows: "Movies & TV",
-  get_tv_show_details: "Movies & TV",
-  get_tv_show_credits: "Movies & TV",
-  get_tv_season_details: "Movies & TV",
-  get_trending_tv_shows: "Movies & TV",
-  discover_tv_shows: "Movies & TV",
-  get_tv_genres: "Movies & TV",
+  search_media: "Movies & TV",
+  get_media_details: "Movies & TV",
+  get_media_credits: "Movies & TV",
+  get_trending_media: "Movies & TV",
+  discover_media: "Movies & TV",
+  get_media_genres: "Movies & TV",
 
   // Health
-  search_drug_info: "Health",
+  rank_foods: "Health",
+  search_drugs: "Health",
   get_drug_adverse_events: "Health",
   get_drug_recalls: "Health",
   search_usda_nutrition: "Health",
@@ -6411,20 +4806,9 @@ const TOOL_DOMAINS = {
   get_food_categories: "Health",
   get_nutrient_types: "Health",
   list_category_nutrients: "Health",
-  top_foods_by_macro: "Health",
-  top_foods_by_mineral: "Health",
-  top_foods_by_vitamin: "Health",
-  top_foods_by_amino_acid: "Health",
-  top_foods_by_lipid: "Health",
-  top_foods_by_carb: "Health",
-  top_foods_by_sterol: "Health",
   search_foods_by_taxonomy: "Health",
   browse_food_taxonomy: "Health",
-  search_fda_drugs: "Health",
-  get_drug_by_ndc: "Health",
   list_drug_dosage_forms: "Health",
-  search_drugs_by_ingredient: "Health",
-  search_drugs_by_pharm_class: "Health",
   search_gym_exercises: "Health",
   get_gym_exercise_categories: "Health",
   get_gym_exercise_by_id: "Health",
@@ -6436,6 +4820,7 @@ const TOOL_DOMAINS = {
   get_transit_route_info: "Transit",
 
   // Utilities
+  lookup_airport: "Utilities",
   precise_calculator: "Utilities",
   convert_currency: "Utilities",
   get_time_in_timezone: "Utilities",
@@ -6444,10 +4829,6 @@ const TOOL_DOMAINS = {
   search_places: "Utilities",
   generate_map: "Utilities",
   generate_chart: "Utilities",
-  search_airports: "Utilities",
-  get_airport_by_code: "Utilities",
-  get_airports_by_country: "Utilities",
-  find_nearest_airports: "Utilities",
   get_public_webcams: "Utilities",
   execute_python: "Utilities",
 
@@ -6508,10 +4889,8 @@ const TOOL_DOMAINS = {
   run_command: "Agentic: Command Execution",
 
   // Agentic — Git
-  git_status: "Agentic: Git",
-  git_diff: "Agentic: Git",
-  git_log: "Agentic: Git",
 
+  git: "Agentic: Git",
   // Agentic — Browser Automation
   browser_action: "Agentic: Browser",
 
@@ -6625,6 +5004,27 @@ function isToolAvailable(toolName) {
 // ────────────────────────────────────────────────────────────
 
 const TOOL_LABELS = {
+  get_environment_data: ["location"],
+  rank_foods: ["health"],
+  search_drugs: ["health"],
+  search_media: ["media"],
+  get_media_details: ["media"],
+  get_media_credits: ["media"],
+  get_trending_media: ["media"],
+  discover_media: ["media"],
+  get_media_genres: ["media"],
+  git: ["coding"],
+  lookup_book: ["reference"],
+  get_country_data: ["reference"],
+  get_element_data: ["reference"],
+  get_exoplanet_data: ["reference"],
+  lookup_airport: ["location"],
+  get_events: ["location"],
+  get_trends: ["web"],
+  get_anime: ["media"],
+  get_commodities: ["finance"],
+  get_stock_data: ["finance"],
+  get_macro_data: ["finance"],
   // ── Weather & Environment ───────────────────────────────
   get_weather: ["location"],
   get_weather_forecast: ["location"],
@@ -6632,23 +5032,7 @@ const TOOL_LABELS = {
   get_weather_marine: ["location"],
   get_weather_astronomy: ["location"],
   get_weather_alerts: ["location"],
-  get_weather_warnings: ["location"],
   get_avalanche_forecast: ["location"],
-  get_google_air_quality: ["location", "health"],
-  get_pollen: ["location", "health"],
-  get_current_weather: ["location"],
-  get_air_quality: ["location", "health"],
-  get_earthquakes: ["location"],
-  get_solar_activity: ["reference"],
-  get_aurora_forecast: ["location"],
-  get_twilight: ["location"],
-  get_tides: ["location"],
-  get_wildfires: ["location"],
-  get_iss_position: ["reference"],
-  get_near_earth_objects: ["reference"],
-  get_solar_wind: ["reference"],
-  get_apod: ["reference"],
-  get_launches: ["reference"],
 
   // ── Sports ───────────────────────────────────────────────
   get_live_scores: ["sports"],
@@ -6663,22 +5047,10 @@ const TOOL_LABELS = {
   get_league_top_scorers: ["sports"],
 
   // ── Events ───────────────────────────────────────────────
-  search_events: ["location"],
-  get_upcoming_events: ["location"],
-  get_events_today: ["location"],
-  get_event_summary: ["location"],
 
   // ── Markets & Commodities ────────────────────────────────
-  get_commodities_summary: ["finance"],
-  get_commodity_by_category: ["finance"],
-  get_commodity_ticker: ["finance"],
-  get_commodity_categories: ["finance"],
-  get_commodity_history: ["finance"],
 
   // ── Trends ───────────────────────────────────────────────
-  get_trends: ["web"],
-  get_hot_trends: ["web"],
-  get_top_trends: ["web"],
 
   // ── Products ─────────────────────────────────────────────
   search_products: ["shopping"],
@@ -6689,24 +5061,11 @@ const TOOL_LABELS = {
   get_costco_ca_products: ["shopping"],
 
   // ── Finance ──────────────────────────────────────────────
-  get_stock_quote: ["finance"],
-  get_company_profile: ["finance"],
   get_market_news: ["finance"],
   get_earnings_calendar: ["finance"],
-  get_stock_recommendation: ["finance"],
-  get_stock_financials: ["finance"],
-  get_macro_indicators: ["finance"],
-  search_macro_series: ["finance"],
-  get_macro_series_info: ["finance"],
-  get_macro_observations: ["finance"],
 
   // ── Knowledge ────────────────────────────────────────────
   define_word: ["reference"],
-  search_books: ["reference"],
-  get_book_details: ["reference"],
-  get_author_info: ["reference"],
-  get_country_info: ["reference"],
-  get_country_by_code: ["reference"],
   search_papers: ["reference", "coding"],
   get_youtube_video: ["web"],
   get_web_content: ["web", "coding"],
@@ -6715,41 +5074,11 @@ const TOOL_LABELS = {
   read_rss_feed: ["web"],
   get_wikipedia_summary: ["reference"],
   get_on_this_day: ["reference"],
-  search_anime: ["media"],
-  get_top_anime: ["media"],
-  get_current_season_anime: ["media"],
-  get_anime_details: ["media"],
-  search_elements: ["reference"],
-  get_element: ["reference"],
-  rank_elements: ["reference"],
-  get_element_categories: ["reference"],
-  get_country_indicators: ["reference"],
-  rank_countries_by_indicator: ["reference"],
-  compare_countries: ["reference"],
   list_development_indicators: ["reference"],
-  search_exoplanets: ["reference"],
-  get_exoplanet: ["reference"],
-  rank_exoplanets: ["reference"],
-  exoplanet_discovery_stats: ["reference"],
-  habitable_zone_exoplanets: ["reference"],
 
   // ── Movies & TV ──────────────────────────────────────────
-  search_movies: ["media"],
-  get_movie_details: ["media"],
-  get_movie_credits: ["media"],
-  get_trending_movies: ["media"],
-  discover_movies: ["media"],
-  get_movie_genres: ["media"],
-  search_tv_shows: ["media"],
-  get_tv_show_details: ["media"],
-  get_tv_show_credits: ["media"],
-  get_tv_season_details: ["media"],
-  get_trending_tv_shows: ["media"],
-  discover_tv_shows: ["media"],
-  get_tv_genres: ["media"],
 
   // ── Health ───────────────────────────────────────────────
-  search_drug_info: ["health"],
   get_drug_adverse_events: ["health"],
   get_drug_recalls: ["health"],
   search_gym_exercises: ["health"],
@@ -6761,20 +5090,9 @@ const TOOL_LABELS = {
   get_food_categories: ["health"],
   get_nutrient_types: ["health"],
   list_category_nutrients: ["health"],
-  top_foods_by_macro: ["health"],
-  top_foods_by_mineral: ["health"],
-  top_foods_by_vitamin: ["health"],
-  top_foods_by_amino_acid: ["health"],
-  top_foods_by_lipid: ["health"],
-  top_foods_by_carb: ["health"],
-  top_foods_by_sterol: ["health"],
   search_foods_by_taxonomy: ["health"],
   browse_food_taxonomy: ["health"],
-  search_fda_drugs: ["health"],
-  get_drug_by_ndc: ["health"],
   list_drug_dosage_forms: ["health"],
-  search_drugs_by_ingredient: ["health"],
-  search_drugs_by_pharm_class: ["health"],
 
   // ── Transit ──────────────────────────────────────────────
   get_next_bus: ["location"],
@@ -6792,10 +5110,6 @@ const TOOL_LABELS = {
   search_places: ["location"],
   generate_map: ["location"],
   generate_chart: ["data"],
-  search_airports: ["location"],
-  get_airport_by_code: ["location"],
-  get_airports_by_country: ["location"],
-  find_nearest_airports: ["location"],
   get_public_webcams: ["location"],
 
   // ── Compute ──────────────────────────────────────────────
@@ -6855,9 +5169,6 @@ const TOOL_LABELS = {
   run_command: ["coding"],
 
   // ── Agentic: Git ─────────────────────────────────────────
-  git_status: ["coding"],
-  git_diff: ["coding"],
-  git_log: ["coding"],
 
   // ── Agentic: Browser ─────────────────────────────────────
   browser_action: ["web"],

@@ -67,4 +67,28 @@ export function getTrendHealth() {
   return getHealth();
 }
 
+
+// ── Unified Trends Dispatcher ──────────────────────────────────────
+
+router.get("/data", async (req, res) => {
+  const { action, source, hours, limit: rawLimit } = req.query;
+  if (!action) return res.status(400).json({ error: "'action' is required", actions: ["current", "hot", "top"] });
+  const limit = rawLimit ? parseInt(rawLimit, 10) : undefined;
+
+  switch (action) {
+    case "current": {
+      const trends = source ? getBySource(source) : getAll();
+      return res.json({ action, ...trends });
+    }
+    case "hot":
+      return res.json({ action, ...getCorrelatedTrends() });
+    case "top": {
+      const h = hours ? parseInt(hours, 10) : 24;
+      return res.json({ action, ...(await getTopTrends(h, limit || 20)) });
+    }
+    default:
+      return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["current", "hot", "top"] });
+  }
+});
+
 export default router;

@@ -187,4 +187,44 @@ export function getFinanceHealth() {
   return health;
 }
 
+
+// ── Unified Stock Data Dispatcher ──────────────────────────────────
+
+router.get("/stock/data", async (req, res) => {
+  const { action, symbol } = req.query;
+  if (!action || !symbol) return res.status(400).json({ error: "'action' and 'symbol' are required", actions: ["quote", "profile", "recommendation", "financials"] });
+
+  const pathMap = {
+    quote: `/quote/${symbol}`,
+    profile: `/profile/${symbol}`,
+    recommendation: `/recommendation/${symbol}`,
+    financials: `/financials/${symbol}`,
+  };
+  if (!pathMap[action]) return res.status(400).json({ error: `Unknown action: ${action}`, actions: Object.keys(pathMap) });
+
+  // Internal redirect: re-use existing routes by forwarding the request
+  req.url = pathMap[action];
+  req.params.symbol = symbol;
+  return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+});
+
+// ── Unified Macro Data Dispatcher ──────────────────────────────────
+
+router.get("/macro/data", async (req, res) => {
+  const { action, q, seriesId, limit, orderBy, sortOrder, observationStart, observationEnd } = req.query;
+  if (!action) return res.status(400).json({ error: "'action' is required", actions: ["indicators", "search", "series", "observations"] });
+
+  const pathMap = {
+    indicators: "/macro/indicators",
+    search: `/macro/search?q=${q || ""}&limit=${limit || 10}&orderBy=${orderBy || ""}`,
+    series: `/macro/series/${seriesId || "GDP"}`,
+    observations: `/macro/series/${seriesId || "GDP"}/observations?limit=${limit || 10}&sortOrder=${sortOrder || "desc"}&observationStart=${observationStart || ""}&observationEnd=${observationEnd || ""}`,
+  };
+  if (!pathMap[action]) return res.status(400).json({ error: `Unknown action: ${action}`, actions: Object.keys(pathMap) });
+
+  req.url = pathMap[action];
+  if (seriesId) req.params.seriesId = seriesId;
+  return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+});
+
 export default router;

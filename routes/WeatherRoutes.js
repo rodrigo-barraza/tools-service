@@ -200,6 +200,46 @@ router.get("/warnings/count", (_req, res) => res.json(getWarningCount()));
 
 router.get("/avalanche", (_req, res) => res.json(getAvalanche()));
 
+// ── Unified Environment Dispatcher ─────────────────────────────────
+
+const SOURCE_MAP = {
+  current_weather: () => getCurrent(),
+  air_quality: () => getAirQuality(),
+  earthquakes: () => getLatestEarthquakes(),
+  solar_activity: () => getSpaceWeatherSummary(),
+  aurora: () => getCurrentKp(),
+  twilight: () => getTwilight(),
+  tides: () => getTides(),
+  wildfires: () => getWildfires(),
+  iss: () => getIssData(),
+  neo: () => getNeoSummary(),
+  solar_wind: () => getSolarWindLatest(),
+  pollen: () => getPollenToday(),
+  apod: () => getApod(),
+  launches: () => getLaunchSummary(),
+  warnings: () => getWarnings(),
+  air_quality_google: () => getGoogleAirQuality(),
+};
+
+router.get("/environment", (req, res) => {
+  const { source } = req.query;
+  if (!source) {
+    return res.status(400).json({
+      error: "Query parameter 'source' is required",
+      availableSources: Object.keys(SOURCE_MAP),
+    });
+  }
+  const handler = SOURCE_MAP[source];
+  if (!handler) {
+    return res.status(400).json({
+      error: `Unknown source: ${source}`,
+      availableSources: Object.keys(SOURCE_MAP),
+    });
+  }
+  const data = handler();
+  res.json({ source, ...data });
+});
+
 // ─── Domain Health ─────────────────────────────────────────────────
 
 export function getWeatherHealth() {

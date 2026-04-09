@@ -574,4 +574,29 @@ export function getUtilityHealth() {
   };
 }
 
+
+// ── Unified Airport Lookup Dispatcher ──────────────────────────────
+
+router.get("/airports/lookup", async (req, res) => {
+  const { action, q, code, country, lat, lng, limit } = req.query;
+  if (!action) return res.status(400).json({ error: "'action' is required", actions: ["search", "code", "country", "nearest"] });
+
+  switch (action) {
+    case "search":
+      req.url = `/airports/search?q=${q || ""}&limit=${limit || 10}&country=${country || ""}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "code":
+      req.url = `/airports/code/${code || ""}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "country":
+      req.url = `/airports/country/${code || country || ""}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "nearest":
+      req.url = `/airports/nearest?lat=${lat || 0}&lng=${lng || 0}&limit=${limit || 10}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    default:
+      return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["search", "code", "country", "nearest"] });
+  }
+});
+
 export default router;
