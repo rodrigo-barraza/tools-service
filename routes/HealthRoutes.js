@@ -15,6 +15,7 @@ import {
   searchByTaxonomy,
   getTaxonomyTree,
 } from "../fetchers/health/NutritionFetcher.js";
+import { calculateTargetProfile } from "../fetchers/health/NutritionRequirementFetcher.js";
 import {
   searchDrugs,
   getDrugByNdc,
@@ -27,6 +28,25 @@ import {
   getExerciseById,
   getExerciseCategories,
 } from "../fetchers/health/ExercisesFetcher.js";
+import {
+  calculateCaloricNeeds,
+  getCaloricNeedsOptions,
+} from "../fetchers/health/CalorieCalculatorFetcher.js";
+import { analyzeNutrientGaps } from "../fetchers/health/NutrientGapFetcher.js";
+import {
+  findFoodSubstitutes,
+  getDietaryPreferences,
+} from "../fetchers/health/FoodSubstituteFetcher.js";
+import {
+  estimateExerciseCalories,
+  getMetCategories,
+} from "../fetchers/health/ExerciseCalorieFetcher.js";
+import { calculateHydrationNeeds } from "../fetchers/health/HydrationFetcher.js";
+import { buildMealPlan } from "../fetchers/health/MealPlanFetcher.js";
+import {
+  checkDrugNutrientInteractions,
+  getDrugInteractionCategories,
+} from "../fetchers/health/DrugNutrientFetcher.js";
 import { parseIntParam, asyncHandler } from "../utilities.js";
 
 const router = Router();
@@ -152,6 +172,19 @@ router.get("/nutrition/taxonomy/tree", (req, res) => {
   res.json(result);
 });
 
+router.get("/nutrition/requirements", (req, res) => {
+  const { species, lifeStage, authority, weightKg, caloricIntake, includeCompositional } = req.query;
+  const result = calculateTargetProfile({
+    species,
+    lifeStage,
+    authority,
+    weightKg: weightKg ? parseFloat(weightKg) : undefined,
+    caloricIntake: caloricIntake ? parseFloat(caloricIntake) : undefined,
+    includeCompositional: includeCompositional === "true",
+  });
+  res.json(result);
+});
+
 // ─── Drug Info (openFDA) ───────────────────────────────────────────
 
 router.get("/drugs/search", async (req, res) => {
@@ -254,6 +287,194 @@ router.get("/exercises/:id", (req, res) => {
   res.json(result);
 });
 
+// ─── Calorie Calculator (BMR/TDEE) ─────────────────────────────────
+
+router.get("/calories/calculate", (req, res) => {
+  const { sex, weightKg, heightCm, ageYears, activityLevel, goal, macroSplit, bodyFatPct } = req.query;
+  if (!sex || !weightKg || !heightCm || !ageYears) {
+    return res.status(400).json({
+      error: "Required parameters: sex, weightKg, heightCm, ageYears",
+    });
+  }
+  const result = calculateCaloricNeeds({
+    sex,
+    weightKg: parseFloat(weightKg),
+    heightCm: parseFloat(heightCm),
+    ageYears: parseFloat(ageYears),
+    activityLevel,
+    goal,
+    macroSplit,
+    bodyFatPct: bodyFatPct ? parseFloat(bodyFatPct) : undefined,
+  });
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+router.get("/calories/options", asyncHandler(
+  () => getCaloricNeedsOptions(),
+  "Caloric options lookup",
+  500,
+));
+
+// ─── Nutrient Gap Analysis ─────────────────────────────────────────
+
+router.post("/nutrition/gap-analysis", (req, res) => {
+  const { foods, species, lifeStage, authority, weightKg, caloricIntake } = req.body;
+  const result = analyzeNutrientGaps({
+    foods,
+    species,
+    lifeStage,
+    authority,
+    weightKg: weightKg ? parseFloat(weightKg) : undefined,
+    caloricIntake: caloricIntake ? parseFloat(caloricIntake) : undefined,
+  });
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// GET variant for agent tool-call compatibility
+router.get("/nutrition/gap-analysis", (req, res) => {
+  const { foods, species, lifeStage, authority, weightKg, caloricIntake } = req.query;
+  if (!foods) {
+    return res.status(400).json({
+      error: "'foods' is required — JSON array of {name, grams} objects. Example: [{\"name\":\"chicken\",\"grams\":200}]",
+    });
+  }
+  let parsedFoods;
+  try {
+    parsedFoods = JSON.parse(foods);
+  } catch {
+    return res.status(400).json({ error: "'foods' must be valid JSON array" });
+  }
+  const result = analyzeNutrientGaps({
+    foods: parsedFoods,
+    species,
+    lifeStage,
+    authority,
+    weightKg: weightKg ? parseFloat(weightKg) : undefined,
+    caloricIntake: caloricIntake ? parseFloat(caloricIntake) : undefined,
+  });
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// ─── Food Substitutes ──────────────────────────────────────────────
+
+router.get("/nutrition/substitutes", (req, res) => {
+  const { food, targetNutrients, dietaryPreference, excludeKingdom, excludeFoods, limit } = req.query;
+  if (!food) {
+    return res.status(400).json({ error: "'food' parameter is required" });
+  }
+  const result = findFoodSubstitutes({
+    food,
+    targetNutrients,
+    dietaryPreference,
+    excludeKingdom,
+    excludeFoods,
+    limit: parseIntParam(limit, 10),
+  });
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+router.get("/nutrition/substitutes/preferences", asyncHandler(
+  () => getDietaryPreferences(),
+  "Dietary preferences lookup",
+  500,
+));
+
+// ─── Exercise Calorie Estimation ───────────────────────────────────
+
+router.get("/exercises/calories", (req, res) => {
+  const { exercise, durationMinutes, weightKg, intensity, category } = req.query;
+  if (!exercise || !durationMinutes || !weightKg) {
+    return res.status(400).json({
+      error: "Required parameters: exercise, durationMinutes, weightKg",
+    });
+  }
+  const result = estimateExerciseCalories({
+    exercise,
+    durationMinutes: parseFloat(durationMinutes),
+    weightKg: parseFloat(weightKg),
+    intensity,
+    category,
+  });
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+router.get("/exercises/met-categories", asyncHandler(
+  () => getMetCategories(),
+  "MET categories lookup",
+  500,
+));
+
+// ─── Hydration Calculator ──────────────────────────────────────────
+
+router.get("/hydration/calculate", (req, res) => {
+  const {
+    weightKg, activityLevel, climateTemp, exerciseMinutes,
+    exerciseIntensity, altitudeM, pregnant, breastfeeding, caffeineIntakeMg,
+  } = req.query;
+  if (!weightKg) {
+    return res.status(400).json({ error: "'weightKg' is required" });
+  }
+  const result = calculateHydrationNeeds({
+    weightKg: parseFloat(weightKg),
+    activityLevel,
+    climateTemp: climateTemp ? parseFloat(climateTemp) : undefined,
+    exerciseMinutes: exerciseMinutes ? parseFloat(exerciseMinutes) : undefined,
+    exerciseIntensity,
+    altitudeM: altitudeM ? parseFloat(altitudeM) : undefined,
+    pregnant: pregnant === "true",
+    breastfeeding: breastfeeding === "true",
+    caffeineIntakeMg: caffeineIntakeMg ? parseFloat(caffeineIntakeMg) : undefined,
+  });
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// ─── Meal Plan Builder ─────────────────────────────────────────────
+
+router.get("/nutrition/meal-plan", (req, res) => {
+  const {
+    caloricTarget, mealsPerDay, dietaryPreference, excludeFoods,
+    emphasizeNutrients, species, lifeStage, weightKg, itemsPerMeal,
+  } = req.query;
+  if (!caloricTarget) {
+    return res.status(400).json({ error: "'caloricTarget' is required (e.g. 2000)" });
+  }
+  const result = buildMealPlan({
+    caloricTarget: parseFloat(caloricTarget),
+    mealsPerDay: mealsPerDay ? parseInt(mealsPerDay, 10) : 3,
+    dietaryPreference,
+    excludeFoods,
+    emphasizeNutrients,
+    species,
+    lifeStage,
+    weightKg: weightKg ? parseFloat(weightKg) : undefined,
+    itemsPerMeal: itemsPerMeal ? parseInt(itemsPerMeal, 10) : 4,
+  });
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// ─── Drug-Nutrient Interactions ────────────────────────────────────
+
+router.get("/drugs/nutrient-interactions", (req, res) => {
+  const { drug, nutrients } = req.query;
+  if (!drug) {
+    return res.status(400).json({ error: "'drug' parameter is required" });
+  }
+  res.json(checkDrugNutrientInteractions({ drug, nutrients }));
+});
+
+router.get("/drugs/nutrient-interactions/categories", asyncHandler(
+  () => getDrugInteractionCategories(),
+  "Drug-nutrient interaction categories",
+  500,
+));
+
 // ─── Health ────────────────────────────────────────────────────────
 
 export function getHealthDomainHealth() {
@@ -262,6 +483,13 @@ export function getHealthDomainHealth() {
     usdaNutrition: "on-demand (in-memory, ~1346 raw whole foods)",
     fdaDrugNdc: "on-demand (in-memory, ~26,000 products)",
     freeExerciseDb: "on-demand (in-memory, ~1700+ exercises from multiple sources)",
+    calorieCalculator: "compute (Mifflin-St Jeor / TDEE)",
+    nutrientGapAnalysis: "compute (NutritionFetcher + RequirementFetcher)",
+    foodSubstitutes: "compute (cosine similarity on nutrient vectors)",
+    exerciseCalories: "compute (MET-based, Compendium of Physical Activities)",
+    hydration: "compute (ACSM/IOM guidelines)",
+    mealPlan: "compute (greedy nutrient-coverage optimizer)",
+    drugNutrientInteractions: "static (curated pharmacological dataset)",
   };
 }
 

@@ -6,7 +6,8 @@
 // saving system prompt space for the agent.
 //
 // Supported platforms:
-//   GitHub, Reddit, Twitter/X, Hacker News, Stack Overflow
+//   GitHub, Reddit, Twitter/X, Hacker News, Stack Overflow,
+//   YouTube, and any generic web page (fallback)
 // ============================================================
 
 import { getRedditThread } from "./RedditFetcher.js";
@@ -14,11 +15,18 @@ import { getTwitterPost } from "./TwitterFetcher.js";
 import { getHackerNewsThread } from "./HackerNewsFetcher.js";
 import { getStackOverflowQuestion } from "./StackOverflowFetcher.js";
 import { getGitHubRepo } from "./GitHubFetcher.js";
+import { getYouTubeVideoInfo } from "../knowledge/YouTubeFetcher.js";
+import { fetchGenericPage } from "./GenericPageFetcher.js";
 
 // ─── Platform Detection ──────────────────────────────────────────
 // Order matters: more specific patterns first, catch-alls last.
 
 const PLATFORM_PATTERNS = [
+  {
+    platform: "youtube",
+    test: (url) =>
+      /(?:youtube\.com|youtu\.be|youtube-nocookie\.com)/i.test(url),
+  },
   {
     platform: "reddit",
     test: (url) =>
@@ -54,7 +62,7 @@ const PLATFORM_PATTERNS = [
 /**
  * Detect which platform a URL belongs to.
  * @param {string} url
- * @returns {string|null}
+ * @returns {string|null} Platform name, or null for generic pages
  */
 function detectPlatform(url) {
   if (!url || typeof url !== "string") return null;
@@ -68,29 +76,35 @@ function detectPlatform(url) {
 // ─── Public API ───────────────────────────────────────────────────
 
 /**
- * Extract structured content from a URL on any supported platform.
- * Auto-detects GitHub, Reddit, Twitter/X, Hacker News, or Stack Overflow.
+ * Extract structured content from any URL.
+ * Auto-detects GitHub, Reddit, Twitter/X, Hacker News, Stack Overflow,
+ * or YouTube. Falls back to generic HTML extraction for unknown sites.
  *
- * @param {string} url - URL from any supported platform
+ * @param {string} url - Any URL
  * @param {object} [options]
  * @param {number}  [options.commentLimit]  - Max comments (Reddit/HN, default: 20/25)
  * @param {number}  [options.answerLimit]   - Max answers (Stack Overflow, default: 5)
  * @param {string}  [options.readme]        - "true"/"false" — include README (GitHub, default: true)
  * @param {string}  [options.languages]     - "true"/"false" — include language breakdown (GitHub, default: true)
+ * @param {string}  [options.transcript]    - "true"/"false" — include transcript (YouTube, default: true)
+ * @param {string}  [options.lang]          - Transcript language (YouTube, default: "en")
+ * @param {number}  [options.maxChars]      - Max body text chars (generic, default: 15000)
  * @returns {Promise<object>} Platform-specific result with "platform" field
  */
 export async function getWebContent(url, options = {}) {
   const platform = detectPlatform(url);
 
-  if (!platform) {
-    return {
-      error: `Could not detect platform from URL: "${url}". Supported: GitHub (URL or owner/repo), Reddit, Twitter/X, Hacker News, Stack Overflow.`,
-    };
-  }
-
   let result;
 
   switch (platform) {
+    case "youtube":
+      result = await getYouTubeVideoInfo(url, {
+        lang: options.lang,
+        includeTranscript: options.transcript !== "false",
+        includeTimestamps: true,
+      });
+      break;
+
     case "reddit":
       result = await getRedditThread(url, {
         commentLimit: options.commentLimit ? parseInt(options.commentLimit, 10) : undefined,
@@ -122,11 +136,18 @@ export async function getWebContent(url, options = {}) {
         includeLanguages: options.languages !== "false",
       });
       break;
+
+    default:
+      // Generic fallback — fetch + Cheerio extraction
+      result = await fetchGenericPage(url, {
+        maxChars: options.maxChars,
+      });
+      break;
   }
 
   // Tag the result with the detected platform
   if (result && !result.error) {
-    result.platform = platform;
+    result.platform = platform || "generic";
   }
 
   return result;

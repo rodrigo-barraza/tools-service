@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import logger from "../../logger.js";
+
 
 // ═══════════════════════════════════════════════════════════════
 //  Clock Crew Forum Fetcher — clockcrew.net SMF 2.1 Scraper
@@ -31,25 +31,13 @@ function sleep(ms) {
 
 /**
  * Fetch a URL and return the HTML body as a string.
- * Includes retry logic with exponential backoff.
  */
-async function fetchPage(url, retries = 3) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const response = await fetch(url, { headers: HEADERS });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} for ${url}`);
-      }
-      return await response.text();
-    } catch (error) {
-      if (attempt === retries) throw error;
-      const backoff = attempt * 2000;
-      logger.warn(
-        `[ClockCrew] Attempt ${attempt}/${retries} failed for ${url} — retrying in ${backoff}ms`,
-      );
-      await sleep(backoff);
-    }
+async function fetchPage(url) {
+  const response = await fetch(url, { headers: HEADERS });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} for ${url}`);
   }
+  return await response.text();
 }
 
 // ─── Board Discovery ────────────────────────────────────────────
@@ -422,3 +410,196 @@ export async function fetchAllPostsForTopic(topicId) {
 
   return { posts: allPosts, thread: threadMeta };
 }
+
+// ─── User Profile Scraping ──────────────────────────────────────
+
+/**
+ * Fetch and parse a user's profile page by their SMF userId.
+ * Returns a structured user object or null if the profile is inaccessible.
+ */
+export async function fetchUserProfile(userId) {
+  const url = `${BASE_URL}?action=profile;u=${userId}`;
+
+  let html;
+  try {
+    html = await fetchPage(url);
+  } catch {
+    return null;
+  }
+
+  const $ = cheerio.load(html);
+
+  // Validate we're on a real profile page
+  const pageTitle = $("title").text().trim();
+  if (!pageTitle.startsWith("Profile of ")) return null;
+
+  const username = pageTitle.replace("Profile of ", "").trim();
+
+  // ─── Parse dt/dd field pairs ──────────────────────────────────
+  const fields = {};
+  $("dt").each((_i, el) => {
+    const label = $(el).text().trim().replace(/:$/, "");
+    const $dd = $(el).next("dd");
+    if ($dd.length) {
+      fields[label] = $dd.text().trim();
+    }
+  });
+
+  // ─── Post count ───────────────────────────────────────────────
+  let postCount = 0;
+  const postsRaw = fields["Posts"] || "";
+  const postMatch = postsRaw.match(/^[\d,]+/);
+  if (postMatch) {
+    postCount = parseInt(postMatch[0].replace(/,/g, ""), 10);
+  }
+
+  // ─── Dates ────────────────────────────────────────────────────
+  const dateRegisteredRaw = fields["Date registered"] || "";
+  let dateRegistered = null;
+  if (dateRegisteredRaw) {
+    dateRegistered = new Date(dateRegisteredRaw);
+    if (isNaN(dateRegistered.getTime())) dateRegistered = null;
+  }
+
+  const lastActiveRaw = fields["Last active"] || "";
+
+  // ─── Timezone extraction from Local Time ──────────────────────
+  let timezone = null;
+  const localTimeRaw = fields["Local Time"] || "";
+  if (localTimeRaw) {
+    const userLocalDate = new Date(localTimeRaw);
+    if (!isNaN(userLocalDate.getTime())) {
+      const now = new Date();
+      const offsetMs = userLocalDate.getTime() - now.getTime();
+      const offsetHours = Math.round(offsetMs / (1000 * 60 * 60));
+      if (Math.abs(offsetHours) <= 14) {
+        const sign = offsetHours >= 0 ? "+" : "";
+        timezone = `UTC${sign}${offsetHours}`;
+      }
+    }
+  }
+
+  // ─── Age ──────────────────────────────────────────────────────
+  let age = null;
+  const ageRaw = fields["Age"] || "";
+  if (ageRaw) {
+    const ageMatch = ageRaw.match(/\d+/);
+    if (ageMatch) age = parseInt(ageMatch[0], 10);
+  }
+
+  // ─── Position / Group ─────────────────────────────────────────
+  let position = "";
+  const $position = $(".position");
+  if ($position.length) {
+    position = $position.text().trim();
+  }
+
+  // ─── Online status ────────────────────────────────────────────
+  let onlineStatus = "Unknown";
+  const statusText = $(".smalltext")
+    .filter((_i, el) => /^(Online|Offline)$/.test($(el).text().trim()))
+    .first()
+    .text()
+    .trim();
+  if (statusText) onlineStatus = statusText;
+
+  // ─── Gender / Sex ─────────────────────────────────────────────
+  // SMF uses class="main_icons gender_N" with title="Male"/"Female"/"None"
+  let gender = "";
+  const $gender = $('[class*="gender_"]');
+  if ($gender.length) {
+    gender = $gender.attr("title") || "";
+    if (gender === "None") gender = "";
+  }
+
+  // ─── Avatar ───────────────────────────────────────────────────
+  let avatarUrl = "";
+  $("img").each((_i, el) => {
+    const src = $(el).attr("src") || "";
+    if (
+      (src.includes("avatar") || src.includes("Avatars")) &&
+      !src.includes("icons")
+    ) {
+      avatarUrl = src;
+    }
+  });
+
+  // ─── Signature ────────────────────────────────────────────────
+  let signature = "";
+  const sigDd = fields["Signature"];
+  if (sigDd) {
+    signature = sigDd;
+  } else {
+    const $sig = $(".signature");
+    if ($sig.length) {
+      signature = $sig.text().trim();
+    }
+  }
+
+  // ─── Icon-based links (Newgrounds, Skype, ICQ, etc) ───────────
+  let newgroundsUrl = "";
+  let newgroundsUsername = "";
+  let skype = "";
+  let icq = "";
+  let website = "";
+
+  $("a").each((_i, el) => {
+    const href = $(el).attr("href") || "";
+    const $img = $(el).find("img");
+    const alt = $img.attr("alt") || "";
+
+    // Newgrounds: alt="Newgrounds: USERNAME"
+    if (alt.startsWith("Newgrounds:")) {
+      newgroundsUrl = href;
+      newgroundsUsername = alt.replace("Newgrounds:", "").trim();
+      return;
+    }
+
+    // Skype: href="skype:EMAIL?call"
+    if (href.startsWith("skype:")) {
+      skype = href.replace("skype:", "").replace("?call", "").trim();
+      return;
+    }
+
+    // ICQ: href contains "icq" or img src contains "icq"
+    const imgSrc = $img.attr("src") || "";
+    if (href.includes("icq") || imgSrc.includes("icq")) {
+      icq = alt || href;
+      return;
+    }
+  });
+
+  // Website from dt/dd fields
+  const websiteField = fields["Website"] || fields["website"] || "";
+  if (websiteField) {
+    const urlMatch = websiteField.match(/https?:\/\/[^\s]+/);
+    if (urlMatch) website = urlMatch[0];
+  }
+
+  return {
+    userId,
+    username,
+    position,
+    onlineStatus,
+    gender,
+    customTitle: fields["Custom title"] || "",
+    personalText: fields["Personal text"] || "",
+    age,
+    location: fields["Location"] || "",
+    dateRegistered,
+    dateRegisteredRaw,
+    lastActive: lastActiveRaw,
+    localTime: localTimeRaw,
+    timezone,
+    postCount,
+    avatarUrl,
+    signature,
+    newgroundsUrl,
+    newgroundsUsername,
+    skype,
+    icq,
+    website,
+    profileUrl: url,
+  };
+}
+

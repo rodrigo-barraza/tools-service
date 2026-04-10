@@ -585,12 +585,12 @@ router.get("/stackoverflow/question", async (req, res) => {
 // ─── Unified: Web Content (YouTube/Reddit/Twitter/HN/SO/GitHub) ───
 
 router.get("/web/content", async (req, res) => {
-  const { url, commentLimit, answerLimit, transcript, lang, readme, languages } = req.query;
+  const { url, commentLimit, answerLimit, transcript, lang, readme, languages, maxChars } = req.query;
   if (!url) {
     return res.status(400).json({ error: "Query parameter 'url' is required" });
   }
   const result = await getWebContent(url, {
-    commentLimit, answerLimit, transcript, lang, readme, languages,
+    commentLimit, answerLimit, transcript, lang, readme, languages, maxChars,
   });
   if (result.error) {
     return res.status(400).json(result);
@@ -640,7 +640,7 @@ export function getKnowledgeHealth() {
     twitter: "on-demand (fxtwitter + oembed)",
     hackerNews: "on-demand (Firebase API)",
     stackOverflow: "on-demand (Stack Exchange API v2.3)",
-    webContent: "unified (YouTube/Reddit/Twitter/HN/SO/GitHub)",
+    webContent: "unified (YouTube/Reddit/Twitter/HN/SO/GitHub + generic fallback)",
     packageInfo: "unified (NPM/PyPI)",
   };
 }

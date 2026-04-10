@@ -2070,10 +2070,10 @@ const TOOL_DEFINITIONS = [
     name: "get_web_content",
     dataSource: onDemand("Auto-detected platform API"),
     description:
-      "Extract structured content from a URL on any supported platform. Auto-detects: GitHub (repo metadata + README + languages), Reddit (post + comments), Twitter/X (tweet + metrics + media), Hacker News (post + comments), Stack Overflow (question + answers with code blocks). Pass the URL and optional platform-specific parameters.",
+      "Extract structured content from any URL. Auto-detects platform and uses the best extraction method: GitHub (repo metadata + README + languages), Reddit (post + comments), Twitter/X (tweet + metrics + media), Hacker News (post + comments), Stack Overflow (question + answers with code blocks), YouTube (metadata + transcript). For any other URL (news articles, blogs, documentation, etc.), extracts the page title, metadata, and main readable text using lightweight HTML parsing — no headless browser needed.",
     endpoint: {
       path: "/knowledge/web/content",
-      queryParams: ["url", "commentLimit", "answerLimit", "readme", "languages"],
+      queryParams: ["url", "commentLimit", "answerLimit", "readme", "languages", "transcript", "lang", "maxChars"],
     },
     parameters: {
       type: "object",
@@ -2081,7 +2081,7 @@ const TOOL_DEFINITIONS = [
         url: {
           type: "string",
           description:
-            "URL from GitHub, Reddit, Twitter/X, Hacker News, or Stack Overflow. Also accepts GitHub 'owner/repo' shorthand or Stack Overflow question IDs.",
+            "Any URL. Supported platforms are auto-detected: GitHub (URL or owner/repo), Reddit, Twitter/X, Hacker News, Stack Overflow, YouTube. All other URLs use generic article extraction.",
         },
         commentLimit: {
           type: "number",
@@ -2102,6 +2102,19 @@ const TOOL_DEFINITIONS = [
           type: "string",
           description: "Include language breakdown for GitHub (default: true)",
           enum: ["true", "false"],
+        },
+        transcript: {
+          type: "string",
+          description: "Include video transcript for YouTube (default: true)",
+          enum: ["true", "false"],
+        },
+        lang: {
+          type: "string",
+          description: "Preferred transcript language for YouTube (default: 'en')",
+        },
+        maxChars: {
+          type: "number",
+          description: "Max characters of extracted text for generic pages (default: 15000)",
         },
       },
       required: ["url"],
@@ -2782,6 +2795,362 @@ const TOOL_DEFINITIONS = [
             "Value to match at the parent rank (e.g. parentRank='family', parentValue='Rosaceae')",
         },
       },
+    },
+  },
+  {
+    name: "get_nutritional_requirements",
+    dataSource: staticDataset("Multispecies Standards Database"),
+    description:
+      "Calculate dynamic nutritional requirement boundaries (minimums, maximums, RDAs) across 140+ nutrients (macronutrients, vitamins, minerals, amino acids, sterols). Essential for evaluating complete diets. Required scaling parameters like body weight are handled automatically based on authoritative standards (e.g., US DRI for humans, AAFCO for dogs/cats).",
+    endpoint: {
+      path: "/health/nutrition/requirements",
+      queryParams: ["species", "lifeStage", "authority", "weightKg", "caloricIntake"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        species: {
+          type: "string",
+          description: "Target species. Default: human.",
+          enum: ["human", "canine", "feline"],
+        },
+        lifeStage: {
+          type: "string",
+          description: "Target life stage or demographic. Default: adult_male.",
+          enum: ["adult_male", "adult_female", "adult_maintenance", "puppy", "kitten"],
+        },
+        authority: {
+          type: "string",
+          description: "Authoritative standard body. Defaults to US_DRI for humans, AAFCO for pets.",
+          enum: ["US_DRI", "AAFCO", "EFSA", "NRC", "WHO", "FEDIAF"],
+        },
+        weightKg: {
+          type: "number",
+          description: "Target body weight in kg. Essential for scaling human amino acid limits.",
+        },
+        caloricIntake: {
+          type: "number",
+          description: "Estimated daily caloric intake (kcal). Essential for scaling AAFCO standards.",
+        },
+      },
+    },
+  },
+
+  // ── Calorie Calculator (BMR/TDEE) ──────────────────────────────
+  {
+    name: "calculate_caloric_needs",
+    dataSource: compute("Mifflin-St Jeor / TDEE"),
+    description:
+      "Calculate Basal Metabolic Rate (BMR) and Total Daily Energy Expenditure (TDEE) using the Mifflin-St Jeor equation. Returns caloric targets, macronutrient split (protein/carbs/fat in grams), BMI, and optional body composition. Essential first step for nutrition planning — feed the TDEE into get_nutritional_requirements as caloricIntake.",
+    endpoint: {
+      path: "/health/calories/calculate",
+      queryParams: ["sex", "weightKg", "heightCm", "ageYears", "activityLevel", "goal", "macroSplit", "bodyFatPct"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        sex: {
+          type: "string",
+          description: "Biological sex for BMR calculation",
+          enum: ["male", "female"],
+        },
+        weightKg: {
+          type: "number",
+          description: "Body weight in kilograms",
+        },
+        heightCm: {
+          type: "number",
+          description: "Height in centimeters",
+        },
+        ageYears: {
+          type: "number",
+          description: "Age in years",
+        },
+        activityLevel: {
+          type: "string",
+          description: "Physical activity level",
+          enum: ["sedentary", "light", "moderate", "active", "very_active"],
+        },
+        goal: {
+          type: "string",
+          description: "Caloric goal (affects daily target)",
+          enum: ["maintain", "cut", "aggressive_cut", "lean_bulk", "bulk"],
+        },
+        macroSplit: {
+          type: "string",
+          description: "Macronutrient ratio preset",
+          enum: ["balanced", "high_protein", "keto", "low_fat", "zone"],
+        },
+        bodyFatPct: {
+          type: "number",
+          description: "Optional body fat percentage for lean mass calculation",
+        },
+      },
+      required: ["sex", "weightKg", "heightCm", "ageYears"],
+    },
+  },
+
+  // ── Nutrient Gap Analysis ───────────────────────────────────────
+  {
+    name: "analyze_nutrient_gaps",
+    dataSource: compute("Nutrient Gap Engine"),
+    description:
+      "Analyze dietary adequacy by comparing consumed foods against nutritional requirements. Accepts a food log (array of foods with grams eaten), calculates total nutrient intake, then diffs against DRI/AAFCO targets. Returns per-nutrient status: deficient (<50% DRI), low (50-89%), adequate (90-110%), surplus (>110%), or over_UL. Essential for identifying nutritional deficiencies.",
+    endpoint: {
+      path: "/health/nutrition/gap-analysis",
+      queryParams: ["foods", "species", "lifeStage", "authority", "weightKg", "caloricIntake"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        foods: {
+          type: "string",
+          description: 'JSON array of foods eaten: [{"name":"chicken breast","grams":200},{"name":"brown rice","grams":150}]',
+        },
+        species: {
+          type: "string",
+          description: "Target species",
+          enum: ["human", "canine", "feline"],
+        },
+        lifeStage: {
+          type: "string",
+          description: "Life stage",
+          enum: ["adult_male", "adult_female", "adult_maintenance"],
+        },
+        weightKg: {
+          type: "number",
+          description: "Body weight in kg (for scaling amino acid requirements)",
+        },
+        caloricIntake: {
+          type: "number",
+          description: "Daily caloric intake target (for scaling AAFCO standards)",
+        },
+      },
+      required: ["foods"],
+    },
+  },
+
+  // ── Food Substitute Finder ─────────────────────────────────────
+  {
+    name: "find_food_substitutes",
+    dataSource: compute("Nutrient Similarity Engine"),
+    description:
+      "Find nutritionally similar food substitutes using cosine similarity on nutrient profile vectors. Useful for dietary restrictions, allergies, or preferences: 'What plant foods have a similar nutrient profile to salmon?' Supports dietary preference filtering (vegetarian, vegan, pescatarian) and nutrient emphasis.",
+    endpoint: {
+      path: "/health/nutrition/substitutes",
+      queryParams: ["food", "targetNutrients", "dietaryPreference", "excludeKingdom", "excludeFoods", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        food: {
+          type: "string",
+          description: "Source food to find substitutes for (e.g. 'salmon', 'beef', 'milk')",
+        },
+        targetNutrients: {
+          type: "string",
+          description: "Comma-separated nutrients to emphasize in matching (e.g. 'protein,iron,omega3')",
+        },
+        dietaryPreference: {
+          type: "string",
+          description: "Dietary preference filter",
+          enum: ["vegetarian", "vegan", "pescatarian", "plant_only"],
+        },
+        excludeKingdom: {
+          type: "string",
+          description: "Exclude a biological kingdom from results",
+          enum: ["animalia", "plantae", "fungi"],
+        },
+        excludeFoods: {
+          type: "string",
+          description: "Comma-separated food names to exclude (allergies, etc.)",
+        },
+        limit: {
+          type: "number",
+          description: "Max results (default: 10)",
+        },
+      },
+      required: ["food"],
+    },
+  },
+
+  // ── Exercise Calorie Estimator ──────────────────────────────────
+  {
+    name: "estimate_exercise_calories",
+    dataSource: compute("Compendium of Physical Activities MET Table"),
+    description:
+      "Estimate calories burned during exercise using Metabolic Equivalent of Task (MET) values from the Compendium of Physical Activities. Includes EPOC (afterburn) estimation and post-exercise recovery recommendations (protein, carbs, water). Chain with calculate_caloric_needs to adjust daily targets.",
+    endpoint: {
+      path: "/health/exercises/calories",
+      queryParams: ["exercise", "durationMinutes", "weightKg", "intensity", "category"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        exercise: {
+          type: "string",
+          description: "Exercise name (e.g. 'barbell squat', 'running', 'swimming', 'yoga')",
+        },
+        durationMinutes: {
+          type: "number",
+          description: "Exercise duration in minutes",
+        },
+        weightKg: {
+          type: "number",
+          description: "Body weight in kilograms",
+        },
+        intensity: {
+          type: "string",
+          description: "Exercise intensity level",
+          enum: ["low", "moderate", "high"],
+        },
+        category: {
+          type: "string",
+          description: "Optional exercise category hint (e.g. 'strength', 'cardio', 'stretching')",
+        },
+      },
+      required: ["exercise", "durationMinutes", "weightKg"],
+    },
+  },
+
+  // ── Hydration Calculator ───────────────────────────────────────
+  {
+    name: "calculate_hydration_needs",
+    dataSource: compute("ACSM Hydration Model"),
+    description:
+      "Calculate daily water intake recommendation based on body weight, activity level, climate, exercise, altitude, and special conditions (pregnancy, breastfeeding). Uses ACSM/IOM guidelines. Returns total recommendation with timing distribution.",
+    endpoint: {
+      path: "/health/hydration/calculate",
+      queryParams: ["weightKg", "activityLevel", "climateTemp", "exerciseMinutes", "exerciseIntensity", "altitudeM", "pregnant", "breastfeeding", "caffeineIntakeMg"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        weightKg: {
+          type: "number",
+          description: "Body weight in kilograms",
+        },
+        activityLevel: {
+          type: "string",
+          description: "Physical activity level",
+          enum: ["sedentary", "light", "moderate", "active", "very_active"],
+        },
+        climateTemp: {
+          type: "number",
+          description: "Ambient temperature in °C (adjusts for heat/cold)",
+        },
+        exerciseMinutes: {
+          type: "number",
+          description: "Daily exercise duration in minutes",
+        },
+        exerciseIntensity: {
+          type: "string",
+          description: "Exercise intensity",
+          enum: ["low", "moderate", "high"],
+        },
+        altitudeM: {
+          type: "number",
+          description: "Altitude in meters (>2500m increases water needs)",
+        },
+        pregnant: {
+          type: "string",
+          description: "Is the person pregnant? (+300mL/day)",
+          enum: ["true", "false"],
+        },
+        breastfeeding: {
+          type: "string",
+          description: "Is the person breastfeeding? (+700mL/day)",
+          enum: ["true", "false"],
+        },
+        caffeineIntakeMg: {
+          type: "number",
+          description: "Daily caffeine intake in mg (offset for diuretic effect)",
+        },
+      },
+      required: ["weightKg"],
+    },
+  },
+
+  // ── Meal Plan Builder ──────────────────────────────────────────
+  {
+    name: "build_meal_plan",
+    dataSource: compute("Meal Optimization Engine"),
+    description:
+      "Automatically generate a daily meal plan that covers nutritional targets within a caloric budget. Uses a greedy nutrient-coverage optimizer to select foods that maximally fill remaining nutrient gaps. Supports dietary preferences (omnivore, vegetarian, vegan, pescatarian, keto) and nutrient emphasis. Use calculate_caloric_needs first to determine the caloric target.",
+    endpoint: {
+      path: "/health/nutrition/meal-plan",
+      queryParams: ["caloricTarget", "mealsPerDay", "dietaryPreference", "excludeFoods", "emphasizeNutrients", "species", "lifeStage", "weightKg", "itemsPerMeal"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        caloricTarget: {
+          type: "number",
+          description: "Daily caloric target in kcal (e.g. 2000)",
+        },
+        mealsPerDay: {
+          type: "number",
+          description: "Number of meals per day (default: 3, max: 8)",
+        },
+        dietaryPreference: {
+          type: "string",
+          description: "Dietary preference filter",
+          enum: ["omnivore", "vegetarian", "vegan", "pescatarian", "keto"],
+        },
+        excludeFoods: {
+          type: "string",
+          description: "Comma-separated foods to exclude (allergies, etc.)",
+        },
+        emphasizeNutrients: {
+          type: "string",
+          description: "Comma-separated nutrients to prioritize (e.g. 'iron,protein,calcium')",
+        },
+        species: {
+          type: "string",
+          description: "Target species",
+          enum: ["human", "canine", "feline"],
+        },
+        lifeStage: {
+          type: "string",
+          description: "Life stage",
+          enum: ["adult_male", "adult_female", "adult_maintenance"],
+        },
+        weightKg: {
+          type: "number",
+          description: "Body weight in kg",
+        },
+        itemsPerMeal: {
+          type: "number",
+          description: "Number of food items per meal (default: 4)",
+        },
+      },
+      required: ["caloricTarget"],
+    },
+  },
+
+  // ── Drug-Nutrient Interactions ──────────────────────────────────
+  {
+    name: "check_drug_nutrient_interactions",
+    dataSource: staticDataset("Drug-Nutrient Interaction DB"),
+    description:
+      "Screen for drug-nutrient interactions (DNI). Checks if a medication depletes nutrients, blocks absorption, or interacts with specific vitamins/minerals. Covers ~60 clinically significant interactions across statins, metformin, PPIs, diuretics, antibiotics, anticonvulsants, corticosteroids, blood thinners, and more. Returns severity (major/moderate/minor), effect type, and recommendations.",
+    endpoint: {
+      path: "/health/drugs/nutrient-interactions",
+      queryParams: ["drug", "nutrients"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        drug: {
+          type: "string",
+          description: "Drug name — brand or generic (e.g. 'metformin', 'omeprazole', 'lisinopril', 'prednisone')",
+        },
+        nutrients: {
+          type: "string",
+          description: "Optional: comma-separated nutrients to check specifically (e.g. 'calcium,iron'). Omit for all.",
+        },
+      },
+      required: ["drug"],
     },
   },
 
@@ -4841,10 +5210,18 @@ const TOOL_DOMAINS = {
   list_category_nutrients: "Health",
   search_foods_by_taxonomy: "Health",
   browse_food_taxonomy: "Health",
+  get_nutritional_requirements: "Health",
   list_drug_dosage_forms: "Health",
   search_gym_exercises: "Health",
   get_gym_exercise_categories: "Health",
   get_gym_exercise_by_id: "Health",
+  calculate_caloric_needs: "Health",
+  analyze_nutrient_gaps: "Health",
+  find_food_substitutes: "Health",
+  estimate_exercise_calories: "Health",
+  calculate_hydration_needs: "Health",
+  build_meal_plan: "Health",
+  check_drug_nutrient_interactions: "Health",
 
   // Transit
   get_next_bus: "Transit",
@@ -5125,7 +5502,15 @@ const TOOL_LABELS = {
   list_category_nutrients: ["health"],
   search_foods_by_taxonomy: ["health"],
   browse_food_taxonomy: ["health"],
+  get_nutritional_requirements: ["health"],
   list_drug_dosage_forms: ["health"],
+  calculate_caloric_needs: ["health"],
+  analyze_nutrient_gaps: ["health"],
+  find_food_substitutes: ["health"],
+  estimate_exercise_calories: ["health"],
+  calculate_hydration_needs: ["health"],
+  build_meal_plan: ["health"],
+  check_drug_nutrient_interactions: ["health"],
 
   // ── Transit ──────────────────────────────────────────────
   get_next_bus: ["location"],

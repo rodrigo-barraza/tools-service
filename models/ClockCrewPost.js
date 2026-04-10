@@ -3,6 +3,7 @@ import { getDB } from "../db.js";
 let boardsCol = null;
 let threadsCol = null;
 let postsCol = null;
+let usersCol = null;
 
 // ═══════════════════════════════════════════════════════════════
 //  Clock Crew Forum — MongoDB Collections
@@ -10,6 +11,7 @@ let postsCol = null;
 //  clockcrew_boards  — One doc per board (board metadata)
 //  clockcrew_threads — One doc per topic (thread metadata)
 //  clockcrew_posts   — One doc per message (post content)
+//  clockcrew_users   — One doc per forum user (profile data)
 // ═══════════════════════════════════════════════════════════════
 
 /**
@@ -20,6 +22,7 @@ export async function setupClockCrewCollections() {
   boardsCol = db.collection("clockcrew_boards");
   threadsCol = db.collection("clockcrew_threads");
   postsCol = db.collection("clockcrew_posts");
+  usersCol = db.collection("clockcrew_users");
 
   // ─── Board Indexes ─────────────────────────────────────────────
   await boardsCol.createIndex({ boardId: 1 }, { unique: true });
@@ -40,6 +43,11 @@ export async function setupClockCrewCollections() {
     { body: "text", author: "text" },
     { name: "clockcrew_post_text_search" },
   );
+
+  // ─── User Indexes ──────────────────────────────────────────────
+  await usersCol.createIndex({ userId: 1 }, { unique: true });
+  await usersCol.createIndex({ username: 1 });
+  await usersCol.createIndex({ dateRegistered: -1 });
 
   console.log("🕰️  Clock Crew collections & indexes ready");
 }
@@ -68,6 +76,82 @@ export async function upsertBoard(board) {
 export async function getAllBoards() {
   if (!boardsCol) return [];
   return boardsCol.find({}).sort({ boardId: 1 }).toArray();
+}
+
+// ─── User Operations ────────────────────────────────────────────
+
+/**
+ * Upsert a user profile by userId.
+ */
+export async function upsertUser(user) {
+  if (!usersCol) return false;
+  const result = await usersCol.updateOne(
+    { userId: user.userId },
+    {
+      $set: { ...user, lastScrapedAt: new Date() },
+      $setOnInsert: { firstScrapedAt: new Date() },
+    },
+    { upsert: true },
+  );
+  return result.upsertedCount > 0;
+}
+
+/**
+ * Check if a user profile has been scraped.
+ */
+export async function userExists(userId) {
+  if (!usersCol) return false;
+  const doc = await usersCol.findOne(
+    { userId },
+    { projection: { _id: 1 } },
+  );
+  return !!doc;
+}
+
+/**
+ * Get a user by userId.
+ */
+export async function getUser(userId) {
+  if (!usersCol) return null;
+  return usersCol.findOne({ userId });
+}
+
+/**
+ * Get a user by username (case-insensitive).
+ */
+export async function getUserByName(username) {
+  if (!usersCol) return null;
+  return usersCol.findOne({ username: new RegExp(`^${username}$`, "i") });
+}
+
+/**
+ * Get all scraped users sorted by post count descending.
+ */
+export async function getAllUsers(limit = 500) {
+  if (!usersCol) return [];
+  return usersCol.find({}).sort({ postCount: -1 }).limit(limit).toArray();
+}
+
+/**
+ * Get all unique authorUserIds from posts that haven't been scraped yet.
+ * Returns an array of { userId, username } objects.
+ */
+export async function getUnscrapedUserIds() {
+  const db = getDB();
+  const postsColl = db.collection("clockcrew_posts");
+  const usersColl = db.collection("clockcrew_users");
+
+  // Get all unique userIds from posts
+  const postUserIds = await postsColl.distinct("authorUserId", {
+    authorUserId: { $ne: null },
+  });
+
+  // Get already-scraped userIds
+  const scrapedUserIds = await usersColl.distinct("userId");
+  const scrapedSet = new Set(scrapedUserIds);
+
+  // Return unscraped ones
+  return postUserIds.filter((id) => !scrapedSet.has(id));
 }
 
 // ─── Thread Operations ──────────────────────────────────────────
@@ -207,10 +291,11 @@ export async function searchPosts({ q, author, boardId, limit = 100 } = {}) {
  */
 export async function getScrapeStats() {
   const db = getDB();
-  const [boardCount, threadCount, postCount] = await Promise.all([
+  const [boardCount, threadCount, postCount, userCount] = await Promise.all([
     db.collection("clockcrew_boards").countDocuments(),
     db.collection("clockcrew_threads").countDocuments(),
     db.collection("clockcrew_posts").countDocuments(),
+    db.collection("clockcrew_users").countDocuments(),
   ]);
 
   // Get the latest scrape timestamp
@@ -222,6 +307,7 @@ export async function getScrapeStats() {
     boards: boardCount,
     threads: threadCount,
     posts: postCount,
+    users: userCount,
     lastScrapedAt: latestThread?.lastScrapedAt || null,
   };
 }

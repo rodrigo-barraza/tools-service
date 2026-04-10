@@ -5,6 +5,9 @@ import {
   getPostsByAuthor,
   searchPosts,
   getAllBoards,
+  getAllUsers,
+  getUser,
+  getUserByName,
 } from "../models/ClockCrewPost.js";
 import { getDB } from "../db.js";
 
@@ -152,6 +155,46 @@ router.get("/authors", async (req, res) => {
         lastPost: a.lastPost,
       })),
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ─── GET /users ─────────────────────────────────────────────────
+// All scraped user profiles.
+
+router.get("/users", async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 500, 2000);
+    const users = await getAllUsers(limit);
+    res.json({ count: users.length, users });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ─── GET /users/:userId ────────────────────────────────────────
+// Get a specific user profile by SMF userId.
+
+router.get("/users/:userId", async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId, 10);
+    const user = await getUser(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ─── GET /users/by-name/:username ─────────────────────────────
+// Lookup a user by username (case-insensitive).
+
+router.get("/users/by-name/:username", async (req, res) => {
+  try {
+    const user = await getUserByName(req.params.username);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -18,6 +18,7 @@ import { setupCmeCollection } from "./models/Cme.js";
 import { setupGeomagneticStormCollection } from "./models/GeomagneticStorm.js";
 import { setupWebcamCollection } from "./models/Webcam.js";
 import { setupClockCrewCollections } from "./models/ClockCrewPost.js";
+import { connectNewgroundsDB, setupNewgroundsCollections } from "./models/NewgroundsProfile.js";
 
 // ─── Routes ────────────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ import energyRoutes, { getEnergyHealth } from "./routes/EnergyRoutes.js";
 import agenticRoutes, { getAgenticHealth } from "./routes/AgenticRoutes.js";
 import communicationRoutes, { getCommunicationHealth } from "./routes/CommunicationRoutes.js";
 import clockcrewRoutes, { getClockCrewHealth } from "./routes/ClockCrewRoutes.js";
+import newgroundsRoutes, { getNewgroundsHealth } from "./routes/NewgroundsRoutes.js";
 import adminRoutes from "./routes/AdminRoutes.js";
 import { mountMcpRoutes } from "./services/McpAdapter.js";
 
@@ -84,6 +86,7 @@ app.use("/energy", energyRoutes);
 app.use("/agentic", agenticRoutes);
 app.use("/communication", communicationRoutes);
 app.use("/clockcrew", clockcrewRoutes);
+app.use("/newgrounds", newgroundsRoutes);
 app.use("/admin", adminRoutes);
 mountMcpRoutes(app);
 
@@ -110,6 +113,7 @@ app.get("/health", (_req, res) => {
       agentic: getAgenticHealth(),
       communication: getCommunicationHealth(),
       clockcrew: getClockCrewHealth(),
+      newgrounds: getNewgroundsHealth(),
     },
   });
 });
@@ -143,6 +147,10 @@ async function start() {
       setupWebcamCollection(),
       setupClockCrewCollections(),
     ]);
+
+    // Connect to separate Newgrounds database
+    await connectNewgroundsDB(CONFIG.MONGODB_URI);
+    await setupNewgroundsCollections();
   } catch (error) {
     console.error(`Failed to connect to MongoDB: ${error.message}`);
     process.exit(1);
@@ -164,10 +172,10 @@ async function start() {
     console.log(`🔧 Tools API running on port ${port}`);
     console.log(`   Database: ${CONFIG.MONGODB_URI}`);
     console.log(
-      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy, agentic, communication, clockcrew",
+      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy, agentic, communication, clockcrew, newgrounds",
     );
     console.log(
-      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*, /agentic/*, /communication/*, /clockcrew/*",
+      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*, /agentic/*, /communication/*, /clockcrew/*, /newgrounds/*",
     );
   });
 }
