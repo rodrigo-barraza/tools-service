@@ -9,6 +9,11 @@
 
 export const TOOLS_PORT = 5590;
 
+// ─── Prism (LLM Gateway) ──────────────────────────────────────────
+// URL of the Prism service — used by creative tools (generate_image,
+// describe_image) to call LLM providers for image generation and vision.
+export const PRISM_API_URL = 'http://localhost:7777';
+
 // ─── Workspace Roots ───────────────────────────────────────────────
 // REQUIRED — comma-separated absolute paths the agentic tools are allowed to access.
 // tools-api will refuse to start if this is empty.

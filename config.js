@@ -54,6 +54,9 @@ import {
   // Communication (Twilio)
   TWILIO_ACCOUNT_SID,
   TWILIO_AUTH_TOKEN,
+
+  // Prism (LLM Gateway)
+  PRISM_API_URL,
 } from "./secrets.js";
 
 const CONFIG = {
@@ -120,6 +123,9 @@ const CONFIG = {
   // ─── Communication (Twilio) ─────────────────────────────────────
   TWILIO_ACCOUNT_SID,
   TWILIO_AUTH_TOKEN,
+
+  // ─── Prism (LLM Gateway) ────────────────────────────────────────
+  PRISM_API_URL: PRISM_API_URL || "http://localhost:7777",
 };
 
 /**

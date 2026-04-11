@@ -285,7 +285,7 @@ function sanitizeResult(body) {
 /**
  * Persist a tool-call log entry to MongoDB.
  */
-async function persistToolCall(entry) {
+export async function persistToolCall(entry) {
   try {
     const db = getDB();
     await db.collection(COLLECTION).insertOne(entry);

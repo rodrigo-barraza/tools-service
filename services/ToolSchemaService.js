@@ -5136,6 +5136,68 @@ const TOOL_DEFINITIONS = [
       properties: {},
     },
   },
+
+  // ── Creative (Prism-executed — image generation & vision) ──────
+  {
+    name: "generate_image",
+    dataSource: onDemand("Prism → Google Gemini"),
+    description:
+      "Generate an image from a detailed text prompt using AI image generation. " +
+      "Can also edit or redraw existing images from the conversation when reference images are available. " +
+      "Always provide a highly detailed, descriptive prompt for best results — include specifics about style, " +
+      "composition, subjects, colors, mood, lighting, and artistic direction. " +
+      "The generated image will be delivered to the user automatically. " +
+      "IMPORTANT: Do NOT call this tool unless the user's current message explicitly asks for an " +
+      "image, drawing, painting, illustration, or artwork. Never call it for greetings, " +
+      "questions, or casual conversation.",
+    endpoint: { executor: "prism" },
+    parameters: {
+      type: "object",
+      properties: {
+        prompt: {
+          type: "string",
+          description:
+            "A detailed text prompt describing the image to generate. " +
+            "Be specific about style, composition, subjects, colors, mood, " +
+            "lighting, perspective, and artistic direction. The more detail, the better the result.",
+        },
+      },
+      required: ["prompt"],
+    },
+  },
+  {
+    name: "describe_image",
+    dataSource: onDemand("Prism → Google Gemini"),
+    description:
+      "Describe the visual contents of one or more images (avatars, banners, photos, etc.) " +
+      "by URL. Returns a text description of each image. Use this when you need to understand " +
+      "what someone looks like (their avatar or banner) before generating artwork, or when " +
+      "you need to describe any image from a URL. IMPORTANT: Always batch ALL image URLs " +
+      "into a single call — pass all URLs in the imageUrls array at once. " +
+      "Never make multiple separate calls for individual URLs.",
+    endpoint: { executor: "prism" },
+    parameters: {
+      type: "object",
+      properties: {
+        imageUrls: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Array of image URLs to describe. Can be Discord avatar URLs, " +
+            "banner URLs, or any publicly accessible image URL.",
+        },
+        context: {
+          type: "string",
+          enum: ["avatar", "banner", "photo", "general"],
+          description:
+            "What kind of image this is, to tailor the description. " +
+            "Use 'avatar' for profile pictures, 'banner' for profile banners, " +
+            "'photo' for user-uploaded photos, 'general' for anything else.",
+        },
+      },
+      required: ["imageUrls"],
+    },
+  },
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -5310,6 +5372,10 @@ const TOOL_DOMAINS = {
   get_twilio_account: "Communication",
   lookup_phone_number: "Communication",
   list_twilio_numbers: "Communication",
+
+  // Creative (Prism-executed)
+  generate_image: "Creative",
+  describe_image: "Creative",
 };
 
 // ────────────────────────────────────────────────────────────
@@ -5393,6 +5459,10 @@ const TOOL_REQUIRED_KEYS = {
   get_twilio_account: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"],
   lookup_phone_number: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"],
   list_twilio_numbers: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"],
+
+  // Creative (Prism-executed — require Prism connectivity)
+  generate_image: ["PRISM_API_URL"],
+  describe_image: ["PRISM_API_URL"],
 };
 
 /**
@@ -5597,6 +5667,10 @@ const TOOL_LABELS = {
   get_twilio_account: ["communication"],
   lookup_phone_number: ["communication"],
   list_twilio_numbers: ["communication"],
+
+  // ── Creative (Prism-executed) ─────────────────────────────
+  generate_image: ["creative", "media"],
+  describe_image: ["creative", "media"],
 };
 
 // ────────────────────────────────────────────────────────────
