@@ -54,6 +54,11 @@ import {
   agenticLspShutdown,
   agenticLspHealth,
 } from "../services/AgenticLspService.js";
+import {
+  testTool,
+  testAllTools,
+  getTestableTools,
+} from "../services/AgenticToolTestService.js";
 
 const router = Router();
 
@@ -640,6 +645,44 @@ router.post("/git", async (req, res) => {
   req.url = pathMap[action];
   req.body = params;
   return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 12. Tool Smoke Tests
+// ═══════════════════════════════════════════════════════════════
+
+// ── Single tool test ──────────────────────────────────────────
+
+router.post("/test-tool", async (req, res) => {
+  const { toolName } = req.body;
+  if (!toolName || typeof toolName !== "string") {
+    return res.status(400).json({
+      error: "'toolName' is required",
+      available: getTestableTools(),
+    });
+  }
+  const result = await testTool(toolName);
+  res.json(result);
+});
+
+// ── Test all tools ────────────────────────────────────────────
+
+router.post("/test-all-tools", async (req, res) => {
+  const { toolNames } = req.body;
+  const results = await testAllTools(toolNames || undefined);
+  const passed = results.filter((r) => r.success).length;
+  res.json({
+    total: results.length,
+    passed,
+    failed: results.length - passed,
+    results,
+  });
+});
+
+// ── List testable tools ───────────────────────────────────────
+
+router.get("/testable-tools", (_req, res) => {
+  res.json(getTestableTools());
 });
 
 export default router;

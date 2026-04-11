@@ -12,6 +12,7 @@ import {
   getToolSchemasForAI,
   getDisabledTools,
 } from "../services/ToolSchemaService.js";
+import { ALLOWED_ROOTS } from "../services/AgenticFileService.js";
 import { asyncHandler } from "../utilities.js";
 
 const router = Router();
@@ -93,6 +94,19 @@ router.get("/tool-calls/stats", asyncHandler(
   "Tool call stats",
   500,
 ));
+
+// ─── Config Endpoint ──────────────────────────────────────────────
+
+/**
+ * GET /admin/config
+ * Exposes workspace configuration so downstream services (Prism)
+ * can fetch it at startup instead of duplicating in their secrets.
+ */
+router.get("/config", (_req, res) => {
+  res.json({
+    workspaceRoots: ALLOWED_ROOTS,
+  });
+});
 
 export default router;
 

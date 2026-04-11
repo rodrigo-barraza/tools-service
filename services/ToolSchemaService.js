@@ -5430,6 +5430,9 @@ const TOOL_DOMAINS = {
   // Agentic — Browser Automation
   browser_action: "Agentic: Browser",
 
+  // Agentic — Code Intelligence (LSP)
+  lsp_action: "Agentic: Code Intelligence",
+
   // Communication (Twilio)
   send_sms: "Communication",
   list_sms_messages: "Communication",
