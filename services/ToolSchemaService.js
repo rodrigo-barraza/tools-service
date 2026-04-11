@@ -5110,7 +5110,7 @@ const TOOL_DEFINITIONS = [
     endpoint: {
       method: "POST",
       path: "/agentic/task/create",
-      bodyParams: ["project", "subject", "description", "status", "metadata"],
+      bodyParams: ["project", "subject", "description", "status", "activeForm", "metadata"],
     },
     parameters: {
       type: "object",
@@ -5132,6 +5132,11 @@ const TOOL_DEFINITIONS = [
           type: "string",
           enum: ["pending", "in_progress", "completed"],
           description: "Initial status (default: 'pending').",
+        },
+        activeForm: {
+          type: "string",
+          description:
+            "Present continuous form shown as spinner text when in_progress (e.g. 'Running tests', 'Refactoring auth module').",
         },
         metadata: {
           type: "object",
@@ -5211,7 +5216,7 @@ const TOOL_DEFINITIONS = [
     endpoint: {
       method: "POST",
       path: "/agentic/task/update",
-      bodyParams: ["project", "taskId", "status", "subject", "description", "metadata"],
+      bodyParams: ["project", "taskId", "status", "subject", "description", "activeForm", "metadata"],
     },
     parameters: {
       type: "object",
@@ -5236,6 +5241,11 @@ const TOOL_DEFINITIONS = [
         description: {
           type: "string",
           description: "Updated description of what needs to be done.",
+        },
+        activeForm: {
+          type: "string",
+          description:
+            "Present continuous form shown as spinner text when in_progress (e.g. 'Running tests', 'Migrating schemas').",
         },
         metadata: {
           type: "object",

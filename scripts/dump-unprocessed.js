@@ -62,7 +62,7 @@ async function main() {
     
     console.log(output);
 
-    if (batchedCount >= 2) break;
+    if (batchedCount >= 3) break;
   }
 
   if (batchedCount === 0) {

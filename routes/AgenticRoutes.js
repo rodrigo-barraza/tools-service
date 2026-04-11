@@ -662,7 +662,7 @@ router.post("/git", async (req, res) => {
 // ── Create Task ───────────────────────────────────────────────
 
 router.post("/task/create", async (req, res) => {
-  const { project, subject, description, status, metadata } = req.body;
+  const { project, subject, description, status, activeForm, metadata } = req.body;
   if (!project || typeof project !== "string") {
     return res.status(400).json({ error: "Request body must include 'project' (string)" });
   }
@@ -676,7 +676,7 @@ router.post("/task/create", async (req, res) => {
   // Auto-inject conversationId from Prism telemetry header
   const conversationId = req.headers["x-conversation-id"] || null;
 
-  const result = await agenticTaskCreate(project, { subject, description, status, metadata, conversationId });
+  const result = await agenticTaskCreate(project, { subject, description, status, activeForm, metadata, conversationId });
   if (result.error) return res.status(400).json(result);
   res.json(result);
 });
@@ -716,7 +716,7 @@ router.post("/task/get", async (req, res) => {
 // ── Update Task ───────────────────────────────────────────────
 
 router.post("/task/update", async (req, res) => {
-  const { project, taskId, status, subject, description, metadata } = req.body;
+  const { project, taskId, status, subject, description, activeForm, metadata } = req.body;
   if (!project || typeof project !== "string") {
     return res.status(400).json({ error: "Request body must include 'project' (string)" });
   }
@@ -728,6 +728,7 @@ router.post("/task/update", async (req, res) => {
   if (status) updates.status = status;
   if (subject) updates.subject = subject;
   if (description) updates.description = description;
+  if (activeForm !== undefined) updates.activeForm = activeForm;
   if (metadata) updates.metadata = metadata;
   // Auto-inject conversationId from Prism telemetry header
   const conversationId = req.headers["x-conversation-id"];
