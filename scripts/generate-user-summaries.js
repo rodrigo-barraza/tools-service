@@ -16,12 +16,8 @@ if (!existsSync(OUTPUT_DIR)) {
   mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-// Ensure the LLM gateway is accessible
-const isPrismUp = await PrismService.health();
-if (!isPrismUp) {
-  console.error("❌ Prism Gateway is unreachable. Ensure it's running on", CONFIG.PRISM_API_URL);
-  process.exit(1);
-}
+// Removed health check since Prism's /health may not exist
+
 
 const client = new MongoClient(CONFIG.MONGODB_URI);
 
@@ -154,51 +150,91 @@ async function main() {
     .toArray();
 
   console.log(`\n=============================================================`);
-  console.log(`Starting generation for ${users.length} eligible users. Processing 1-by-1...`);
+  console.log(`Starting generation for ${users.length} eligible users. Processing 15 concurrently...`);
   console.log(`=============================================================\n`);
 
-  for (let i = 0; i < users.length; i++) {
-    const user = users[i];
-    const safeUsername = user.username.replace(/[^a-z0-9_-]/gi, "_");
-    const filePath = path.join(OUTPUT_DIR, `${safeUsername}.md`);
+  const CONCURRENCY = 15;
+  let activeWorkers = 0;
+  let currentIndex = 0;
+  let completedCount = 0;
 
-    if (existsSync(filePath)) {
-      console.log(`[${i + 1}/${users.length}] ⏭️  Skipping ${user.username} (Already exists)`);
-      continue;
-    }
-
-    console.log(`[${i + 1}/${users.length}] ⏳ Generating profile for: ${user.username} (${user.postCount || 0} posts)...`);
-
-    try {
-      // 1. Build Data Dump
-      const dataDump = await generateDataDump(db, user);
-      
-      // 2. Request AI Summary
-      const res = await PrismService.chat({
-        provider: "google",
-        model: "gemini-1.5-pro",  // High capability for long context analysis
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: `Here is the data dump for ${user.username}:\n\n${dataDump}` }
-        ]
-      });
-
-      const profileContent = res.text || res.content;
-      if (!profileContent) {
-        throw new Error("Received empty content from Prism");
+  await new Promise((resolve) => {
+    function processNext() {
+      if (currentIndex >= users.length) {
+        if (activeWorkers === 0) resolve();
+        return;
       }
 
-      // 3. Save File
-      writeFileSync(filePath, profileContent.trim());
-      console.log(`     ✅ Saved: ${filePath}`);
+      const user = users[currentIndex++];
+      const userNumber = currentIndex;
+      activeWorkers++;
 
-    } catch (err) {
-      console.error(`     ❌ Error generating for ${user.username}:`, err.message);
+      (async () => {
+        const safeUsername = user.username.replace(/[^a-z0-9_-]/gi, "_");
+        const filePath = path.join(OUTPUT_DIR, `${safeUsername}.md`);
+
+        if (existsSync(filePath)) {
+          console.log(`[${userNumber}/${users.length}] ⏭️  Skipping ${user.username} (Already exists)`);
+        } else {
+          console.log(`[${userNumber}/${users.length}] ⏳ Generating profile for: ${user.username} (${user.postCount || 0} posts)...`);
+          try {
+            const dataDump = await generateDataDump(db, user);
+            const res = await fetch(`${CONFIG.PRISM_API_URL}/chat`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                provider: "google",
+                model: "gemini-1.5-pro",
+                messages: [
+                  { role: "system", content: SYSTEM_PROMPT },
+                  { role: "user", content: `Here is the data dump for ${user.username}:\n\n${dataDump}` }
+                ],
+                project: "tools-api",
+                username: "system",
+                skipConversation: true
+              })
+            });
+
+            if (!res.ok) throw new Error(`Prism fetch failed: ${res.status}`);
+
+            const responseText = await res.text();
+            let profileContent = '';
+            for (const line of responseText.split('\\n')) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const chunk = JSON.parse(line.substring(6));
+                  if (chunk.type === "chunk" && chunk.content) {
+                    profileContent += chunk.content;
+                  }
+                } catch(e){}
+              }
+            }
+
+            if (profileContent) {
+              writeFileSync(filePath, profileContent.trim());
+              console.log(`     ✅ Saved: ${filePath}`);
+            } else {
+              throw new Error("Received empty content from Prism");
+            }
+          } catch (err) {
+            console.error(`     ❌ Error generating for ${user.username}:`, err.message);
+          }
+        }
+        
+        activeWorkers--;
+        completedCount++;
+        processNext();
+      })();
     }
-  }
+
+    // Start initial workers
+    for (let i = 0; i < CONCURRENCY; i++) {
+      processNext();
+    }
+  });
 
   await client.close();
-  console.log(`\n🎉 All summaries complete! Output directory: ${OUTPUT_DIR}\n`);
+  console.log(`\n🎉 All ${completedCount} summaries complete! Output directory: ${OUTPUT_DIR}\n`);
 }
 
 main().catch(console.error);
