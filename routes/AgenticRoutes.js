@@ -59,6 +59,13 @@ import {
   testAllTools,
   getTestableTools,
 } from "../services/AgenticToolTestService.js";
+import {
+  agenticTaskCreate,
+  agenticTaskList,
+  agenticTaskGet,
+  agenticTaskUpdate,
+  agenticTaskDelete,
+} from "../services/AgenticTaskService.js";
 
 const router = Router();
 
@@ -629,6 +636,7 @@ export function getAgenticHealth() {
     browserAction: getBrowserHealth(),
     lspAction: "on-demand (LSP stdio JSON-RPC)",
     lspServers: agenticLspHealth(),
+    taskManagement: "on-demand (MongoDB agent_tasks)",
   };
 }
 
@@ -648,7 +656,106 @@ router.post("/git", async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// 12. Tool Smoke Tests
+// 12. Task Management
+// ═══════════════════════════════════════════════════════════════
+
+// ── Create Task ───────────────────────────────────────────────
+
+router.post("/task/create", async (req, res) => {
+  const { project, subject, description, status, metadata } = req.body;
+  if (!project || typeof project !== "string") {
+    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+  }
+  if (!subject || typeof subject !== "string") {
+    return res.status(400).json({ error: "Request body must include 'subject' (string)" });
+  }
+  if (!description || typeof description !== "string") {
+    return res.status(400).json({ error: "Request body must include 'description' (string)" });
+  }
+
+  // Auto-inject conversationId from Prism telemetry header
+  const conversationId = req.headers["x-conversation-id"] || null;
+
+  const result = await agenticTaskCreate(project, { subject, description, status, metadata, conversationId });
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// ── List Tasks ────────────────────────────────────────────────
+
+router.post("/task/list", async (req, res) => {
+  const { project, status, limit } = req.body;
+  if (!project || typeof project !== "string") {
+    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+  }
+
+  const result = await agenticTaskList(project, {
+    status: status || undefined,
+    limit: limit ? parseInt(limit) : undefined,
+  });
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// ── Get Task ──────────────────────────────────────────────────
+
+router.post("/task/get", async (req, res) => {
+  const { project, taskId } = req.body;
+  if (!project || typeof project !== "string") {
+    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+  }
+  if (taskId == null) {
+    return res.status(400).json({ error: "Request body must include 'taskId' (number)" });
+  }
+
+  const result = await agenticTaskGet(project, taskId);
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// ── Update Task ───────────────────────────────────────────────
+
+router.post("/task/update", async (req, res) => {
+  const { project, taskId, status, subject, description, metadata } = req.body;
+  if (!project || typeof project !== "string") {
+    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+  }
+  if (taskId == null) {
+    return res.status(400).json({ error: "Request body must include 'taskId' (number)" });
+  }
+
+  const updates = {};
+  if (status) updates.status = status;
+  if (subject) updates.subject = subject;
+  if (description) updates.description = description;
+  if (metadata) updates.metadata = metadata;
+  // Auto-inject conversationId from Prism telemetry header
+  const conversationId = req.headers["x-conversation-id"];
+  if (conversationId) updates.conversationId = conversationId;
+
+  const result = await agenticTaskUpdate(project, taskId, updates);
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// ── Delete Task ───────────────────────────────────────────────
+
+router.post("/task/delete", async (req, res) => {
+  const { project, taskId } = req.body;
+  if (!project || typeof project !== "string") {
+    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+  }
+  if (taskId == null) {
+    return res.status(400).json({ error: "Request body must include 'taskId' (number)" });
+  }
+
+  const result = await agenticTaskDelete(project, taskId);
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 13. Tool Smoke Tests
 // ═══════════════════════════════════════════════════════════════
 
 // ── Single tool test ──────────────────────────────────────────

@@ -21,6 +21,7 @@ import { setupWebcamCollection } from "./models/Webcam.js";
 import { connectClockCrewDB, setupClockCrewCollections } from "./models/ClockCrewPost.js";
 import { setupNewgroundsCollections } from "./models/NewgroundsProfile.js";
 import { setupToolCallsCollection } from "./middleware/ToolCallLoggerMiddleware.js";
+import { setupAgenticTaskCollection } from "./services/AgenticTaskService.js";
 
 // ─── Routes ────────────────────────────────────────────────────────
 
@@ -152,6 +153,7 @@ async function start() {
       setupGeomagneticStormCollection(),
       setupWebcamCollection(),
       setupToolCallsCollection(),
+      setupAgenticTaskCollection(),
     ]);
 
     // Connect to separate Clock Crew database (also hosts Newgrounds collections)

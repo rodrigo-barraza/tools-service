@@ -5097,6 +5097,155 @@ const TOOL_DEFINITIONS = [
     },
   },
 
+  // ── Task Management ───────────────────────────────────────
+  {
+    name: "task_create",
+    dataSource: compute("MongoDB agent_tasks"),
+    description:
+      "Create a persistent task to track a work item across agentic iterations. Tasks survive context window " +
+      "truncation and memory consolidation, providing reliable Working Memory for complex multi-step workflows. " +
+      "Use this when starting a complex task to maintain a checklist of sub-goals, track progress on multi-file " +
+      "refactors, or record items that must not be forgotten if context is lost. Returns the created task with a " +
+      "unique numeric ID.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/task/create",
+      bodyParams: ["project", "subject", "description", "status", "metadata"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        project: {
+          type: "string",
+          description:
+            "Project scope for the task (e.g. 'retina', 'prism', 'tools-api'). Tasks are isolated per project.",
+        },
+        subject: {
+          type: "string",
+          description: "A brief title for the task (e.g. 'Migrate auth middleware to JWT').",
+        },
+        description: {
+          type: "string",
+          description: "Detailed description of what needs to be done.",
+        },
+        status: {
+          type: "string",
+          enum: ["pending", "in_progress", "completed"],
+          description: "Initial status (default: 'pending').",
+        },
+        metadata: {
+          type: "object",
+          description: "Optional arbitrary key-value metadata to attach to the task.",
+        },
+      },
+      required: ["project", "subject", "description"],
+    },
+  },
+  {
+    name: "task_list",
+    dataSource: compute("MongoDB agent_tasks"),
+    description:
+      "List all tasks for a project, optionally filtered by status. Returns tasks sorted by ID with a summary " +
+      "showing counts per status (pending, in_progress, completed). Use this at the start of a new agentic " +
+      "session to recall what was previously in progress, or after completing a batch of work to audit remaining items.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/task/list",
+      bodyParams: ["project", "status", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        project: {
+          type: "string",
+          description: "Project scope (e.g. 'retina', 'prism').",
+        },
+        status: {
+          type: "string",
+          enum: ["pending", "in_progress", "completed"],
+          description: "Optional filter — only return tasks with this status.",
+        },
+        limit: {
+          type: "integer",
+          description: "Maximum number of tasks to return (default: 50, max: 200).",
+        },
+      },
+      required: ["project"],
+    },
+  },
+  {
+    name: "task_get",
+    dataSource: compute("MongoDB agent_tasks"),
+    description:
+      "Get a single task by its numeric ID. Returns the full task document including subject, description, " +
+      "status, metadata, and timestamps. Use this to check the current state of a specific task before updating it, " +
+      "or to retrieve detailed metadata attached to a task.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/task/get",
+      bodyParams: ["project", "taskId"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        project: {
+          type: "string",
+          description: "Project scope (e.g. 'retina', 'prism').",
+        },
+        taskId: {
+          type: "integer",
+          description: "The numeric ID of the task to retrieve.",
+        },
+      },
+      required: ["project", "taskId"],
+    },
+  },
+  {
+    name: "task_update",
+    dataSource: compute("MongoDB agent_tasks"),
+    description:
+      "Update an existing task's status, subject, description, or metadata. Use this to mark tasks as " +
+      "'in_progress' when you start working on them, 'completed' when done, or to refine the description " +
+      "as your understanding of the task evolves. Metadata is merged (not replaced) — you can incrementally " +
+      "add key-value pairs without losing existing metadata.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/task/update",
+      bodyParams: ["project", "taskId", "status", "subject", "description", "metadata"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        project: {
+          type: "string",
+          description: "Project scope (e.g. 'retina', 'prism').",
+        },
+        taskId: {
+          type: "integer",
+          description: "The numeric ID of the task to update.",
+        },
+        status: {
+          type: "string",
+          enum: ["pending", "in_progress", "completed"],
+          description: "New status for the task.",
+        },
+        subject: {
+          type: "string",
+          description: "Updated title for the task.",
+        },
+        description: {
+          type: "string",
+          description: "Updated description of what needs to be done.",
+        },
+        metadata: {
+          type: "object",
+          description: "Key-value pairs to merge into existing task metadata.",
+        },
+      },
+      required: ["project", "taskId"],
+    },
+  },
+
   // ── Communication (Twilio) ────────────────────────────────
   {
     name: "send_sms",
@@ -5433,6 +5582,12 @@ const TOOL_DOMAINS = {
   // Agentic — Code Intelligence (LSP)
   lsp_action: "Agentic: Code Intelligence",
 
+  // Agentic — Task Management
+  task_create: "Agentic: Task Management",
+  task_get: "Agentic: Task Management",
+  task_list: "Agentic: Task Management",
+  task_update: "Agentic: Task Management",
+
   // Communication (Twilio)
   send_sms: "Communication",
   list_sms_messages: "Communication",
@@ -5727,6 +5882,12 @@ const TOOL_LABELS = {
 
   // ── Agentic: Browser ─────────────────────────────────────
   browser_action: ["web"],
+
+  // ── Agentic: Task Management ─────────────────────────────
+  task_create: ["coding"],
+  task_get: ["coding"],
+  task_list: ["coding"],
+  task_update: ["coding"],
 
   // ── Communication ────────────────────────────────────────
   send_sms: ["communication"],
