@@ -16,6 +16,7 @@
 import { connectDB } from "../db.js";
 import CONFIG from "../config.js";
 import {
+  connectClockCrewDB,
   setupClockCrewCollections,
   upsertBoard,
   upsertThread,
@@ -177,6 +178,7 @@ async function main() {
 
   // Connect to MongoDB
   await connectDB(CONFIG.MONGODB_URI);
+  await connectClockCrewDB(CONFIG.MONGODB_URI);
   await setupClockCrewCollections();
 
   // Show current stats

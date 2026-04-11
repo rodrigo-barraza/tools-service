@@ -5,8 +5,8 @@ import {
   getAllProfiles,
   searchProfiles,
   getContentByUser,
-  getNewgroundsDB,
 } from "../models/NewgroundsProfile.js";
+import { getClockCrewDB } from "../models/ClockCrewPost.js";
 
 const router = Router();
 
@@ -71,15 +71,15 @@ router.get("/profiles/:username", async (req, res) => {
 // Each content type gets a by-user endpoint.
 
 const CONTENT_COLLECTIONS = [
-  { path: "fans", collection: "ng_fans" },
-  { path: "news", collection: "ng_news" },
-  { path: "movies", collection: "ng_movies" },
-  { path: "games", collection: "ng_games" },
-  { path: "audio", collection: "ng_audio" },
-  { path: "art", collection: "ng_art" },
-  { path: "faves", collection: "ng_faves" },
-  { path: "reviews", collection: "ng_reviews" },
-  { path: "posts", collection: "ng_posts" },
+  { path: "fans", collection: "NewgroundsFans" },
+  { path: "news", collection: "NewgroundsNews" },
+  { path: "movies", collection: "NewgroundsMovies" },
+  { path: "games", collection: "NewgroundsGames" },
+  { path: "audio", collection: "NewgroundsAudio" },
+  { path: "art", collection: "NewgroundsArt" },
+  { path: "faves", collection: "NewgroundsFaves" },
+  { path: "reviews", collection: "NewgroundsReviews" },
+  { path: "posts", collection: "NewgroundsPosts" },
 ];
 
 for (const { path, collection } of CONTENT_COLLECTIONS) {
@@ -108,9 +108,9 @@ router.get("/top", async (req, res) => {
     const sortField = req.query.sort || "fans.count";
     const limit = Math.min(parseInt(req.query.limit) || 50, 500);
 
-    const db = getNewgroundsDB();
+    const db = getClockCrewDB();
     const profiles = await db
-      .collection("ng_profiles")
+      .collection("NewgroundsProfiles")
       .find({})
       .sort({ [sortField]: -1 })
       .limit(limit)

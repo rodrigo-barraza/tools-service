@@ -8,8 +8,8 @@ import {
   getAllUsers,
   getUser,
   getUserByName,
+  getClockCrewDB,
 } from "../models/ClockCrewPost.js";
-import { getDB } from "../db.js";
 
 const router = Router();
 
@@ -41,8 +41,8 @@ router.get("/stats", async (_req, res) => {
 
 router.get("/threads", async (req, res) => {
   try {
-    const db = getDB();
-    const col = db.collection("clockcrew_threads");
+    const db = getClockCrewDB();
+    const col = db.collection("ClockCrewNetThreads");
 
     const query = {};
     if (req.query.boardId) query.boardId = parseInt(req.query.boardId, 10);
@@ -110,7 +110,7 @@ router.get("/posts/search", async (req, res) => {
 });
 
 // ─── GET /boards ────────────────────────────────────────────────
-// Returns all scraped boards from the clockcrew_boards collection.
+// Returns all scraped boards from the ClockCrewNetBoards collection.
 
 router.get("/boards", async (_req, res) => {
   try {
@@ -126,8 +126,8 @@ router.get("/boards", async (_req, res) => {
 
 router.get("/authors", async (req, res) => {
   try {
-    const db = getDB();
-    const col = db.collection("clockcrew_posts");
+    const db = getClockCrewDB();
+    const col = db.collection("ClockCrewNetPosts");
     const limit = Math.min(parseInt(req.query.limit) || 50, 500);
 
     const authors = await col

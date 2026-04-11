@@ -49,6 +49,12 @@ import {
   agenticBrowserAction,
   getBrowserHealth,
 } from "../services/AgenticBrowserService.js";
+import {
+  agenticLspDefinition,
+  agenticLspReferences,
+  agenticLspHover,
+  agenticLspDocumentSymbols,
+} from "../services/AgenticLspService.js";
 
 const router = Router();
 
@@ -541,6 +547,30 @@ router.post("/browser/action", async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// 10. Semantic Code Navigation (LSP)
+// ═══════════════════════════════════════════════════════════════
+
+router.post("/lsp/definition", async (req, res) => {
+  if (!req.body.path) return res.status(400).json({ error: "'path' is required" });
+  res.json(await agenticLspDefinition(req.body));
+});
+
+router.post("/lsp/references", async (req, res) => {
+  if (!req.body.path) return res.status(400).json({ error: "'path' is required" });
+  res.json(await agenticLspReferences(req.body));
+});
+
+router.post("/lsp/hover", async (req, res) => {
+  if (!req.body.path) return res.status(400).json({ error: "'path' is required" });
+  res.json(await agenticLspHover(req.body));
+});
+
+router.post("/lsp/document-symbols", async (req, res) => {
+  if (!req.body.path) return res.status(400).json({ error: "'path' is required" });
+  res.json(await agenticLspDocumentSymbols(req.body));
+});
+
+// ═══════════════════════════════════════════════════════════════
 // Health
 // ═══════════════════════════════════════════════════════════════
 
@@ -571,6 +601,10 @@ export function getAgenticHealth() {
     gitWorktreeCleanup: "on-demand (git prune)",
     projectSummary: "on-demand (fs scan)",
     browserAction: getBrowserHealth(),
+    lspDefinition: "on-demand (background lsp daemon)",
+    lspReferences: "on-demand (background lsp daemon)",
+    lspHover: "on-demand (background lsp daemon)",
+    lspDocumentSymbols: "on-demand (background lsp daemon)",
   };
 }
 

@@ -18,8 +18,8 @@ import { setupSolarFlareCollection } from "./models/SolarFlare.js";
 import { setupCmeCollection } from "./models/Cme.js";
 import { setupGeomagneticStormCollection } from "./models/GeomagneticStorm.js";
 import { setupWebcamCollection } from "./models/Webcam.js";
-import { setupClockCrewCollections } from "./models/ClockCrewPost.js";
-import { connectNewgroundsDB, setupNewgroundsCollections } from "./models/NewgroundsProfile.js";
+import { connectClockCrewDB, setupClockCrewCollections } from "./models/ClockCrewPost.js";
+import { setupNewgroundsCollections } from "./models/NewgroundsProfile.js";
 import { setupToolCallsCollection } from "./middleware/ToolCallLoggerMiddleware.js";
 
 // ─── Routes ────────────────────────────────────────────────────────
@@ -151,12 +151,12 @@ async function start() {
       setupCmeCollection(),
       setupGeomagneticStormCollection(),
       setupWebcamCollection(),
-      setupClockCrewCollections(),
       setupToolCallsCollection(),
     ]);
 
-    // Connect to separate Newgrounds database
-    await connectNewgroundsDB(CONFIG.MONGODB_URI);
+    // Connect to separate Clock Crew database (also hosts Newgrounds collections)
+    await connectClockCrewDB(CONFIG.MONGODB_URI);
+    await setupClockCrewCollections();
     await setupNewgroundsCollections();
   } catch (error) {
     console.error(`Failed to connect to MongoDB: ${error.message}`);

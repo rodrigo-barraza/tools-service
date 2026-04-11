@@ -1,24 +1,21 @@
-import { MongoClient } from "mongodb";
+import { getClockCrewDB } from "./ClockCrewPost.js";
 
 // ═══════════════════════════════════════════════════════════════
-//  Newgrounds — MongoDB Collections (separate database)
+//  Newgrounds — MongoDB Collections (in clockcrew database)
 // ═══════════════════════════════════════════════════════════════
-//  Database: newgrounds
+//  Database: clockcrew
 //  Collections:
-//    ng_profiles  — User profile data & stats
-//    ng_fans      — Fan relationship snapshots
-//    ng_news      — User news/blog posts
-//    ng_movies    — User's submitted movies
-//    ng_games     — User's submitted games
-//    ng_audio     — User's submitted audio
-//    ng_art       — User's submitted art
-//    ng_faves     — User's favorited content
-//    ng_reviews   — User's reviews
-//    ng_posts     — User's forum posts
+//    NewgroundsProfiles  — User profile data & stats
+//    NewgroundsFans      — Fan relationship snapshots
+//    NewgroundsNews      — User news/blog posts
+//    NewgroundsMovies    — User's submitted movies
+//    NewgroundsGames     — User's submitted games
+//    NewgroundsAudio     — User's submitted audio
+//    NewgroundsArt       — User's submitted art
+//    NewgroundsFaves     — User's favorited content
+//    NewgroundsReviews   — User's reviews
+//    NewgroundsPosts     — User's forum posts
 // ═══════════════════════════════════════════════════════════════
-
-let client = null;
-let ngDb = null;
 
 let profilesCol = null;
 let fansCol = null;
@@ -32,51 +29,22 @@ let reviewsCol = null;
 let postsCol = null;
 
 /**
- * Connect to the Newgrounds database.
- * Uses the same MongoDB host but targets the `newgrounds` database.
- *
- * @param {string} baseUri - MongoDB connection string (will switch to `newgrounds` db)
- */
-export async function connectNewgroundsDB(baseUri) {
-  if (ngDb) return ngDb;
-
-  // Replace the database name in the URI
-  const ngUri = baseUri.replace(
-    /\/tools\b/,
-    "/newgrounds",
-  );
-
-  client = new MongoClient(ngUri);
-  await client.connect();
-  ngDb = client.db("newgrounds");
-  console.log(`🎮 Connected to Newgrounds DB: ${ngDb.databaseName}`);
-  return ngDb;
-}
-
-/**
- * Get the Newgrounds database instance.
- */
-export function getNewgroundsDB() {
-  if (!ngDb) throw new Error("Newgrounds DB not connected — call connectNewgroundsDB() first");
-  return ngDb;
-}
-
-/**
  * Initialize all Newgrounds collections with required indexes.
+ * Requires connectClockCrewDB() to have been called first.
  */
 export async function setupNewgroundsCollections() {
-  const db = getNewgroundsDB();
+  const db = getClockCrewDB();
 
-  profilesCol = db.collection("ng_profiles");
-  fansCol = db.collection("ng_fans");
-  newsCol = db.collection("ng_news");
-  moviesCol = db.collection("ng_movies");
-  gamesCol = db.collection("ng_games");
-  audioCol = db.collection("ng_audio");
-  artCol = db.collection("ng_art");
-  favesCol = db.collection("ng_faves");
-  reviewsCol = db.collection("ng_reviews");
-  postsCol = db.collection("ng_posts");
+  profilesCol = db.collection("NewgroundsProfiles");
+  fansCol = db.collection("NewgroundsFans");
+  newsCol = db.collection("NewgroundsNews");
+  moviesCol = db.collection("NewgroundsMovies");
+  gamesCol = db.collection("NewgroundsGames");
+  audioCol = db.collection("NewgroundsAudio");
+  artCol = db.collection("NewgroundsArt");
+  favesCol = db.collection("NewgroundsFaves");
+  reviewsCol = db.collection("NewgroundsReviews");
+  postsCol = db.collection("NewgroundsPosts");
 
   // ─── Profile Indexes ──────────────────────────────────────────
   await profilesCol.createIndex({ usernameLower: 1 }, { unique: true });
@@ -206,12 +174,12 @@ export async function searchProfiles({ q, limit = 100 } = {}) {
  * Bulk upsert items into a content collection.
  * Each item must have a `contentId` or `contentUrl` for dedup.
  *
- * @param {string} collectionName - One of: ng_fans, ng_news, ng_movies, ng_games, ng_audio, ng_art, ng_faves, ng_reviews, ng_posts
+ * @param {string} collectionName - One of: NewgroundsFans, NewgroundsNews, NewgroundsMovies, NewgroundsGames, NewgroundsAudio, NewgroundsArt, NewgroundsFaves, NewgroundsReviews, NewgroundsPosts
  * @param {object[]} items - Array of documents to upsert
  * @param {string} dedupeField - Field to use for deduplication
  */
 export async function upsertContentBatch(collectionName, items, dedupeField = "contentUrl") {
-  const db = getNewgroundsDB();
+  const db = getClockCrewDB();
   const col = db.collection(collectionName);
 
   if (!items || items.length === 0) return { upserted: 0, modified: 0 };
@@ -243,7 +211,7 @@ export async function upsertContentBatch(collectionName, items, dedupeField = "c
  * Get all items from a content collection for a given user.
  */
 export async function getContentByUser(collectionName, usernameLower, limit = 500) {
-  const db = getNewgroundsDB();
+  const db = getClockCrewDB();
   const col = db.collection(collectionName);
   return col
     .find({ usernameLower })
@@ -255,27 +223,27 @@ export async function getContentByUser(collectionName, usernameLower, limit = 50
 // ─── Stats ──────────────────────────────────────────────────────
 
 /**
- * Get scrape progress stats for the Newgrounds database.
+ * Get scrape progress stats for the Newgrounds collections.
  */
 export async function getNewgroundsScrapeStats() {
-  const db = getNewgroundsDB();
+  const db = getClockCrewDB();
 
   const [profiles, fans, news, movies, games, audio, art, faves, reviews, posts] =
     await Promise.all([
-      db.collection("ng_profiles").countDocuments(),
-      db.collection("ng_fans").countDocuments(),
-      db.collection("ng_news").countDocuments(),
-      db.collection("ng_movies").countDocuments(),
-      db.collection("ng_games").countDocuments(),
-      db.collection("ng_audio").countDocuments(),
-      db.collection("ng_art").countDocuments(),
-      db.collection("ng_faves").countDocuments(),
-      db.collection("ng_reviews").countDocuments(),
-      db.collection("ng_posts").countDocuments(),
+      db.collection("NewgroundsProfiles").countDocuments(),
+      db.collection("NewgroundsFans").countDocuments(),
+      db.collection("NewgroundsNews").countDocuments(),
+      db.collection("NewgroundsMovies").countDocuments(),
+      db.collection("NewgroundsGames").countDocuments(),
+      db.collection("NewgroundsAudio").countDocuments(),
+      db.collection("NewgroundsArt").countDocuments(),
+      db.collection("NewgroundsFaves").countDocuments(),
+      db.collection("NewgroundsReviews").countDocuments(),
+      db.collection("NewgroundsPosts").countDocuments(),
     ]);
 
   const latestProfile = await db
-    .collection("ng_profiles")
+    .collection("NewgroundsProfiles")
     .findOne({}, { sort: { lastScrapedAt: -1 }, projection: { lastScrapedAt: 1 } });
 
   return {

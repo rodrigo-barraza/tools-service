@@ -1,28 +1,63 @@
-import { getDB } from "../db.js";
+import { MongoClient } from "mongodb";
+
+// ═══════════════════════════════════════════════════════════════
+//  Clock Crew Forum — MongoDB Collections (separate database)
+// ═══════════════════════════════════════════════════════════════
+//  Database: clockcrew
+//  Collections:
+//    ClockCrewNetBoards  — One doc per board (board metadata)
+//    ClockCrewNetThreads — One doc per topic (thread metadata)
+//    ClockCrewNetPosts   — One doc per message (post content)
+//    ClockCrewNetUsers   — One doc per forum user (profile data)
+// ═══════════════════════════════════════════════════════════════
+
+let client = null;
+let ccDb = null;
 
 let boardsCol = null;
 let threadsCol = null;
 let postsCol = null;
 let usersCol = null;
 
-// ═══════════════════════════════════════════════════════════════
-//  Clock Crew Forum — MongoDB Collections
-// ═══════════════════════════════════════════════════════════════
-//  clockcrew_boards  — One doc per board (board metadata)
-//  clockcrew_threads — One doc per topic (thread metadata)
-//  clockcrew_posts   — One doc per message (post content)
-//  clockcrew_users   — One doc per forum user (profile data)
-// ═══════════════════════════════════════════════════════════════
+/**
+ * Connect to the Clock Crew database.
+ * Uses the same MongoDB host but targets the `clockcrew` database.
+ *
+ * @param {string} baseUri - MongoDB connection string (will switch to `clockcrew` db)
+ */
+export async function connectClockCrewDB(baseUri) {
+  if (ccDb) return ccDb;
+
+  // Replace the database name in the URI
+  const ccUri = baseUri.replace(
+    /\/tools\b/,
+    "/clockcrew",
+  );
+
+  client = new MongoClient(ccUri);
+  await client.connect();
+  ccDb = client.db("clockcrew");
+  console.log(`🕰️  Connected to Clock Crew DB: ${ccDb.databaseName}`);
+  return ccDb;
+}
+
+/**
+ * Get the Clock Crew database instance.
+ */
+export function getClockCrewDB() {
+  if (!ccDb) throw new Error("Clock Crew DB not connected — call connectClockCrewDB() first");
+  return ccDb;
+}
 
 /**
  * Initialize both collections with required indexes.
  */
 export async function setupClockCrewCollections() {
-  const db = getDB();
-  boardsCol = db.collection("clockcrew_boards");
-  threadsCol = db.collection("clockcrew_threads");
-  postsCol = db.collection("clockcrew_posts");
-  usersCol = db.collection("clockcrew_users");
+  const db = getClockCrewDB();
+  boardsCol = db.collection("ClockCrewNetBoards");
+  threadsCol = db.collection("ClockCrewNetThreads");
+  postsCol = db.collection("ClockCrewNetPosts");
+  usersCol = db.collection("ClockCrewNetUsers");
 
   // ─── Board Indexes ─────────────────────────────────────────────
   await boardsCol.createIndex({ boardId: 1 }, { unique: true });
@@ -137,9 +172,9 @@ export async function getAllUsers(limit = 500) {
  * Returns an array of { userId, username } objects.
  */
 export async function getUnscrapedUserIds() {
-  const db = getDB();
-  const postsColl = db.collection("clockcrew_posts");
-  const usersColl = db.collection("clockcrew_users");
+  const db = getClockCrewDB();
+  const postsColl = db.collection("ClockCrewNetPosts");
+  const usersColl = db.collection("ClockCrewNetUsers");
 
   // Get all unique userIds from posts
   const postUserIds = await postsColl.distinct("authorUserId", {
@@ -290,17 +325,17 @@ export async function searchPosts({ q, author, boardId, limit = 100 } = {}) {
  * Get scrape progress stats.
  */
 export async function getScrapeStats() {
-  const db = getDB();
+  const db = getClockCrewDB();
   const [boardCount, threadCount, postCount, userCount] = await Promise.all([
-    db.collection("clockcrew_boards").countDocuments(),
-    db.collection("clockcrew_threads").countDocuments(),
-    db.collection("clockcrew_posts").countDocuments(),
-    db.collection("clockcrew_users").countDocuments(),
+    db.collection("ClockCrewNetBoards").countDocuments(),
+    db.collection("ClockCrewNetThreads").countDocuments(),
+    db.collection("ClockCrewNetPosts").countDocuments(),
+    db.collection("ClockCrewNetUsers").countDocuments(),
   ]);
 
   // Get the latest scrape timestamp
   const latestThread = await db
-    .collection("clockcrew_threads")
+    .collection("ClockCrewNetThreads")
     .findOne({}, { sort: { lastScrapedAt: -1 }, projection: { lastScrapedAt: 1 } });
 
   return {

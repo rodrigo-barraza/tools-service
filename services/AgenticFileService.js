@@ -67,7 +67,7 @@ const BINARY_EXTENSIONS = new Set([
  * @param {string} inputPath - User-provided path
  * @returns {{ safe: boolean, resolved: string, error?: string }}
  */
-function validatePath(inputPath) {
+export function validatePath(inputPath) {
   if (!inputPath || typeof inputPath !== "string") {
     return { safe: false, resolved: "", error: "Path is required (string)" };
   }

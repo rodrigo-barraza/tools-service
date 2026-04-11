@@ -7,7 +7,7 @@
 //    node scripts/scrape-newgrounds.js --from-post              # scrape all users from olskoo's Clock Crew List
 //    node scripts/scrape-newgrounds.js --username=StrawberryClock # specific user
 //    node scripts/scrape-newgrounds.js --list=users.txt         # from a line-delimited file
-//    node scripts/scrape-newgrounds.js --from-clockcrew         # discover from clockcrew_users.newgroundsUsername
+//    node scripts/scrape-newgrounds.js --from-clockcrew         # discover from ClockCrewNetUsers.newgroundsUsername
 //    node scripts/scrape-newgrounds.js --resume                 # skip already-scraped profiles
 //    node scripts/scrape-newgrounds.js --parallel=4             # concurrent workers
 //    node scripts/scrape-newgrounds.js --resume --from-post --parallel=2
@@ -15,10 +15,10 @@
 
 import { readFileSync } from "fs";
 import * as cheerio from "cheerio";
-import { connectDB, getDB } from "../db.js";
+import { connectDB } from "../db.js";
 import CONFIG from "../config.js";
+import { connectClockCrewDB, getClockCrewDB } from "../models/ClockCrewPost.js";
 import {
-  connectNewgroundsDB,
   setupNewgroundsCollections,
   upsertProfile,
   upsertContentBatch,
@@ -97,10 +97,10 @@ async function buildUsernameQueue() {
       .filter(Boolean)
       .forEach((u) => usernames.push(u));
   } else if (fromClockCrew) {
-    // Discover from clockcrew_users collection
-    const toolsDb = getDB();
-    const clockCrewUsers = await toolsDb
-      .collection("clockcrew_users")
+    // Discover from ClockCrewNetUsers collection
+    const clockCrewDb = getClockCrewDB();
+    const clockCrewUsers = await clockCrewDb
+      .collection("ClockCrewNetUsers")
       .find(
         { newgroundsUsername: { $ne: "" } },
         { projection: { newgroundsUsername: 1 } },
@@ -134,31 +134,31 @@ async function persistFullProfile(data) {
   const results = {};
 
   if (fans.length > 0) {
-    results.fans = await upsertContentBatch("ng_fans", fans, "fanUsername");
+    results.fans = await upsertContentBatch("NewgroundsFans", fans, "fanUsername");
   }
   if (news.length > 0) {
-    results.news = await upsertContentBatch("ng_news", news, "contentId");
+    results.news = await upsertContentBatch("NewgroundsNews", news, "contentId");
   }
   if (movies.length > 0) {
-    results.movies = await upsertContentBatch("ng_movies", movies, "contentId");
+    results.movies = await upsertContentBatch("NewgroundsMovies", movies, "contentId");
   }
   if (games.length > 0) {
-    results.games = await upsertContentBatch("ng_games", games, "contentId");
+    results.games = await upsertContentBatch("NewgroundsGames", games, "contentId");
   }
   if (audio.length > 0) {
-    results.audio = await upsertContentBatch("ng_audio", audio, "contentId");
+    results.audio = await upsertContentBatch("NewgroundsAudio", audio, "contentId");
   }
   if (art.length > 0) {
-    results.art = await upsertContentBatch("ng_art", art, "contentId");
+    results.art = await upsertContentBatch("NewgroundsArt", art, "contentId");
   }
   if (faves.length > 0) {
-    results.faves = await upsertContentBatch("ng_faves", faves, "contentUrl");
+    results.faves = await upsertContentBatch("NewgroundsFaves", faves, "contentUrl");
   }
   if (reviews.length > 0) {
-    results.reviews = await upsertContentBatch("ng_reviews", reviews, "reviewId");
+    results.reviews = await upsertContentBatch("NewgroundsReviews", reviews, "reviewId");
   }
   if (posts.length > 0) {
-    results.posts = await upsertContentBatch("ng_posts", posts, "postId");
+    results.posts = await upsertContentBatch("NewgroundsPosts", posts, "postId");
   }
 
   return results;
@@ -232,9 +232,9 @@ async function main() {
   if (fromClockCrew) console.log(`  Source: Clock Crew users`);
   console.log("");
 
-  // Connect to both databases
+  // Connect to databases
   await connectDB(CONFIG.MONGODB_URI);
-  await connectNewgroundsDB(CONFIG.MONGODB_URI);
+  await connectClockCrewDB(CONFIG.MONGODB_URI);
   await setupNewgroundsCollections();
 
   // Show current stats
