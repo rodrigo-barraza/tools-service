@@ -34,6 +34,10 @@ const MAX_SYMBOLS_RETURNED = 100;         // Cap symbols for documentSymbol
 const SUPPORTED_EXTENSIONS = new Set([
   ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs",
   ".py", ".pyi",
+  ".rs",
+  ".go", ".mod", ".sum",
+  ".c", ".h", ".cpp", ".cxx", ".cc", ".hpp", ".hxx", ".hh",
+  ".lua",
 ]);
 
 // ── Supported operations ─────────────────────────────────────

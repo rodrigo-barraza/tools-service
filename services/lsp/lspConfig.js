@@ -49,6 +49,59 @@ export const LSP_SERVER_CONFIGS = {
     maxRestarts: 3,
     startupTimeout: 30_000,
   },
+
+  // ── Rust ─────────────────────────────────────────────────
+  "rust-analyzer": {
+    command: "rust-analyzer",
+    args: [],
+    extensionToLanguage: {
+      ".rs": "rust",
+    },
+    maxRestarts: 3,
+    startupTimeout: 60_000,
+  },
+
+  // ── Go ───────────────────────────────────────────────────
+  gopls: {
+    command: "gopls",
+    args: ["serve"],
+    extensionToLanguage: {
+      ".go": "go",
+      ".mod": "go.mod",
+      ".sum": "go.sum",
+    },
+    maxRestarts: 3,
+    startupTimeout: 30_000,
+  },
+
+  // ── C / C++ ──────────────────────────────────────────────
+  clangd: {
+    command: "clangd",
+    args: ["--background-index"],
+    extensionToLanguage: {
+      ".c": "c",
+      ".h": "c",
+      ".cpp": "cpp",
+      ".cxx": "cpp",
+      ".cc": "cpp",
+      ".hpp": "cpp",
+      ".hxx": "cpp",
+      ".hh": "cpp",
+    },
+    maxRestarts: 3,
+    startupTimeout: 30_000,
+  },
+
+  // ── Lua ──────────────────────────────────────────────────
+  "lua-language-server": {
+    command: "lua-language-server",
+    args: [],
+    extensionToLanguage: {
+      ".lua": "lua",
+    },
+    maxRestarts: 3,
+    startupTimeout: 30_000,
+  },
 };
 
 /**
