@@ -184,7 +184,7 @@ async function main() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 provider: "google",
-                model: "gemini-1.5-pro",
+                model: "gemini-2.5-pro",
                 messages: [
                   { role: "system", content: SYSTEM_PROMPT },
                   { role: "user", content: `Here is the data dump for ${user.username}:\n\n${dataDump}` }
