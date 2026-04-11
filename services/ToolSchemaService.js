@@ -5048,7 +5048,7 @@ const TOOL_DEFINITIONS = [
     description:
       "Interact with Language Server Protocol (LSP) servers for precise, compiler-grade code intelligence. " +
       "Use this instead of grep_search when you need EXACT semantic information about symbols — it understands " +
-      "types, scopes, and cross-file relationships that text search cannot. Supports JavaScript, TypeScript, and Python. " +
+      "types, scopes, and cross-file relationships that text search cannot. Supports JavaScript, TypeScript, Python, Rust, Go, C/C++, and Lua. " +
       "Servers start lazily on first request (may take a few seconds). Provide 1-based line and character positions.\n\n" +
       "Operations:\n" +
       "• goToDefinition — Jump to where a symbol (function, variable, class, import) is defined. Returns file path and line.\n" +
