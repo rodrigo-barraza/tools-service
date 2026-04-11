@@ -126,6 +126,15 @@ const CONFIG = {
 
   // ─── Prism (LLM Gateway) ────────────────────────────────────────
   PRISM_API_URL: PRISM_API_URL || "http://localhost:7777",
+
+  // ─── Proxy (Bright Data) ───────────────────────────────────────
+  // Uncomment imports in secrets.js + config.js when ready.
+  //
+  // BRIGHTDATA_CUSTOMER_ID,
+  // BRIGHTDATA_ZONE_DATACENTER,
+  // BRIGHTDATA_ZONE_RESIDENTIAL,
+  // BRIGHTDATA_ZONE_ISP,
+  // BRIGHTDATA_PASSWORD,
 };
 
 /**

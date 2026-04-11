@@ -110,3 +110,14 @@ export const EIA_API_KEY = "";
 
 export const TWILIO_ACCOUNT_SID = "";
 export const TWILIO_AUTH_TOKEN = "";
+
+// ─── Proxy (Bright Data) ─────────────────────────────────────
+//    Rotating proxy service for web crawling.
+//    Register at https://brightdata.com
+//    Uncomment and fill in when ready.
+//
+// export const BRIGHTDATA_CUSTOMER_ID = "";
+// export const BRIGHTDATA_ZONE_DATACENTER = "datacenter";
+// export const BRIGHTDATA_ZONE_RESIDENTIAL = "residential";
+// export const BRIGHTDATA_ZONE_ISP = "isp";
+// export const BRIGHTDATA_PASSWORD = "";

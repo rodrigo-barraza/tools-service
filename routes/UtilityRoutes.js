@@ -33,6 +33,7 @@ import {
 } from "../services/ChartService.js";
 import { MAX_CODE_LENGTH } from "../constants.js";
 import { asyncHandler, setupStreamingSSE, EphemeralStore } from "../utilities.js";
+import { crawlSingleStatic } from "../services/CrawlerService.js";
 
 const router = Router();
 
@@ -558,6 +559,83 @@ router.get("/chart/render", async (req, res) => {
   }
 });
 
+// ─── Page Metadata Scraper (Crawlee) ───────────────────────────────
+
+router.get("/scrape/metadata", asyncHandler(
+  async (req) => {
+    const { url } = req.query;
+    if (!url) {
+      throw Object.assign(new Error("Query parameter 'url' is required"), { status: 400 });
+    }
+
+    const result = await crawlSingleStatic(url, {
+      extractFn: ($) => {
+        const meta = {};
+
+        // Title
+        meta.title =
+          $('meta[property="og:title"]').attr("content") ||
+          $('meta[name="twitter:title"]').attr("content") ||
+          $("title").first().text().trim() ||
+          null;
+
+        // Description
+        meta.description =
+          $('meta[property="og:description"]').attr("content") ||
+          $('meta[name="description"]').attr("content") ||
+          $('meta[name="twitter:description"]').attr("content") ||
+          null;
+
+        // Image
+        meta.image =
+          $('meta[property="og:image"]').attr("content") ||
+          $('meta[name="twitter:image"]').attr("content") ||
+          $('meta[itemprop="contentUrl"]').attr("content") ||
+          null;
+
+        // Video
+        meta.video =
+          $('meta[property="og:video"]').attr("content") ||
+          $('meta[property="og:video:url"]').attr("content") ||
+          null;
+
+        // Keywords
+        const keywords =
+          $('meta[name="keywords"]').attr("content") ||
+          $('meta[itemprop="keywords"]').attr("content") ||
+          null;
+        meta.keywords = keywords
+          ? keywords.split(",").map((k) => k.trim()).filter(Boolean)
+          : null;
+
+        // Site name
+        meta.siteName =
+          $('meta[property="og:site_name"]').attr("content") || null;
+
+        // Canonical URL
+        meta.canonicalUrl =
+          $('link[rel="canonical"]').attr("href") ||
+          $('meta[property="og:url"]').attr("content") ||
+          null;
+
+        // Strip null values
+        for (const key of Object.keys(meta)) {
+          if (meta[key] === null || meta[key] === "") delete meta[key];
+        }
+
+        return meta;
+      },
+    });
+
+    if (result.error) {
+      throw Object.assign(new Error(result.error), { status: 502 });
+    }
+
+    return { url, ...result.data };
+  },
+  "Page metadata scrape",
+));
+
 // ─── Health ────────────────────────────────────────────────────────
 
 export function getUtilityHealth() {
@@ -571,6 +649,7 @@ export function getUtilityHealth() {
     airports: "on-demand (in-memory, ~4,555 airports)",
     pythonInterpreter: "on-demand (sandboxed subprocess)",
     chart: "on-demand (Chart.js embed)",
+    scraper: "on-demand (Crawlee + Cheerio)",
   };
 }
 
