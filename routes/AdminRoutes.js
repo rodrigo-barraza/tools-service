@@ -6,7 +6,6 @@ import {
 import {
   queryToolCallLogs,
   getToolCallStats,
-  persistToolCall,
 } from "../middleware/ToolCallLoggerMiddleware.js";
 import {
   getToolSchemas,
@@ -92,27 +91,6 @@ router.get("/tool-calls", asyncHandler(
 router.get("/tool-calls/stats", asyncHandler(
   (req) => getToolCallStats(req.query.since),
   "Tool call stats",
-  500,
-));
-
-/**
- * POST /admin/tool-calls/ingest
- * Telemetry ingestion for Prism-local (executor: "prism") tools.
- * These tools bypass tools-api HTTP routes, so the ToolCallLoggerMiddleware
- * never fires. Prism's ToolOrchestratorService POSTs telemetry here after
- * executing Prism-local tools to keep the tool_calls collection unified.
- */
-router.post("/tool-calls/ingest", asyncHandler(
-  async (req) => {
-    const entry = {
-      ...req.body,
-      timestamp: req.body.timestamp ? new Date(req.body.timestamp) : new Date(),
-      _source: "prism-ingest",
-    };
-    await persistToolCall(entry);
-    return { ok: true };
-  },
-  "Tool call ingest",
   500,
 ));
 

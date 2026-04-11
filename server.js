@@ -41,6 +41,7 @@ import maritimeRoutes, { getMaritimeHealth } from "./routes/MaritimeRoutes.js";
 import energyRoutes, { getEnergyHealth } from "./routes/EnergyRoutes.js";
 import agenticRoutes, { getAgenticHealth } from "./routes/AgenticRoutes.js";
 import communicationRoutes, { getCommunicationHealth } from "./routes/CommunicationRoutes.js";
+import creativeRoutes, { getCreativeHealth } from "./routes/CreativeRoutes.js";
 import clockcrewRoutes, { getClockCrewHealth } from "./routes/ClockCrewRoutes.js";
 import newgroundsRoutes, { getNewgroundsHealth } from "./routes/NewgroundsRoutes.js";
 import adminRoutes from "./routes/AdminRoutes.js";
@@ -88,6 +89,7 @@ app.use("/maritime", maritimeRoutes);
 app.use("/energy", energyRoutes);
 app.use("/agentic", agenticRoutes);
 app.use("/communication", communicationRoutes);
+app.use("/creative", creativeRoutes);
 app.use("/clockcrew", clockcrewRoutes);
 app.use("/newgrounds", newgroundsRoutes);
 app.use("/admin", adminRoutes);
@@ -115,6 +117,7 @@ app.get("/health", (_req, res) => {
       energy: getEnergyHealth(),
       agentic: getAgenticHealth(),
       communication: getCommunicationHealth(),
+      creative: getCreativeHealth(),
       clockcrew: getClockCrewHealth(),
       newgrounds: getNewgroundsHealth(),
     },
@@ -176,10 +179,10 @@ async function start() {
     console.log(`🔧 Tools API running on port ${port}`);
     console.log(`   Database: ${CONFIG.MONGODB_URI}`);
     console.log(
-      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy, agentic, communication, clockcrew, newgrounds",
+      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy, agentic, communication, creative, clockcrew, newgrounds",
     );
     console.log(
-      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*, /agentic/*, /communication/*, /clockcrew/*, /newgrounds/*",
+      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*, /agentic/*, /communication/*, /creative/*, /clockcrew/*, /newgrounds/*",
     );
   });
 }

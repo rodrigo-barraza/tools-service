@@ -5137,10 +5137,10 @@ const TOOL_DEFINITIONS = [
     },
   },
 
-  // ── Creative (Prism-executed — image generation & vision) ──────
+  // ── Creative (Image Generation & Vision) ────────────────────
   {
     name: "generate_image",
-    dataSource: onDemand("Prism → Google Gemini"),
+    dataSource: onDemand("Google Gemini via Prism"),
     description:
       "Generate an image from a detailed text prompt using AI image generation. " +
       "Can also edit or redraw existing images from the conversation when reference images are available. " +
@@ -5150,7 +5150,11 @@ const TOOL_DEFINITIONS = [
       "IMPORTANT: Do NOT call this tool unless the user's current message explicitly asks for an " +
       "image, drawing, painting, illustration, or artwork. Never call it for greetings, " +
       "questions, or casual conversation.",
-    endpoint: { executor: "prism" },
+    endpoint: {
+      method: "POST",
+      path: "/creative/generate-image",
+      bodyParams: ["prompt", "referenceImages"],
+    },
     parameters: {
       type: "object",
       properties: {
@@ -5167,7 +5171,7 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "describe_image",
-    dataSource: onDemand("Prism → Google Gemini"),
+    dataSource: onDemand("Google Gemini via Prism"),
     description:
       "Describe the visual contents of one or more images (avatars, banners, photos, etc.) " +
       "by URL. Returns a text description of each image. Use this when you need to understand " +
@@ -5175,7 +5179,11 @@ const TOOL_DEFINITIONS = [
       "you need to describe any image from a URL. IMPORTANT: Always batch ALL image URLs " +
       "into a single call — pass all URLs in the imageUrls array at once. " +
       "Never make multiple separate calls for individual URLs.",
-    endpoint: { executor: "prism" },
+    endpoint: {
+      method: "POST",
+      path: "/creative/describe-image",
+      bodyParams: ["imageUrls", "context"],
+    },
     parameters: {
       type: "object",
       properties: {
@@ -5373,7 +5381,7 @@ const TOOL_DOMAINS = {
   lookup_phone_number: "Communication",
   list_twilio_numbers: "Communication",
 
-  // Creative (Prism-executed)
+  // Creative (Image Generation & Vision)
   generate_image: "Creative",
   describe_image: "Creative",
 };
@@ -5460,7 +5468,7 @@ const TOOL_REQUIRED_KEYS = {
   lookup_phone_number: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"],
   list_twilio_numbers: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"],
 
-  // Creative (Prism-executed — require Prism connectivity)
+  // Creative (require Prism as LLM backend)
   generate_image: ["PRISM_API_URL"],
   describe_image: ["PRISM_API_URL"],
 };
@@ -5668,7 +5676,7 @@ const TOOL_LABELS = {
   lookup_phone_number: ["communication"],
   list_twilio_numbers: ["communication"],
 
-  // ── Creative (Prism-executed) ─────────────────────────────
+  // ── Creative (Image Generation & Vision) ────────────────────
   generate_image: ["creative", "media"],
   describe_image: ["creative", "media"],
 };
