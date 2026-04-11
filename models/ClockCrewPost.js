@@ -84,7 +84,89 @@ export async function setupClockCrewCollections() {
   await usersCol.createIndex({ username: 1 });
   await usersCol.createIndex({ dateRegistered: -1 });
 
+  // ─── UserProfileLink Indexes ───────────────────────────────────
+  const linksCol = db.collection("UserProfileLink");
+  await linksCol.createIndex(
+    { ccUserId: 1, ngUsernameLower: 1 },
+    { unique: true },
+  );
+  await linksCol.createIndex({ ccUserId: 1 });
+  await linksCol.createIndex({ ngUsernameLower: 1 });
+  await linksCol.createIndex({ matchTier: 1 });
+
   console.log("🕰️  Clock Crew collections & indexes ready");
+}
+
+// ─── UserProfileLink Operations ─────────────────────────────────
+
+/**
+ * Upsert a profile link between a ClockCrew user and a Newgrounds profile.
+ */
+export async function upsertProfileLink(link) {
+  const db = getClockCrewDB();
+  const col = db.collection("UserProfileLink");
+  const result = await col.updateOne(
+    { ccUserId: link.ccUserId, ngUsernameLower: link.ngUsernameLower },
+    {
+      $set: { ...link, updatedAt: new Date() },
+      $setOnInsert: { createdAt: new Date() },
+    },
+    { upsert: true },
+  );
+  return result.upsertedCount > 0;
+}
+
+/**
+ * Bulk upsert profile links.
+ * Returns { upserted, modified }.
+ */
+export async function upsertProfileLinks(links) {
+  if (!links || links.length === 0) return { upserted: 0, modified: 0 };
+  const db = getClockCrewDB();
+  const col = db.collection("UserProfileLink");
+
+  const operations = links.map((link) => ({
+    updateOne: {
+      filter: { ccUserId: link.ccUserId, ngUsernameLower: link.ngUsernameLower },
+      update: {
+        $set: { ...link, updatedAt: new Date() },
+        $setOnInsert: { createdAt: new Date() },
+      },
+      upsert: true,
+    },
+  }));
+
+  try {
+    const result = await col.bulkWrite(operations, { ordered: false });
+    return { upserted: result.upsertedCount, modified: result.modifiedCount };
+  } catch (error) {
+    console.error("[ClockCrew] Failed to upsert profile links:", error.message);
+    return { upserted: 0, modified: 0 };
+  }
+}
+
+/**
+ * Get all Newgrounds links for a ClockCrew user.
+ */
+export async function getLinksByClockCrewUser(ccUserId) {
+  const db = getClockCrewDB();
+  return db.collection("UserProfileLink").find({ ccUserId }).toArray();
+}
+
+/**
+ * Get all ClockCrew links for a Newgrounds user.
+ */
+export async function getLinksByNewgroundsUser(ngUsernameLower) {
+  const db = getClockCrewDB();
+  return db.collection("UserProfileLink").find({ ngUsernameLower }).toArray();
+}
+
+/**
+ * Get all profile links.
+ */
+export async function getAllProfileLinks() {
+  const db = getClockCrewDB();
+  return db.collection("UserProfileLink").find({}).sort({ ccUsername: 1 }).toArray();
 }
 
 // ─── Board Operations ───────────────────────────────────────────

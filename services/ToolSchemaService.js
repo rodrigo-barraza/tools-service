@@ -5041,6 +5041,62 @@ const TOOL_DEFINITIONS = [
     },
   },
 
+  // ── LSP Code Intelligence ────────────────────────────────
+  {
+    name: "lsp_action",
+    dataSource: compute("LSP server (stdio JSON-RPC)"),
+    description:
+      "Interact with Language Server Protocol (LSP) servers for precise, compiler-grade code intelligence. " +
+      "Use this instead of grep_search when you need EXACT semantic information about symbols — it understands " +
+      "types, scopes, and cross-file relationships that text search cannot. Supports JavaScript, TypeScript, and Python. " +
+      "Servers start lazily on first request (may take a few seconds). Provide 1-based line and character positions.\n\n" +
+      "Operations:\n" +
+      "• goToDefinition — Jump to where a symbol (function, variable, class, import) is defined. Returns file path and line.\n" +
+      "• findReferences — Find ALL usages of a symbol across the entire workspace. Returns list of locations.\n" +
+      "• hover — Get the type signature, documentation, and inferred type of a symbol at a position.\n" +
+      "• documentSymbol — Get an outline of all symbols (functions, classes, variables, exports) in a file. Does NOT require line/character.\n" +
+      "• goToImplementation — Find concrete implementations of an interface, abstract class, or overridden method.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/lsp/action",
+      bodyParams: ["operation", "filePath", "line", "character", "workspacePath"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        operation: {
+          type: "string",
+          enum: ["goToDefinition", "findReferences", "hover", "documentSymbol", "goToImplementation"],
+          description:
+            "The LSP operation to perform. Use 'goToDefinition' to find where something is defined, " +
+            "'findReferences' to find all usages, 'hover' for type info, 'documentSymbol' for file outline, " +
+            "'goToImplementation' for concrete implementations.",
+        },
+        filePath: {
+          type: "string",
+          description: "Absolute path to the source file to query.",
+        },
+        line: {
+          type: "integer",
+          description:
+            "Line number (1-based) of the symbol to query. Required for all operations except 'documentSymbol'.",
+        },
+        character: {
+          type: "integer",
+          description:
+            "Character offset (1-based) within the line. Position the cursor ON the symbol name. " +
+            "Required for all operations except 'documentSymbol'.",
+        },
+        workspacePath: {
+          type: "string",
+          description:
+            "Optional workspace root path. If omitted, auto-detected from the file's location within allowed roots.",
+        },
+      },
+      required: ["operation", "filePath"],
+    },
+  },
+
   // ── Communication (Twilio) ────────────────────────────────
   {
     name: "send_sms",

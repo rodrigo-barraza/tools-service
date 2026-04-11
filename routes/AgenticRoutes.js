@@ -50,10 +50,9 @@ import {
   getBrowserHealth,
 } from "../services/AgenticBrowserService.js";
 import {
-  agenticLspDefinition,
-  agenticLspReferences,
-  agenticLspHover,
-  agenticLspDocumentSymbols,
+  agenticLspAction,
+  agenticLspShutdown,
+  agenticLspHealth,
 } from "../services/AgenticLspService.js";
 
 const router = Router();
@@ -547,27 +546,49 @@ router.post("/browser/action", async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// 10. Semantic Code Navigation (LSP)
+// 10. LSP Code Intelligence
 // ═══════════════════════════════════════════════════════════════
 
-router.post("/lsp/definition", async (req, res) => {
-  if (!req.body.path) return res.status(400).json({ error: "'path' is required" });
-  res.json(await agenticLspDefinition(req.body));
+// ── LSP Action ────────────────────────────────────────────────
+
+router.post("/lsp/action", async (req, res) => {
+  const { operation, filePath, line, character, workspacePath } = req.body;
+  if (!operation || typeof operation !== "string") {
+    return res.status(400).json({ error: "Request body must include 'operation' (string)" });
+  }
+  if (!filePath || typeof filePath !== "string") {
+    return res.status(400).json({ error: "Request body must include 'filePath' (string)" });
+  }
+
+  const result = await agenticLspAction({
+    operation,
+    filePath,
+    line: line != null ? parseInt(line) : undefined,
+    character: character != null ? parseInt(character) : undefined,
+    workspacePath,
+  });
+
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
 });
 
-router.post("/lsp/references", async (req, res) => {
-  if (!req.body.path) return res.status(400).json({ error: "'path' is required" });
-  res.json(await agenticLspReferences(req.body));
+// ── LSP Health ────────────────────────────────────────────────
+
+router.get("/lsp/health", (_req, res) => {
+  res.json(agenticLspHealth());
 });
 
-router.post("/lsp/hover", async (req, res) => {
-  if (!req.body.path) return res.status(400).json({ error: "'path' is required" });
-  res.json(await agenticLspHover(req.body));
-});
+// ── LSP Shutdown ──────────────────────────────────────────────
 
-router.post("/lsp/document-symbols", async (req, res) => {
-  if (!req.body.path) return res.status(400).json({ error: "'path' is required" });
-  res.json(await agenticLspDocumentSymbols(req.body));
+router.post("/lsp/shutdown", async (_req, res) => {
+  try {
+    await agenticLspShutdown();
+    res.json({ success: true, message: "All LSP servers shut down" });
+  } catch (error) {
+    res.status(500).json({ error: `LSP shutdown failed: ${error.message}` });
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -601,10 +622,8 @@ export function getAgenticHealth() {
     gitWorktreeCleanup: "on-demand (git prune)",
     projectSummary: "on-demand (fs scan)",
     browserAction: getBrowserHealth(),
-    lspDefinition: "on-demand (background lsp daemon)",
-    lspReferences: "on-demand (background lsp daemon)",
-    lspHover: "on-demand (background lsp daemon)",
-    lspDocumentSymbols: "on-demand (background lsp daemon)",
+    lspAction: "on-demand (LSP stdio JSON-RPC)",
+    lspServers: agenticLspHealth(),
   };
 }
 
