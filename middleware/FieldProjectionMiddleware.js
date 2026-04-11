@@ -29,6 +29,7 @@ const ARRAY_WRAPPER_KEYS = new Set([
   "stops",
   "vessels",
   "messages",
+  "toolCalls",
 ]);
 
 /**

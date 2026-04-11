@@ -4,6 +4,10 @@ import {
   getRequestStats,
 } from "../middleware/RequestLoggerMiddleware.js";
 import {
+  queryToolCallLogs,
+  getToolCallStats,
+} from "../middleware/ToolCallLoggerMiddleware.js";
+import {
   getToolSchemas,
   getToolSchemasForAI,
   getDisabledTools,
@@ -63,4 +67,32 @@ router.get("/requests/stats", asyncHandler(
   500,
 ));
 
+// ─── Tool Call Telemetry Endpoints ─────────────────────────────────
+
+/**
+ * GET /admin/tool-calls
+ * Query tool-call-level telemetry logs with optional filters.
+ * Query params: toolName, domain, success, callerAgent, callerProject,
+ *               minMs, maxMs, since, until, limit, skip
+ */
+router.get("/tool-calls", asyncHandler(
+  (req) => queryToolCallLogs(req.query),
+  "Tool call log query",
+  500,
+));
+
+/**
+ * GET /admin/tool-calls/stats
+ * Aggregated tool-call performance statistics.
+ * Returns per-tool latency metrics, domain breakdowns, error rates,
+ * and the top 10 slowest tool invocations.
+ * Query params: since (ISO date for time window)
+ */
+router.get("/tool-calls/stats", asyncHandler(
+  (req) => getToolCallStats(req.query.since),
+  "Tool call stats",
+  500,
+));
+
 export default router;
+

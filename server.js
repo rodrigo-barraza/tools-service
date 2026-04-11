@@ -3,6 +3,7 @@ import CONFIG, { applyLocation } from "./config.js";
 import { connectDB } from "./db.js";
 import { initLocation } from "./services/LocationService.js";
 import { requestLoggerMiddleware } from "./middleware/RequestLoggerMiddleware.js";
+import { toolCallLoggerMiddleware } from "./middleware/ToolCallLoggerMiddleware.js";
 import { fieldProjectionMiddleware } from "./middleware/FieldProjectionMiddleware.js";
 
 // ─── Model Setup ───────────────────────────────────────────────────
@@ -19,6 +20,7 @@ import { setupGeomagneticStormCollection } from "./models/GeomagneticStorm.js";
 import { setupWebcamCollection } from "./models/Webcam.js";
 import { setupClockCrewCollections } from "./models/ClockCrewPost.js";
 import { connectNewgroundsDB, setupNewgroundsCollections } from "./models/NewgroundsProfile.js";
+import { setupToolCallsCollection } from "./middleware/ToolCallLoggerMiddleware.js";
 
 // ─── Routes ────────────────────────────────────────────────────────
 
@@ -60,12 +62,13 @@ const app = express();
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Content-Type");
+  res.header("Access-Control-Allow-Headers", "Content-Type, X-Project, X-Username, X-Agent, X-Request-Id, X-Conversation-Id, X-Iteration");
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
 app.use(express.json());
 app.use(requestLoggerMiddleware);
+app.use(toolCallLoggerMiddleware);
 app.use(fieldProjectionMiddleware);
 
 // ─── Mount Domain Routers ──────────────────────────────────────────
@@ -146,6 +149,7 @@ async function start() {
       setupGeomagneticStormCollection(),
       setupWebcamCollection(),
       setupClockCrewCollections(),
+      setupToolCallsCollection(),
     ]);
 
     // Connect to separate Newgrounds database
