@@ -697,6 +697,40 @@ router.post("/task/list", async (req, res) => {
   res.json(result);
 });
 
+// ── List All Tasks (admin — cross-project) ────────────────────
+
+router.get("/task/list-all", async (req, res) => {
+  const { status, limit } = req.query;
+  try {
+    const db = (await import("../db.js")).getDB();
+    const col = db.collection("agent_tasks");
+
+    const filter = {};
+    if (status) filter.status = status;
+
+    const tasks = await col
+      .find(filter)
+      .sort({ taskId: 1 })
+      .limit(Math.min(parseInt(limit) || 100, 500))
+      .toArray();
+
+    // Summary counts (all projects)
+    const allTasks = await col.find({}).toArray();
+    const summary = {
+      total: allTasks.length,
+      pending: allTasks.filter((t) => t.status === "pending").length,
+      in_progress: allTasks.filter((t) => t.status === "in_progress").length,
+      completed: allTasks.filter((t) => t.status === "completed").length,
+    };
+
+    // Sanitize _id
+    const sanitized = tasks.map(({ _id, ...rest }) => rest);
+    res.json({ tasks: sanitized, summary });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Get Task ──────────────────────────────────────────────────
 
 router.post("/task/get", async (req, res) => {
