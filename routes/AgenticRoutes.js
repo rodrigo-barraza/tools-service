@@ -673,10 +673,10 @@ router.post("/task/create", async (req, res) => {
     return res.status(400).json({ error: "Request body must include 'description' (string)" });
   }
 
-  // Auto-inject conversationId from Prism telemetry header
-  const conversationId = req.headers["x-conversation-id"] || null;
+  // Auto-inject agentSessionId from Prism telemetry header
+  const agentSessionId = req.headers["x-agent-session-id"] || null;
 
-  const result = await agenticTaskCreate(project, { subject, description, status, activeForm, metadata, conversationId });
+  const result = await agenticTaskCreate(project, { subject, description, status, activeForm, metadata, agentSessionId });
   if (result.error) return res.status(400).json(result);
   res.json(result);
 });
@@ -700,13 +700,14 @@ router.post("/task/list", async (req, res) => {
 // ── List All Tasks (admin — cross-project) ────────────────────
 
 router.get("/task/list-all", async (req, res) => {
-  const { status, limit } = req.query;
+  const { status, limit, agentSessionId } = req.query;
   try {
     const db = (await import("../db.js")).getDB();
     const col = db.collection("agent_tasks");
 
     const filter = {};
     if (status) filter.status = status;
+    if (agentSessionId) filter.agentSessionId = agentSessionId;
 
     const tasks = await col
       .find(filter)
@@ -714,8 +715,9 @@ router.get("/task/list-all", async (req, res) => {
       .limit(Math.min(parseInt(limit) || 100, 500))
       .toArray();
 
-    // Summary counts (all projects)
-    const allTasks = await col.find({}).toArray();
+    // Summary counts (scoped to same filter base)
+    const summaryFilter = agentSessionId ? { agentSessionId } : {};
+    const allTasks = await col.find(summaryFilter).toArray();
     const summary = {
       total: allTasks.length,
       pending: allTasks.filter((t) => t.status === "pending").length,
@@ -764,9 +766,9 @@ router.post("/task/update", async (req, res) => {
   if (description) updates.description = description;
   if (activeForm !== undefined) updates.activeForm = activeForm;
   if (metadata) updates.metadata = metadata;
-  // Auto-inject conversationId from Prism telemetry header
-  const conversationId = req.headers["x-conversation-id"];
-  if (conversationId) updates.conversationId = conversationId;
+  // Auto-inject agentSessionId from Prism telemetry header
+  const agentSessionId = req.headers["x-agent-session-id"];
+  if (agentSessionId) updates.agentSessionId = agentSessionId;
 
   const result = await agenticTaskUpdate(project, taskId, updates);
   if (result.error) return res.status(400).json(result);

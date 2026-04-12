@@ -70,7 +70,7 @@ async function nextTaskId(project) {
  * @param {string} data.description - What needs to be done
  * @param {string} [data.status="pending"] - Initial status
  * @param {string} [data.activeForm] - Present continuous form for in_progress spinner (e.g. "Running tests")
- * @param {string} [data.conversationId] - Conversation that created this task
+ * @param {string} [data.agentSessionId] - Agent session that created this task
  * @param {object} [data.metadata] - Arbitrary key/value metadata
  * @returns {Promise<object>} Created task document
  */
@@ -110,8 +110,8 @@ export async function agenticTaskCreate(project, data) {
     status,
     // Present-continuous form shown in spinner when in_progress
     activeForm: data.activeForm || null,
-    // Traceability — which conversation created/last touched this task
-    conversationId: data.conversationId || null,
+    // Traceability — which agent session created/last touched this task
+    agentSessionId: data.agentSessionId || null,
     // Swarm-ready fields (unused in single-agent mode)
     owner: data.owner || null,
     blocks: [],
@@ -212,7 +212,7 @@ export async function agenticTaskGet(project, taskId) {
  * @param {string} [updates.subject]
  * @param {string} [updates.description]
  * @param {string} [updates.activeForm] - Present continuous form for spinner
- * @param {string} [updates.conversationId] - Conversation performing the update
+ * @param {string} [updates.agentSessionId] - Agent session performing the update
  * @param {object} [updates.metadata] - Merged with existing metadata
  * @returns {Promise<object>}
  */
@@ -258,7 +258,7 @@ export async function agenticTaskUpdate(project, taskId, updates) {
   if (updates.subject) $set.subject = updates.subject;
   if (updates.description) $set.description = updates.description;
   if (updates.activeForm !== undefined) $set.activeForm = updates.activeForm;
-  if (updates.conversationId) $set.conversationId = updates.conversationId;
+  if (updates.agentSessionId) $set.agentSessionId = updates.agentSessionId;
 
   // Merge metadata (don't replace entirely)
   if (updates.metadata && typeof updates.metadata === "object") {
