@@ -230,8 +230,8 @@ export async function agenticTaskUpdate(project, taskId, updates) {
     return { error: "'updates' is required (object)" };
   }
 
-  if (updates.status && !VALID_STATUSES.includes(updates.status)) {
-    return { error: `Invalid status '${updates.status}'. Must be one of: ${VALID_STATUSES.join(", ")}` };
+  if (updates.status && updates.status !== "deleted" && !VALID_STATUSES.includes(updates.status)) {
+    return { error: `Invalid status '${updates.status}'. Must be one of: ${VALID_STATUSES.join(", ")}, deleted` };
   }
 
   const db = getDB();
@@ -240,6 +240,16 @@ export async function agenticTaskUpdate(project, taskId, updates) {
   const existing = await col.findOne({ project, taskId: id });
   if (!existing) {
     return { error: `Task #${id} not found in project '${project}'` };
+  }
+
+  // Handle "deleted" as a special status — remove the task entirely
+  if (updates.status === "deleted") {
+    await col.deleteOne({ project, taskId: id });
+    return {
+      task: sanitize(existing),
+      message: `Task #${id} deleted`,
+      statusChange: { from: existing.status, to: "deleted" },
+    };
   }
 
   const $set = { updatedAt: new Date() };
@@ -264,6 +274,9 @@ export async function agenticTaskUpdate(project, taskId, updates) {
   return {
     task: sanitize(updated),
     message: `Task #${id} updated`,
+    ...(updates.status && updates.status !== existing.status
+      ? { statusChange: { from: existing.status, to: updates.status } }
+      : {}),
   };
 }
 

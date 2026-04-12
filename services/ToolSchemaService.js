@@ -5231,8 +5231,8 @@ const TOOL_DEFINITIONS = [
         },
         status: {
           type: "string",
-          enum: ["pending", "in_progress", "completed"],
-          description: "New status for the task.",
+          enum: ["pending", "in_progress", "completed", "deleted"],
+          description: "New status for the task. Setting 'deleted' removes the task entirely.",
         },
         subject: {
           type: "string",
