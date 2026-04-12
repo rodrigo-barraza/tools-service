@@ -5256,6 +5256,54 @@ const TOOL_DEFINITIONS = [
     },
   },
 
+  // ── Memory Persistence ────────────────────────────────────
+  {
+    name: "upsert_memory",
+    dataSource: compute("Prism MemoryService"),
+    description:
+      "Persist a piece of information to long-term agent memory. Use this when the user explicitly " +
+      "asks you to 'remember', 'save', 'note', or 'store' something, or when you learn a critical " +
+      "fact about the user's preferences, project conventions, or workflow patterns that would be " +
+      "valuable in future sessions. Memories are deduplicated automatically — calling this with " +
+      "content that already exists is safe and will not create duplicates. Returns the stored " +
+      "memory document or null if a near-duplicate was detected.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/memory/upsert",
+      bodyParams: ["project", "content", "type", "title"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        project: {
+          type: "string",
+          description:
+            "Project scope for the memory (e.g. 'retina-agent'). Memories are isolated per project.",
+        },
+        content: {
+          type: "string",
+          description:
+            "The memory content to persist. Should be a clear, self-contained statement " +
+            "(e.g. 'User prefers tabs over spaces' or 'The auth service uses JWT with RS256').",
+        },
+        type: {
+          type: "string",
+          enum: ["user", "feedback", "project", "reference"],
+          description:
+            "Memory category. 'user' for personal preferences, 'feedback' for corrections/style guidance, " +
+            "'project' for codebase conventions, 'reference' for technical facts. Defaults to 'project'.",
+        },
+        title: {
+          type: "string",
+          description:
+            "Optional short label for the memory (e.g. 'Indentation preference'). " +
+            "Improves discoverability during semantic search.",
+        },
+      },
+      required: ["project", "content"],
+    },
+  },
+
   // ── Communication (Twilio) ────────────────────────────────
   {
     name: "send_sms",
@@ -5598,6 +5646,9 @@ const TOOL_DOMAINS = {
   task_list: "Agentic: Task Management",
   task_update: "Agentic: Task Management",
 
+  // Agentic — Memory Persistence
+  upsert_memory: "Agentic: Memory",
+
   // Communication (Twilio)
   send_sms: "Communication",
   list_sms_messages: "Communication",
@@ -5898,6 +5949,9 @@ const TOOL_LABELS = {
   task_get: ["coding"],
   task_list: ["coding"],
   task_update: ["coding"],
+
+  // ── Agentic: Memory ──────────────────────────────────────
+  upsert_memory: ["coding"],
 
   // ── Communication ────────────────────────────────────────
   send_sms: ["communication"],

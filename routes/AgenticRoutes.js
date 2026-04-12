@@ -637,6 +637,7 @@ export function getAgenticHealth() {
     lspAction: "on-demand (LSP stdio JSON-RPC)",
     lspServers: agenticLspHealth(),
     taskManagement: "on-demand (MongoDB agent_tasks)",
+    memoryUpsert: "on-demand (Prism MemoryService post-processing)",
   };
 }
 
@@ -827,6 +828,56 @@ router.post("/test-all-tools", async (req, res) => {
 
 router.get("/testable-tools", (_req, res) => {
   res.json(getTestableTools());
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 14. Memory Persistence
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * POST /agentic/memory/upsert
+ *
+ * Forwards upsert_memory calls to Prism's MemoryService via
+ * POST /agent-memories. Prism handles embedding generation,
+ * cosine-similarity deduplication, and MongoDB persistence.
+ * Same cross-service pattern as generate_image → Prism.
+ */
+router.post("/memory/upsert", async (req, res) => {
+  const { project, content, type, title } = req.body;
+  if (!content || typeof content !== "string") {
+    return res.status(400).json({ error: "Request body must include 'content' (string)" });
+  }
+
+  const agent = req.headers["x-agent"] || "CODING";
+  const username = req.headers["x-username"] || null;
+  const agentSessionId = req.headers["x-agent-session-id"] || null;
+
+  try {
+    const { PRISM_API_URL } = await import("../secrets.js");
+    const prismRes = await fetch(`${PRISM_API_URL}/agent-memories`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agent,
+        project: project || "default",
+        username,
+        agentSessionId,
+        content,
+        type: type || "project",
+        title: title || null,
+      }),
+    });
+
+    if (!prismRes.ok) {
+      const err = await prismRes.json().catch(() => ({}));
+      return res.status(prismRes.status).json({ error: err.error || `Prism returned ${prismRes.status}` });
+    }
+
+    const result = await prismRes.json();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: `Memory storage failed: ${err.message}` });
+  }
 });
 
 export default router;
