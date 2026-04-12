@@ -28,7 +28,7 @@ export async function chat(params) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120_000);
 
-    const res = await fetch(`${PRISM_URL}/chat`, {
+    const res = await fetch(`${PRISM_URL}/chat?stream=false`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
