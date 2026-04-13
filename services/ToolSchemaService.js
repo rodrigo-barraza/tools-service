@@ -5261,12 +5261,15 @@ const TOOL_DEFINITIONS = [
     name: "upsert_memory",
     dataSource: compute("Prism MemoryService"),
     description:
-      "Persist a piece of information to long-term agent memory. Use this when the user explicitly " +
-      "asks you to 'remember', 'save', 'note', or 'store' something, or when you learn a critical " +
-      "fact about the user's preferences, project conventions, or workflow patterns that would be " +
-      "valuable in future sessions. Memories are deduplicated automatically — calling this with " +
-      "content that already exists is safe and will not create duplicates. Returns the stored " +
-      "memory document or null if a near-duplicate was detected.",
+      "Persist a piece of information to long-term agent memory. Call this tool in TWO cases:\n" +
+      "1. **Explicit requests**: The user says 'remember', 'save', 'note', 'store', 'keep in mind', or 'don't forget'.\n" +
+      "2. **Implicit preference signals**: The user reveals a personal preference, opinion, or fact about themselves — " +
+      "even without asking you to remember it. Trigger words/patterns include: 'I like ...', 'I love ...', 'I hate ...', " +
+      "'I dislike ...', 'I prefer ...', 'I enjoy ...', 'I can\\'t stand ...', 'I always ...', 'I never ...', " +
+      "'my favorite ...', 'I\\'m allergic to ...', 'I\\'m a ... person', or any statement expressing a personal taste, " +
+      "habit, identity trait, or strong opinion. When in doubt, SAVE IT — over-remembering is better than forgetting.\n\n" +
+      "Memories are deduplicated automatically — calling this with content that already exists is safe and will " +
+      "not create duplicates. Returns the stored memory document or null if a near-duplicate was detected.",
     endpoint: {
       method: "POST",
       path: "/agentic/memory/upsert",
