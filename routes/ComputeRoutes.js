@@ -18,11 +18,8 @@ import {
   executeShellStreaming,
   getAllowedBinaries,
 } from "../services/ShellExecutorService.js";
-import CONFIG from "../config.js";
 import { MAX_CODE_LENGTH, MAX_COMMAND_LENGTH } from "../constants.js";
-import { setupStreamingSSE, EphemeralStore } from "../utilities.js";
-
-// SSE helper imported from utilities.js
+import { setupStreamingSSE, EphemeralStore, buildLocalUrl, validateMaxLength, buildEmbedHtml } from "../utilities.js";
 
 // ─── Lazy-loaded dependencies ──────────────────────────────────────
 // These are loaded on first use to avoid blocking startup.
@@ -77,11 +74,8 @@ router.post("/js/execute", (req, res) => {
       .status(400)
       .json({ error: "Request body must include 'code' (string)" });
   }
-  if (code.length > MAX_CODE_LENGTH) {
-    return res
-      .status(400)
-      .json({ error: `Code exceeds maximum length of ${MAX_CODE_LENGTH.toLocaleString()} characters` });
-  }
+  const lengthErr = validateMaxLength(code, MAX_CODE_LENGTH, "Code");
+  if (lengthErr) return res.status(400).json({ error: lengthErr });
   const result = executeJavaScript(code, {
     timeout: timeout
       ? Math.min(Math.max(parseInt(timeout), 100), 30_000)
@@ -101,9 +95,8 @@ router.post("/js/stream", (req, res) => {
   if (!code || typeof code !== "string") {
     return res.status(400).json({ error: "Request body must include 'code' (string)" });
   }
-  if (code.length > MAX_CODE_LENGTH) {
-    return res.status(400).json({ error: `Code exceeds maximum length of ${MAX_CODE_LENGTH.toLocaleString()} characters` });
-  }
+  const lengthErr = validateMaxLength(code, MAX_CODE_LENGTH, "Code");
+  if (lengthErr) return res.status(400).json({ error: lengthErr });
 
   const send = setupStreamingSSE(res);
   send({ event: "start", language: "javascript" });
@@ -135,11 +128,8 @@ router.post("/shell/execute", async (req, res) => {
       .status(400)
       .json({ error: "Request body must include 'command' (string)" });
   }
-  if (command.length > MAX_COMMAND_LENGTH) {
-    return res
-      .status(400)
-      .json({ error: `Command exceeds maximum length of ${MAX_COMMAND_LENGTH.toLocaleString()} characters` });
-  }
+  const lengthErr = validateMaxLength(command, MAX_COMMAND_LENGTH, "Command");
+  if (lengthErr) return res.status(400).json({ error: lengthErr });
   const result = await executeShell(command, {
     stdin: stdin || "",
     timeout: timeout
@@ -161,9 +151,8 @@ router.post("/shell/stream", async (req, res) => {
   if (!command || typeof command !== "string") {
     return res.status(400).json({ error: "Request body must include 'command' (string)" });
   }
-  if (command.length > MAX_COMMAND_LENGTH) {
-    return res.status(400).json({ error: `Command exceeds maximum length of ${MAX_COMMAND_LENGTH.toLocaleString()} characters` });
-  }
+  const lengthErr = validateMaxLength(command, MAX_COMMAND_LENGTH, "Command");
+  if (lengthErr) return res.status(400).json({ error: lengthErr });
 
   const send = setupStreamingSSE(res);
   send({ event: "start", command });
@@ -582,7 +571,7 @@ router.post("/csv", (req, res) => {
 
     const id = csvStore.set({ csv, filename: filename || "export.csv" });
 
-    const downloadUrl = `http://localhost:${CONFIG.TOOLS_PORT}/compute/csv/download?id=${id}`;
+    const downloadUrl = buildLocalUrl("compute/csv/download", { id });
     res.json({
       downloadUrl,
       csvId: id,
@@ -637,7 +626,7 @@ router.post("/qr", async (req, res) => {
 
     const id = qrStore.set({ buffer: pngBuffer });
 
-    const qrImageUrl = `http://localhost:${CONFIG.TOOLS_PORT}/compute/qr/render?id=${id}`;
+    const qrImageUrl = buildLocalUrl("compute/qr/render", { id });
     res.json({ qrImageUrl, qrId: id, dataLength: data.length });
   } catch (err) {
     res.status(400).json({ error: `QR code generation failed: ${err.message}` });
@@ -665,34 +654,20 @@ router.get("/qr/render", (req, res) => {
 const latexStore = new EphemeralStore();
 
 function buildLatexEmbedHtml(latex, displayMode = true) {
-  return `<!DOCTYPE html>
-<html><head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"><${"/"}script>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{
-    background:#0f172a;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    min-height:100vh;
-    padding:24px;
-  }
-  #math{
+  return buildEmbedHtml({
+    headExtra: `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></${"script"}>
+`,
+    styles: `  #math{
     color:#e2e8f0;
     font-size:1.4em;
     max-width:100%;
     overflow-x:auto;
   }
   .katex{font-size:1.4em}
-  .katex .base{color:#e2e8f0}
-</style>
-</head><body>
-<div id="math"></div>
-<script>
+  .katex .base{color:#e2e8f0}`,
+    bodyContent: `<div id="math"></div>`,
+    scripts: `<script>
   try {
     katex.render(${JSON.stringify(latex)}, document.getElementById("math"), {
       displayMode: ${displayMode},
@@ -704,9 +679,10 @@ function buildLatexEmbedHtml(latex, displayMode = true) {
   } catch(e) {
     document.getElementById("math").textContent = "LaTeX error: " + e.message;
   }
-<${"/"}script>
-</body></html>`;
+</${"script"}>`,
+  });
 }
+
 
 router.post("/latex", (req, res) => {
   const { latex, displayMode } = req.body;
@@ -722,7 +698,7 @@ router.post("/latex", (req, res) => {
     displayMode: displayMode !== false,
   });
 
-  const latexEmbedUrl = `http://localhost:${CONFIG.TOOLS_PORT}/compute/latex/embed?id=${id}`;
+  const latexEmbedUrl = buildLocalUrl("compute/latex/embed", { id });
   res.json({ latexEmbedUrl, latexId: id });
 });
 
@@ -746,32 +722,17 @@ router.get("/latex/embed", (req, res) => {
 const diagramStore = new EphemeralStore();
 
 function buildMermaidEmbedHtml(definition, theme = "dark") {
-  return `<!DOCTYPE html>
-<html><head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{
-    background:#0f172a;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    min-height:100vh;
-    padding:24px;
-  }
-  #diagram{
+  return buildEmbedHtml({
+    styles: `  #diagram{
     max-width:100%;
     overflow-x:auto;
   }
   #diagram svg{
     max-width:100%;
     height:auto;
-  }
-</style>
-</head><body>
-<div id="diagram"></div>
-<script type="module">
+  }`,
+    bodyContent: `<div id="diagram"></div>`,
+    scripts: `<script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
   mermaid.initialize({
     startOnLoad: false,
@@ -785,8 +746,8 @@ function buildMermaidEmbedHtml(definition, theme = "dark") {
   } catch(e) {
     document.getElementById('diagram').textContent = 'Diagram error: ' + e.message;
   }
-<${"/"}script>
-</body></html>`;
+</${"script"}>`,
+  });
 }
 
 router.post("/diagram", (req, res) => {
@@ -803,7 +764,7 @@ router.post("/diagram", (req, res) => {
     theme: theme || "dark",
   });
 
-  const diagramEmbedUrl = `http://localhost:${CONFIG.TOOLS_PORT}/compute/diagram/embed?id=${id}`;
+  const diagramEmbedUrl = buildLocalUrl("compute/diagram/embed", { id });
   res.json({ diagramEmbedUrl, diagramId: id });
 });
 

@@ -32,7 +32,7 @@ import {
   renderChartPng,
 } from "../services/ChartService.js";
 import { MAX_CODE_LENGTH } from "../constants.js";
-import { asyncHandler, setupStreamingSSE, EphemeralStore } from "../utilities.js";
+import { asyncHandler, setupStreamingSSE, EphemeralStore, buildLocalUrl, validateMaxLength } from "../utilities.js";
 import { crawlSingleStatic } from "../services/CrawlerService.js";
 
 const router = Router();
@@ -370,7 +370,7 @@ router.get("/map", async (req, res) => {
     const embedParams = new URLSearchParams({ id: mapId });
     if (zoom) embedParams.set("zoom", zoom);
     if (maptype) embedParams.set("maptype", maptype);
-    const mapEmbedUrl = `http://localhost:${CONFIG.TOOLS_PORT}/utility/map/embed?${embedParams.toString()}`;
+    const mapEmbedUrl = buildLocalUrl("utility/map/embed", Object.fromEntries(embedParams));
 
     res.json({
       mapEmbedUrl,
@@ -445,10 +445,9 @@ router.post("/python/execute", async (req, res) => {
       .status(400)
       .json({ error: "Request body must include 'code' (string)" });
   }
-  if (code.length > MAX_CODE_LENGTH) {
-    return res
-      .status(400)
-      .json({ error: `Code exceeds maximum length of ${MAX_CODE_LENGTH.toLocaleString()} characters` });
+  const lengthErr = validateMaxLength(code, MAX_CODE_LENGTH, "Code");
+  if (lengthErr) {
+    return res.status(400).json({ error: lengthErr });
   }
   const result = await executePython(code, {
     timeout: timeout ? Math.min(Math.max(parseInt(timeout), 1000), 60_000) : undefined,
@@ -463,16 +462,15 @@ router.get("/python/info", asyncHandler(
 
 // ── Python Streaming (SSE) ────────────────────────────────────
 
-// SSE helper imported from utilities.js
+
 
 router.post("/python/stream", async (req, res) => {
   const { code, timeout } = req.body;
   if (!code || typeof code !== "string") {
     return res.status(400).json({ error: "Request body must include 'code' (string)" });
   }
-  if (code.length > MAX_CODE_LENGTH) {
-    return res.status(400).json({ error: `Code exceeds maximum length of ${MAX_CODE_LENGTH.toLocaleString()} characters` });
-  }
+  const lengthErr = validateMaxLength(code, MAX_CODE_LENGTH, "Code");
+  if (lengthErr) return res.status(400).json({ error: lengthErr });
 
   const send = setupStreamingSSE(res);
   send({ event: "start", language: "python" });
@@ -527,7 +525,7 @@ router.post("/chart", (req, res) => {
   };
 
   const chartId = storeChart(chartConfig);
-  const chartImageUrl = `http://localhost:${CONFIG.TOOLS_PORT}/utility/chart/render?id=${chartId}`;
+  const chartImageUrl = buildLocalUrl("utility/chart/render", { id: chartId });
 
   res.json({
     chartImageUrl,

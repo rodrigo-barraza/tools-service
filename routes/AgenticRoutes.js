@@ -9,6 +9,8 @@
 // ============================================================
 
 import { Router } from "express";
+import CONFIG from "../config.js";
+import { agenticHandler } from "../utilities.js";
 import {
   agenticReadFile,
   agenticWriteFile,
@@ -17,18 +19,16 @@ import {
   agenticListDirectory,
   agenticGrepSearch,
   agenticGlobFiles,
-} from "../services/AgenticFileService.js";
-import {
-  agenticFetchUrl,
-  agenticWebSearch,
-} from "../services/AgenticWebService.js";
-import {
   agenticMultiFileRead,
   agenticFileInfo,
   agenticFileDiff,
   agenticMoveFile,
   agenticDeleteFile,
 } from "../services/AgenticFileService.js";
+import {
+  agenticFetchUrl,
+  agenticWebSearch,
+} from "../services/AgenticWebService.js";
 import {
   executeCommand,
   executeCommandStreaming,
@@ -75,107 +75,82 @@ const router = Router();
 
 // ── Read File ─────────────────────────────────────────────────
 
-router.post("/file/read", async (req, res) => {
+router.post("/file/read", agenticHandler(async (req) => {
   const { path, startLine, endLine } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string)" });
+    return { error: "Request body must include 'path' (string)" };
   }
 
-  const result = await agenticReadFile(path, {
+  return agenticReadFile(path, {
     startLine: startLine ? parseInt(startLine) : undefined,
     endLine: endLine ? parseInt(endLine) : undefined,
   });
-
-  if (result.error) {
-    return res.status(result.error.includes("outside allowed") || result.error.includes("blocked") ? 403 : 400).json(result);
-  }
-  res.json(result);
-});
+}));
 
 // ── Write File ────────────────────────────────────────────────
 
-router.post("/file/write", async (req, res) => {
+router.post("/file/write", agenticHandler(async (req) => {
   const { path, content, createDirs } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string)" });
+    return { error: "Request body must include 'path' (string)" };
   }
   if (typeof content !== "string") {
-    return res.status(400).json({ error: "Request body must include 'content' (string)" });
+    return { error: "Request body must include 'content' (string)" };
   }
 
-  const result = await agenticWriteFile(path, content, {
+  return agenticWriteFile(path, content, {
     createDirs: createDirs !== false,
   });
-
-  if (result.error) {
-    return res.status(result.error.includes("outside allowed") || result.error.includes("blocked") ? 403 : 400).json(result);
-  }
-  res.json(result);
-});
+}));
 
 // ── String Replace ────────────────────────────────────────────
 
-router.post("/file/str-replace", async (req, res) => {
+router.post("/file/str-replace", agenticHandler(async (req) => {
   const { path, oldStr, newStr, allowMultiple } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string)" });
+    return { error: "Request body must include 'path' (string)" };
   }
   if (!oldStr || typeof oldStr !== "string") {
-    return res.status(400).json({ error: "Request body must include 'oldStr' (non-empty string)" });
+    return { error: "Request body must include 'oldStr' (non-empty string)" };
   }
   if (typeof newStr !== "string") {
-    return res.status(400).json({ error: "Request body must include 'newStr' (string)" });
+    return { error: "Request body must include 'newStr' (string)" };
   }
 
-  const result = await agenticStrReplace(path, oldStr, newStr, {
+  return agenticStrReplace(path, oldStr, newStr, {
     allowMultiple: allowMultiple === true,
   });
-
-  if (result.error) {
-    return res.status(result.error.includes("outside allowed") || result.error.includes("blocked") ? 403 : 400).json(result);
-  }
-  res.json(result);
-});
+}));
 
 // ── Patch File (unified diff) ─────────────────────────────────
 
-router.post("/file/patch", async (req, res) => {
+router.post("/file/patch", agenticHandler(async (req) => {
   const { path, patch } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string)" });
+    return { error: "Request body must include 'path' (string)" };
   }
   if (!patch || typeof patch !== "string") {
-    return res.status(400).json({ error: "Request body must include 'patch' (unified diff string)" });
+    return { error: "Request body must include 'patch' (unified diff string)" };
   }
 
-  const result = await agenticPatchFile(path, patch);
-
-  if (result.error) {
-    return res.status(result.error.includes("outside allowed") || result.error.includes("blocked") ? 403 : 400).json(result);
-  }
-  res.json(result);
-});
+  return agenticPatchFile(path, patch);
+}));
 
 // ═══════════════════════════════════════════════════════════════
 // 2. Directory Operations
 // ═══════════════════════════════════════════════════════════════
 
-router.post("/directory/list", async (req, res) => {
+router.post("/directory/list", agenticHandler(async (req) => {
   const { path, recursive, maxDepth } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string)" });
+    return { error: "Request body must include 'path' (string)" };
   }
 
-  const result = await agenticListDirectory(path, {
+  return agenticListDirectory(path, {
     recursive: recursive === true,
     maxDepth: maxDepth ? Math.min(parseInt(maxDepth), 5) : 3,
   });
-
-  if (result.error) {
-    return res.status(result.error.includes("outside allowed") || result.error.includes("blocked") ? 403 : 400).json(result);
-  }
-  res.json(result);
-});
+}));
 
 // ═══════════════════════════════════════════════════════════════
 // 3. Search Operations
@@ -183,46 +158,36 @@ router.post("/directory/list", async (req, res) => {
 
 // ── Grep Search ───────────────────────────────────────────────
 
-router.post("/search/grep", async (req, res) => {
+router.post("/search/grep", agenticHandler(async (req) => {
   const { pattern, searchPath, isRegex, includes, caseInsensitive, matchPerLine } = req.body;
   if (!pattern || typeof pattern !== "string") {
-    return res.status(400).json({ error: "Request body must include 'pattern' (string)" });
+    return { error: "Request body must include 'pattern' (string)" };
   }
   if (!searchPath || typeof searchPath !== "string") {
-    return res.status(400).json({ error: "Request body must include 'searchPath' (string)" });
+    return { error: "Request body must include 'searchPath' (string)" };
   }
 
-  const result = await agenticGrepSearch(pattern, searchPath, {
+  return agenticGrepSearch(pattern, searchPath, {
     isRegex: isRegex === true,
     includes: Array.isArray(includes) ? includes : [],
     caseInsensitive: caseInsensitive === true,
     matchPerLine: matchPerLine !== false,
   });
-
-  if (result.error) {
-    return res.status(result.error.includes("outside allowed") || result.error.includes("blocked") ? 403 : 400).json(result);
-  }
-  res.json(result);
-});
+}));
 
 // ── Glob Files ────────────────────────────────────────────────
 
-router.post("/search/glob", async (req, res) => {
+router.post("/search/glob", agenticHandler(async (req) => {
   const { pattern, searchPath } = req.body;
   if (!pattern || typeof pattern !== "string") {
-    return res.status(400).json({ error: "Request body must include 'pattern' (string)" });
+    return { error: "Request body must include 'pattern' (string)" };
   }
   if (!searchPath || typeof searchPath !== "string") {
-    return res.status(400).json({ error: "Request body must include 'searchPath' (string)" });
+    return { error: "Request body must include 'searchPath' (string)" };
   }
 
-  const result = await agenticGlobFiles(pattern, searchPath);
-
-  if (result.error) {
-    return res.status(result.error.includes("outside allowed") || result.error.includes("blocked") ? 403 : 400).json(result);
-  }
-  res.json(result);
-});
+  return agenticGlobFiles(pattern, searchPath);
+}));
 
 // ═══════════════════════════════════════════════════════════════
 // 4. Web Operations
@@ -270,90 +235,65 @@ router.post("/web/search", async (req, res) => {
 
 // ── Multi-File Read ───────────────────────────────────────────
 
-router.post("/file/read-multi", async (req, res) => {
+router.post("/file/read-multi", agenticHandler(async (req) => {
   const { files } = req.body;
   if (!Array.isArray(files) || files.length === 0) {
-    return res.status(400).json({ error: "Request body must include 'files' (array of { path, startLine?, endLine? })" });
+    return { error: "Request body must include 'files' (array of { path, startLine?, endLine? })" };
   }
 
-  const result = await agenticMultiFileRead(files);
-
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+  return agenticMultiFileRead(files);
+}));
 
 // ── File Info ─────────────────────────────────────────────────
 
-router.post("/file/info", async (req, res) => {
+router.post("/file/info", agenticHandler(async (req) => {
   const { paths, path } = req.body;
   const targetPaths = paths || (path ? [path] : null);
   if (!targetPaths) {
-    return res.status(400).json({ error: "Request body must include 'path' (string) or 'paths' (array of strings)" });
+    return { error: "Request body must include 'path' (string) or 'paths' (array of strings)" };
   }
 
-  const result = await agenticFileInfo(targetPaths.length === 1 ? targetPaths[0] : targetPaths);
-
-  if (result.error) {
-    return res.status(result.error.includes("outside allowed") || result.error.includes("blocked") ? 403 : 400).json(result);
-  }
-  res.json(result);
-});
+  return agenticFileInfo(targetPaths.length === 1 ? targetPaths[0] : targetPaths);
+}));
 
 // ── File Diff ─────────────────────────────────────────────────
 
-router.post("/file/diff", async (req, res) => {
+router.post("/file/diff", agenticHandler(async (req) => {
   const { pathA, pathB, content, contextLines } = req.body;
   if (!pathA || typeof pathA !== "string") {
-    return res.status(400).json({ error: "Request body must include 'pathA' (string)" });
+    return { error: "Request body must include 'pathA' (string)" };
   }
   if (!pathB && content === undefined) {
-    return res.status(400).json({ error: "Request body must include either 'pathB' (string) or 'content' (string)" });
+    return { error: "Request body must include either 'pathB' (string) or 'content' (string)" };
   }
 
-  const result = await agenticFileDiff(pathA, { pathB, content, contextLines });
-
-  if (result.error) {
-    return res.status(result.error.includes("outside allowed") || result.error.includes("blocked") ? 403 : 400).json(result);
-  }
-  res.json(result);
-});
+  return agenticFileDiff(pathA, { pathB, content, contextLines });
+}));
 
 // ── Move File ─────────────────────────────────────────────────
 
-router.post("/file/move", async (req, res) => {
+router.post("/file/move", agenticHandler(async (req) => {
   const { source, destination, createDirs } = req.body;
   if (!source || typeof source !== "string") {
-    return res.status(400).json({ error: "Request body must include 'source' (string)" });
+    return { error: "Request body must include 'source' (string)" };
   }
   if (!destination || typeof destination !== "string") {
-    return res.status(400).json({ error: "Request body must include 'destination' (string)" });
+    return { error: "Request body must include 'destination' (string)" };
   }
 
-  const result = await agenticMoveFile(source, destination, { createDirs: createDirs !== false });
-
-  if (result.error) {
-    return res.status(result.error.includes("outside allowed") || result.error.includes("blocked") ? 403 : 400).json(result);
-  }
-  res.json(result);
-});
+  return agenticMoveFile(source, destination, { createDirs: createDirs !== false });
+}));
 
 // ── Delete File ───────────────────────────────────────────────
 
-router.post("/file/delete", async (req, res) => {
+router.post("/file/delete", agenticHandler(async (req) => {
   const { path } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string)" });
+    return { error: "Request body must include 'path' (string)" };
   }
 
-  const result = await agenticDeleteFile(path);
-
-  if (result.error) {
-    return res.status(result.error.includes("outside allowed") || result.error.includes("blocked") ? 403 : 400).json(result);
-  }
-  res.json(result);
-});
+  return agenticDeleteFile(path);
+}));
 
 // ═══════════════════════════════════════════════════════════════
 // 6. Command Execution
@@ -857,8 +797,7 @@ router.post("/memory/upsert", async (req, res) => {
   const agentSessionId = req.headers["x-agent-session-id"] || null;
 
   try {
-    const { PRISM_API_URL } = await import("../secrets.js");
-    const prismRes = await fetch(`${PRISM_API_URL}/agent-memories`, {
+    const prismRes = await fetch(`${CONFIG.PRISM_API_URL}/agent-memories`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

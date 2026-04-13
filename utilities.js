@@ -396,4 +396,95 @@ export function toISODate(date = new Date()) {
   return date.toISOString().slice(0, 10);
 }
 
+// ─── Local URL Builder ────────────────────────────────────────
+
+/**
+ * Build a full local URL for this server (embed/download endpoints).
+ * Replaces the repeated `http://localhost:${CONFIG.TOOLS_PORT}/...` pattern.
+ * @param {string} routePath - Path after the port, e.g. "compute/csv/download"
+ * @param {object} [params] - Query parameters as key-value pairs
+ * @returns {string}
+ */
+export function buildLocalUrl(routePath, params) {
+  const base = `http://localhost:${CONFIG.TOOLS_PORT}/${routePath}`;
+  if (!params || Object.keys(params).length === 0) return base;
+  const qs = new URLSearchParams(params).toString();
+  return `${base}?${qs}`;
+}
+
+// ─── Agentic Route Handler ────────────────────────────────────
+
+/**
+ * Wrap an agentic service call with standard error-status mapping.
+ * Agentic services return `{ error }` objects (not throw). This wrapper
+ * maps "outside allowed"/"blocked" errors to 403, other errors to 400,
+ * and sends the result as JSON on success.
+ *
+ * @param {(req: import("express").Request) => Promise<object>} fn
+ * @returns {Function} Express middleware
+ */
+export function agenticHandler(fn) {
+  return async (req, res) => {
+    const result = await fn(req);
+    if (result.error) {
+      const isForbidden =
+        result.error.includes("outside allowed") ||
+        result.error.includes("blocked");
+      return res.status(isForbidden ? 403 : 400).json(result);
+    }
+    res.json(result);
+  };
+}
+
+// ─── Input Length Validation ──────────────────────────────────
+
+/**
+ * Validate that a string value does not exceed a maximum length.
+ * Returns an error message string if exceeded, or null if valid.
+ * @param {string} value - The string to validate
+ * @param {number} maxLength - Maximum allowed length
+ * @param {string} label - Human-readable label (e.g. "Code", "Command")
+ * @returns {string|null} Error message or null
+ */
+export function validateMaxLength(value, maxLength, label) {
+  if (value && value.length > maxLength) {
+    return `${label} exceeds maximum length of ${maxLength.toLocaleString()} characters`;
+  }
+  return null;
+}
+
+// ─── HTML Embed Shell ─────────────────────────────────────────
+
+/**
+ * Build a standard HTML embed page shell. Used by LaTeX, Mermaid,
+ * and future embed renderers to avoid duplicating the HTML boilerplate.
+ * @param {object} options
+ * @param {string} [options.headExtra] - Extra tags for <head> (stylesheets, etc.)
+ * @param {string} options.styles - CSS to inject into a <style> block
+ * @param {string} options.bodyContent - Inner HTML for <body>
+ * @param {string} options.scripts - Script tags or inline scripts
+ * @returns {string} Complete HTML document
+ */
+export function buildEmbedHtml({ headExtra = "", styles, bodyContent, scripts }) {
+  return `<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+${headExtra}<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:#0f172a;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:24px;
+  }
+${styles}
+</style>
+</head><body>
+${bodyContent}
+${scripts}
+</body></html>`;
+}
 

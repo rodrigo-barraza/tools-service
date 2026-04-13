@@ -37,7 +37,7 @@ export function setTrendError(source, error) {
   if (cache[source]) {
     cache[source].error = {
       message: error.message,
-      timestamp: new Date().toISOString(),
+      time: new Date().toISOString(),
     };
   }
 }
