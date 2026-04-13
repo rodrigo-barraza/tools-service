@@ -843,11 +843,14 @@ router.get("/testable-tools", (_req, res) => {
  * Same cross-service pattern as generate_image → Prism.
  */
 router.post("/memory/upsert", async (req, res) => {
-  const { project, content, type, title } = req.body;
+  const { content, type, title } = req.body;
   if (!content || typeof content !== "string") {
     return res.status(400).json({ error: "Request body must include 'content' (string)" });
   }
 
+  // Prefer trusted context headers (set by ToolOrchestratorService from session context)
+  // over model-provided body values — the model can hallucinate the project name.
+  const project = req.headers["x-project"] || req.body.project;
   const agent = req.headers["x-agent"] || "CODING";
   const username = req.headers["x-username"] || null;
   const agentSessionId = req.headers["x-agent-session-id"] || null;
