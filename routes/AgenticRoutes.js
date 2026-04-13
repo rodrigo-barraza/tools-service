@@ -848,9 +848,9 @@ router.post("/memory/upsert", async (req, res) => {
     return res.status(400).json({ error: "Request body must include 'content' (string)" });
   }
 
-  // Prefer trusted context headers (set by ToolOrchestratorService from session context)
-  // over model-provided body values — the model can hallucinate the project name.
-  const project = req.headers["x-project"] || req.body.project;
+  // Use ONLY the trusted context header (set by ToolOrchestratorService from session context).
+  // Never fall back to req.body.project — the model hallucinate project names.
+  const project = req.headers["x-project"] || "default";
   const agent = req.headers["x-agent"] || "CODING";
   const username = req.headers["x-username"] || null;
   const agentSessionId = req.headers["x-agent-session-id"] || null;

@@ -5270,16 +5270,11 @@ const TOOL_DEFINITIONS = [
     endpoint: {
       method: "POST",
       path: "/agentic/memory/upsert",
-      bodyParams: ["project", "content", "type", "title"],
+      bodyParams: ["content", "type", "title"],
     },
     parameters: {
       type: "object",
       properties: {
-        project: {
-          type: "string",
-          description:
-            "Project scope for the memory (e.g. 'retina-agent'). Memories are isolated per project.",
-        },
         content: {
           type: "string",
           description:
@@ -5300,7 +5295,7 @@ const TOOL_DEFINITIONS = [
             "Improves discoverability during semantic search.",
         },
       },
-      required: ["project", "content"],
+      required: ["content"],
     },
   },
 
