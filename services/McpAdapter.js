@@ -75,7 +75,7 @@ const ARG_REMAPS = {
 };
 
 // ── Execute tool via internal HTTP ──────────────────────────
-async function executeTool(toolName, endpoint, args = {}) {
+async function executeTool(toolName, endpoint, args = {}, context = {}) {
   const remaps = ARG_REMAPS[toolName];
   let resolvedArgs = args;
   if (remaps) {
@@ -91,10 +91,21 @@ async function executeTool(toolName, endpoint, args = {}) {
   try {
     if (endpoint.method === "POST") {
       const url = `http://localhost:${CONFIG.TOOLS_PORT}${endpoint.path}`;
+      const headers = { "Content-Type": "application/json" };
+      if (context.project) headers["X-Project"] = context.project;
+      if (context.agent) headers["X-Agent"] = context.agent;
+      if (context.username) headers["X-Username"] = context.username;
+
+      // Also inject into body for endpoints that might read from body
+      const bodyArgs = { ...resolvedArgs };
+      if (context.project && !bodyArgs.project) bodyArgs.project = context.project;
+      if (context.agent && !bodyArgs.agent) bodyArgs.agent = context.agent;
+      if (context.username && !bodyArgs.username) bodyArgs.username = context.username;
+
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(resolvedArgs),
+        headers,
+        body: JSON.stringify(bodyArgs),
       });
       if (!res.ok) {
         return { error: `API returned ${res.status}: ${res.statusText}` };
@@ -108,7 +119,12 @@ async function executeTool(toolName, endpoint, args = {}) {
     }
 
     const url = buildUrl(endpoint, resolvedArgs);
-    const res = await fetch(url);
+    const headers = {};
+    if (context.project) headers["X-Project"] = context.project;
+    if (context.agent) headers["X-Agent"] = context.agent;
+    if (context.username) headers["X-Username"] = context.username;
+
+    const res = await fetch(url, { headers });
     if (!res.ok) {
       return { error: `API returned ${res.status}: ${res.statusText}` };
     }
@@ -119,7 +135,7 @@ async function executeTool(toolName, endpoint, args = {}) {
 }
 
 // ── Create the MCP Server ───────────────────────────────────
-function createMcpServer() {
+function createMcpServer(context = {}) {
   const server = new Server(
     { name: "sun-tools", version: "1.0.0" },
     { capabilities: { tools: {} } },
@@ -162,7 +178,7 @@ function createMcpServer() {
       }
 
       try {
-        const result = await executeTool(name, schema.endpoint, args);
+        const result = await executeTool(name, schema.endpoint, args, context);
         const text = typeof result === "string" ? result : JSON.stringify(result);
         return {
           content: [{ type: "text", text }],
@@ -188,7 +204,12 @@ export function mountMcpRoutes(app) {
 
   app.get("/mcp/sse", async (req, res) => {
     const transport = new SSEServerTransport("/mcp/messages", res);
-    const server = createMcpServer();
+    const context = {
+      project: req.query.project,
+      agent: req.query.agent,
+      username: req.query.username,
+    };
+    const server = createMcpServer(context);
 
     sessions.set(transport.sessionId, { server, transport });
 
