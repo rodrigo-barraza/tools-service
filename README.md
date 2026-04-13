@@ -392,27 +392,35 @@ Several domains load curated CSV digests at startup for zero-latency queries:
 
 ```
 tools-api/
-├── server.js                      # Express app, collector scheduling, route mounting
-├── config.js                      # Unified config (imports from secrets.js)
-├── constants.js                   # All enums, intervals, categories, tickers, source lists
-├── utilities.js                   # Shared helpers (parsing, scraping, OAuth, async handler)
-├── logger.js                      # Timestamped colored console logger
-├── db.js                          # MongoDB connection
+├── server.js                          # Express app, collector scheduling, route mounting
+├── config.js                          # Unified config (imports from secrets.js)
+├── constants.js                       # All enums, intervals, categories, tickers, source lists
+├── utilities.js                       # Shared helpers (parsing, scraping, OAuth, async handler)
+├── logger.js                          # Timestamped colored console logger
+├── db.js                              # MongoDB connection
 │
-├── routes/                        # Express routers per domain
-│   ├── AdminRoutes.js             #   Tool schemas, request log analytics
-│   ├── EventRoutes.js             #   Events domain
-│   ├── FinanceRoutes.js           #   Finnhub + FRED macro domain
-│   ├── HealthRoutes.js            #   Nutrition + FDA drugs domain
-│   ├── KnowledgeRoutes.js         #   Reference data domain (books, anime, movies, elements, etc.)
-│   ├── MarketRoutes.js            #   Commodities domain
-│   ├── ProductRoutes.js           #   Products + Best Buy CA availability domain
-│   ├── TransitRoutes.js           #   TransLink transit domain
-│   ├── TrendRoutes.js             #   Social trends domain
-│   ├── UtilityRoutes.js           #   Currency, timezone, IP, places, maps, airports
-│   └── WeatherRoutes.js           #   Weather, seismic, space weather, etc.
+├── routes/                            # Express routers per domain
+│   ├── AdminRoutes.js                 #   Tool schemas, request log analytics
+│   ├── AgenticRoutes.js               #   Agentic tool endpoints (file, git, browser, shell, etc.)
+│   ├── ClockCrewRoutes.js             #   Clock Crew community data
+│   ├── CommunicationRoutes.js         #   SMS/messaging via Twilio
+│   ├── ComputeRoutes.js               #   JS/Python code execution endpoints
+│   ├── CreativeRoutes.js              #   Creative/generative tool endpoints
+│   ├── EnergyRoutes.js                #   Energy data endpoints
+│   ├── EventRoutes.js                 #   Events domain
+│   ├── FinanceRoutes.js               #   Finnhub + FRED macro domain
+│   ├── HealthRoutes.js                #   Nutrition + FDA drugs domain
+│   ├── KnowledgeRoutes.js             #   Reference data domain (books, anime, movies, elements, etc.)
+│   ├── MaritimeRoutes.js              #   Maritime AIS vessel tracking
+│   ├── MarketRoutes.js                #   Commodities domain
+│   ├── NewgroundsRoutes.js            #   Newgrounds community data
+│   ├── ProductRoutes.js               #   Products + Best Buy CA availability domain
+│   ├── TransitRoutes.js               #   TransLink transit domain
+│   ├── TrendRoutes.js                 #   Social trends domain
+│   ├── UtilityRoutes.js               #   Currency, timezone, IP, places, maps, airports, webcams
+│   └── WeatherRoutes.js               #   Weather, seismic, space weather, etc.
 │
-├── collectors/                    # Scheduled data-collection orchestrators
+├── collectors/                        # Scheduled data-collection orchestrators
 │   ├── EventCollector.js
 │   ├── FinanceCollector.js
 │   ├── MarketCollector.js
@@ -420,69 +428,100 @@ tools-api/
 │   ├── TrendCollector.js
 │   └── WeatherCollector.js
 │
-├── fetchers/                      # Per-source HTTP fetchers (60+ modules)
-│   ├── event/                     #   Ticketmaster, SeatGeek, Craigslist, UBC/SFU, City of Van, Sports, Movies, Google Places
-│   ├── finance/                   #   FinnhubFetcher, FredFetcher
-│   ├── health/                    #   NutritionFetcher, FdaDrugFetcher, OpenFdaFetcher
-│   │   └── data/                  #   CSV digests (USDA, UK, India, Australia, Japan, Canada, FAO, FDA)
-│   ├── knowledge/                 #   Arxiv, Dictionary, Exoplanet, Jikan, OpenLibrary, PeriodicTable, RestCountries, TMDb, Wikipedia, WorldBank
-│   │   └── data/                  #   CSV digests (elements, exoplanets, world indicators)
-│   ├── market/                    #   CommodityFetcher (Yahoo Finance)
-│   ├── product/                   #   Amazon, BestBuy, BestBuyCA, Costco, eBay, Etsy, ProductHunt
-│   ├── transit/                   #   TransLinkFetcher
-│   ├── trend/                     #   Bluesky, GitHub, Google News/Trends, HackerNews, Mastodon, ProductHunt, Reddit, TVMaze, Wikipedia, X
-│   ├── utility/                   #   AirportFetcher, CurrencyFetcher, IpInfoFetcher, PlacesFetcher, TimezoneFetcher
-│   │   └── data/                  #   CSV digest (airports)
-│   └── weather/                   #   AirQuality, APOD, Avalanche, DONKI, Earthquake, EnvCanada, Google AQ/Pollen, ISS, Kp, Launch, NEO, OpenMeteo, SolarWind, Tide, TomorrowIO, Twilight, Wildfire
+├── fetchers/                          # Per-source HTTP fetchers (70+ modules)
+│   ├── event/                         #   Ticketmaster, SeatGeek, Craigslist, UBC/SFU, City of Van, Sports, Movies, Google Places
+│   ├── finance/                       #   FinnhubFetcher, FredFetcher
+│   ├── health/                        #   NutritionFetcher, FdaDrugFetcher, OpenFdaFetcher
+│   │   └── data/                      #   CSV digests (USDA, UK, India, Australia, Japan, Canada, FAO, FDA)
+│   ├── knowledge/                     #   Arxiv, Dictionary, Exoplanet, Jikan, OpenLibrary, PeriodicTable, RestCountries, TMDb, Wikipedia, WorldBank, YouTube
+│   │   └── data/                      #   CSV digests (elements, exoplanets, world indicators)
+│   ├── maritime/                      #   AisStreamFetcher (live AIS vessel tracking)
+│   ├── market/                        #   CommodityFetcher (Yahoo Finance)
+│   ├── newgrounds/                    #   NewgroundsFetcher (community profiles and content)
+│   ├── product/                       #   Amazon, BestBuy, BestBuyCA, Costco, eBay, Etsy, ProductHunt
+│   ├── transit/                       #   TransLinkFetcher
+│   ├── trend/                         #   Bluesky, GitHub, Google News/Trends, HackerNews, Mastodon, ProductHunt, Reddit, TVMaze, Wikipedia, X
+│   ├── utility/                       #   AirportFetcher, CurrencyFetcher, IpInfoFetcher, PlacesFetcher, TimezoneFetcher, WebcamFetcher
+│   │   ├── data/                      #   CSV digest (airports)
+│   │   └── webcams/                   #   WebcamRegistry + 30+ city-specific webcam source modules
+│   ├── web/                           #   GenericPage, GitHub, HackerNews, Npm, Package, Pdf, PyPi, Reddit, Rss, StackOverflow, Twitter, WebContent
+│   └── weather/                       #   AirQuality, APOD, Avalanche, DONKI, Earthquake, EnvCanada, Google AQ/Pollen, ISS, Kp, Launch, LiveWeather, NEO, OpenMeteo, SolarWind, Tide, TomorrowIO, Twilight, Wildfire
 │
-├── caches/                        # In-memory caches (23 modules)
-│   ├── createSimpleCache.js       #   Generic cache factory
-│   ├── ApodCache.js               #   Astronomy Picture of the Day
-│   ├── AvalancheCache.js          #   Avalanche conditions
-│   ├── BestBuyCAAvailabilityCache.js  # Best Buy CA stock tracker + watchlist
-│   ├── CommodityCache.js          #   Commodity prices
-│   ├── EarthquakeCache.js         #   USGS earthquake data
-│   ├── EnvironmentCanadaCache.js  #   Weather warnings
-│   ├── EventCache.js              #   Events across all sources
-│   ├── FinnhubCache.js            #   Stock quotes, profiles, news, earnings
-│   ├── GoogleAirQualityCache.js   #   Google Air Quality
-│   ├── IssCache.js                #   ISS position & crew
-│   ├── KpIndexCache.js            #   Geomagnetic activity
-│   ├── LaunchCache.js             #   Rocket launches
-│   ├── NeoCache.js                #   Near-Earth objects
-│   ├── PollenCache.js             #   Pollen forecasts
-│   ├── ProductCache.js            #   Products across all sources
-│   ├── SolarWindCache.js          #   Solar wind data
-│   ├── SpaceWeatherCache.js       #   Solar flares, CMEs, geomagnetic storms
-│   ├── TideCache.js               #   Tide predictions
-│   ├── TrendCache.js              #   Trends across all sources
-│   ├── TwilightCache.js           #   Civil/nautical/astronomical twilight
-│   ├── WeatherCache.js            #   Weather conditions & forecasts
-│   └── WildfireCache.js           #   Active wildfire data
+├── caches/                            # In-memory caches (23 modules)
+│   ├── createSimpleCache.js           #   Generic cache factory
+│   ├── ApodCache.js                   #   Astronomy Picture of the Day
+│   ├── AvalancheCache.js              #   Avalanche conditions
+│   ├── BestBuyCAAvailabilityCache.js  #   Best Buy CA stock tracker + watchlist
+│   ├── CommodityCache.js              #   Commodity prices
+│   ├── EarthquakeCache.js             #   USGS earthquake data
+│   ├── EnvironmentCanadaCache.js      #   Weather warnings
+│   ├── EventCache.js                  #   Events across all sources
+│   ├── FinnhubCache.js                #   Stock quotes, profiles, news, earnings
+│   ├── GoogleAirQualityCache.js       #   Google Air Quality
+│   ├── IssCache.js                    #   ISS position & crew
+│   ├── KpIndexCache.js                #   Geomagnetic activity
+│   ├── LaunchCache.js                 #   Rocket launches
+│   ├── NeoCache.js                    #   Near-Earth objects
+│   ├── PollenCache.js                 #   Pollen forecasts
+│   ├── ProductCache.js                #   Products across all sources
+│   ├── SolarWindCache.js              #   Solar wind data
+│   ├── SpaceWeatherCache.js           #   Solar flares, CMEs, geomagnetic storms
+│   ├── TideCache.js                   #   Tide predictions
+│   ├── TrendCache.js                  #   Trends across all sources
+│   ├── TwilightCache.js               #   Civil/nautical/astronomical twilight
+│   ├── WeatherCache.js                #   Weather conditions & forecasts
+│   └── WildfireCache.js               #   Active wildfire data
 │
-├── models/                        # MongoDB document schemas (11 models)
-│   ├── Cme.js                     #   Coronal Mass Ejection
-│   ├── CollectorSnapshot.js       #   Collector run tracking
-│   ├── CommoditySnapshot.js       #   Commodity price history
-│   ├── Earthquake.js              #   Earthquake events
-│   ├── Event.js                   #   Community events
-│   ├── GeomagneticStorm.js        #   Geomagnetic storm events
-│   ├── Neo.js                     #   Near-Earth objects
-│   ├── Product.js                 #   Product listings
-│   ├── SolarFlare.js              #   Solar flare events
-│   ├── Trend.js                   #   Social media trends
-│   └── WeatherSnapshot.js         #   Weather snapshots
+├── models/                            # MongoDB document schemas
+│   ├── ClockCrewPost.js               #   Clock Crew community posts
+│   ├── Cme.js                         #   Coronal Mass Ejection
+│   ├── CollectorSnapshot.js           #   Collector run tracking
+│   ├── CommoditySnapshot.js           #   Commodity price history
+│   ├── Earthquake.js                  #   Earthquake events
+│   ├── Event.js                       #   Community events
+│   ├── GeomagneticStorm.js            #   Geomagnetic storm events
+│   ├── Neo.js                         #   Near-Earth objects
+│   ├── NewgroundsProfile.js           #   Newgrounds user profiles
+│   ├── Product.js                     #   Product listings
+│   ├── SolarFlare.js                  #   Solar flare events
+│   ├── Trend.js                       #   Social media trends
+│   ├── WeatherSnapshot.js             #   Weather snapshots
+│   └── Webcam.js                      #   Webcam metadata and snapshots
 │
-├── middleware/                    # Express middleware
-│   ├── FieldProjectionMiddleware.js   # Sparse fieldsets (?fields=a,b.c)
-│   └── RequestLoggerMiddleware.js     # Console + MongoDB request logging
+├── middleware/                        # Express middleware
+│   ├── FieldProjectionMiddleware.js   #   Sparse fieldsets (?fields=a,b.c)
+│   ├── RequestLoggerMiddleware.js     #   Console + MongoDB request logging
+│   └── ToolCallLoggerMiddleware.js    #   Tool call tracking middleware
 │
-├── services/                      # Business logic services
-│   ├── FreshnessService.js        #   Data freshness tracking
-│   ├── RateLimiterService.js      #   Per-source rate limiting
-│   └── ToolSchemaService.js       #   LLM function-calling tool definitions
+├── services/                          # Business logic services
+│   ├── FreshnessService.js            #   Data freshness tracking
+│   ├── RateLimiterService.js          #   Per-source rate limiting
+│   ├── ToolSchemaService.js           #   LLM function-calling tool definitions
+│   ├── LocationService.js             #   Geocoding and location utilities
+│   ├── ChartService.js                #   Chart.js server-side image generation
+│   ├── CrawlerService.js              #   Crawlee-based web crawling
+│   ├── PrismService.js                #   Prism AI gateway client
+│   ├── TwilioService.js               #   SMS/messaging via Twilio
+│   ├── McpAdapter.js                  #   Model Context Protocol adapter
+│   ├── JavaScriptInterpreterService.js #  Sandboxed JS code execution
+│   ├── PythonInterpreterService.js    #   Python code execution via subprocess
+│   ├── ShellExecutorService.js        #   Shell command execution service
+│   ├── AgenticFileService.js          #   File system operations for agents
+│   ├── AgenticGitService.js           #   Git operations for agents
+│   ├── AgenticBrowserService.js       #   Browser automation for agents
+│   ├── AgenticCommandService.js       #   Command execution for agents
+│   ├── AgenticProjectService.js       #   Project scaffolding for agents
+│   ├── AgenticTaskService.js          #   Task tracking for agents
+│   ├── AgenticWebService.js           #   Web interaction for agents
+│   ├── AgenticLspService.js           #   LSP integration for agents
+│   ├── AgenticToolTestService.js      #   Tool testing for agents
+│   └── lsp/                           #   Language Server Protocol integration
+│       ├── LspClient.js               #   LSP JSON-RPC client
+│       ├── LspServerInstance.js        #   Individual LSP server process
+│       ├── LspServerManager.js        #   LSP server lifecycle manager
+│       └── lspConfig.js               #   LSP server configuration
 │
-├── tests/                         # Integration tests (Node.js test runner)
+├── tests/                             # Integration tests (Node.js test runner)
 │   ├── EventEndpoints.test.js
 │   ├── FieldProjectionMiddleware.test.js
 │   ├── FinanceEndpoints.test.js
@@ -496,12 +535,27 @@ tools-api/
 │   ├── TransitAndHealthEndpoints.test.js
 │   ├── TrendEndpoints.test.js
 │   ├── UtilityEndpoints.test.js
-│   └── WeatherEndpoints.test.js
+│   ├── WeatherEndpoints.test.js
+│   └── WebExtractionEndpoints.test.js
 │
-├── secrets.example.js             # Template for secrets.js
-├── eslint.config.js               # ESLint flat config
-├── .prettierrc                    # Prettier config
-└── .vscode/                       # VS Code settings (format on save)
+├── scripts/                           # Utility and migration scripts
+│   ├── dump-unprocessed.js            #   Export unprocessed data
+│   ├── fetch-exercises.js             #   Fetch exercise data
+│   ├── fetch-wger.js                  #   Fetch wger exercise database
+│   ├── generate-user-summaries.js     #   Generate Newgrounds user summaries
+│   ├── get-next-user.js               #   Get next user for processing
+│   ├── match-clockcrew-newgrounds.js  #   Match Clock Crew to Newgrounds profiles
+│   ├── migrate-clockcrew-db.js        #   Clock Crew DB migration
+│   ├── migrate-newgrounds-db.js       #   Newgrounds DB migration
+│   ├── save-md-to-db.js              #   Save markdown files to MongoDB
+│   ├── scrape-clockcrew.js            #   Clock Crew web scraper
+│   └── scrape-newgrounds.js           #   Newgrounds web scraper
+│
+├── user_summaries/                    # Generated Newgrounds user profile summaries
+├── secrets.example.js                 # Template for secrets.js
+├── eslint.config.js                   # ESLint flat config
+├── .prettierrc                        # Prettier config
+└── .vscode/                           # VS Code settings (format on save)
 ```
 
 ## 📜 Scripts
@@ -528,8 +582,6 @@ tools-api/
 | `npm run lint`         | Run ESLint                               |
 | `npm run lint:fix`     | Run ESLint with auto-fix                 |
 | `npm run format`       | Format all files with Prettier           |
-| `npm run format:check` | Check formatting                         |
-
 | `npm run format:check` | Check formatting                         |
 
 ## ☀️ Part of [Sun](https://github.com/rodrigo-barraza)
