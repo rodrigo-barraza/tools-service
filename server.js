@@ -90,7 +90,7 @@ app.use("/maritime", maritimeRoutes);
 app.use("/energy", energyRoutes);
 app.use("/agentic", agenticRoutes);
 app.use("/communication", communicationRoutes);
-app.use("/creative", creativeRoutes);
+app.use("/creative", express.json({ limit: "50mb" }), creativeRoutes);
 app.use("/clockcrew", clockcrewRoutes);
 app.use("/newgrounds", newgroundsRoutes);
 app.use("/admin", adminRoutes);
