@@ -146,6 +146,8 @@ router.post("/generate-image", async (req, res) => {
   const callerProject = req.headers["x-project"] || "tools-api";
   const callerUsername = req.headers["x-username"] || "system";
   const callerAgent = req.headers["x-agent"] || null;
+  const callerTraceId = req.headers["x-trace-id"] || null;
+  const callerAgentSessionId = req.headers["x-agent-session-id"] || null;
 
   try {
     let currentPrompt = prompt;
@@ -170,6 +172,8 @@ router.post("/generate-image", async (req, res) => {
           project: callerProject,
           username: callerUsername,
           agent: callerAgent,
+          traceId: callerTraceId,
+          agentSessionId: callerAgentSessionId,
           skipConversation: true,
         });
       } catch (err) {
@@ -272,6 +276,8 @@ router.post("/describe-image", async (req, res) => {
   const callerProject = req.headers["x-project"] || "tools-api";
   const callerUsername = req.headers["x-username"] || "system";
   const callerAgent = req.headers["x-agent"] || null;
+  const callerTraceId = req.headers["x-trace-id"] || null;
+  const callerAgentSessionId = req.headers["x-agent-session-id"] || null;
 
   // Tailor the prompt based on image context
   const prompts = {
@@ -320,6 +326,8 @@ router.post("/describe-image", async (req, res) => {
             project: callerProject,
             username: callerUsername,
             agent: callerAgent,
+            traceId: callerTraceId,
+            agentSessionId: callerAgentSessionId,
             skipConversation: true,
           });
 
