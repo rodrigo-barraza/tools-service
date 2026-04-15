@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { sleep } from "../../utilities.js";
 
 // ═══════════════════════════════════════════════════════════════
 //  Newgrounds Profile Fetcher — newgrounds.com User Scraper
@@ -18,9 +19,7 @@ const HEADERS = {
 
 const REQUEST_DELAY_MS = 800;
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+
 
 /**
  * Fetch a URL and return the HTML body as a string.

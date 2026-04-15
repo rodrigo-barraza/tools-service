@@ -10,6 +10,7 @@ import { writeFileSync, existsSync, mkdirSync } from "fs";
 import path from "path";
 import CONFIG from "../config.js";
 import PrismService from "../services/PrismService.js";
+import { toISODate } from "../utilities.js";
 
 const OUTPUT_DIR = path.join(process.cwd(), "user_summaries");
 if (!existsSync(OUTPUT_DIR)) {
@@ -34,7 +35,7 @@ async function generateDataDump(db, ccUser) {
   
   output += `=== FORUM POSTS (${posts.length} scraped) ===\n`;
   for (const p of posts) {
-    const dateStr = p.date ? new Date(p.date).toISOString().slice(0, 10) : "no-date";
+    const dateStr = p.date ? toISODate(new Date(p.date)) : "no-date";
     const thread = p.threadTitle || p.topicId || "";
     let body = (p.body || "").replace(/\n+/g, " ").trim();
     if (body.length > 500) body = body.substring(0, 500) + "..."; // Trim very long posts
@@ -49,7 +50,7 @@ async function generateDataDump(db, ccUser) {
   
   output += `=== THREADS STARTED (${threads.length}) ===\n`;
   for (const t of threads) {
-    const dateStr = t.date ? new Date(t.date).toISOString().slice(0, 10) : "no-date";
+    const dateStr = t.date ? toISODate(new Date(t.date)) : "no-date";
     output += `${dateStr} | ${t.title} (${t.totalPosts || 0} replies)\n`;
   }
 

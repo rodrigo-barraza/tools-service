@@ -18,13 +18,13 @@ import { readFile, stat } from "node:fs/promises";
 import { resolve, extname, relative, dirname } from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { getLspManager, shutdownAllLspManagers, getAllLspHealth } from "./lsp/LspServerManager.js";
-import { WORKSPACE_ROOT as WORKSPACE_ROOT_RAW } from "../secrets.js";
+import { ALLOWED_ROOTS } from "./AgenticFileService.js";
 
 // ────────────────────────────────────────────────────────────
 // Configuration
 // ────────────────────────────────────────────────────────────
 
-const ALLOWED_ROOTS = (WORKSPACE_ROOT_RAW || "").split(",").map((r) => resolve(r.trim()));
+
 
 const MAX_FILE_SIZE_FOR_OPEN = 1_048_576; // 1 MB — don't send huge files to LSP
 const MAX_LOCATIONS_RETURNED = 30;        // Cap locations in results

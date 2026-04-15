@@ -80,7 +80,7 @@ router.get("/commodities/data", async (req, res) => {
       return res.json({ action, categories: Object.values(ASSET_CATEGORIES) });
     case "history": {
       if (!ticker) return res.status(400).json({ error: "'ticker' required for action=history" });
-      const hours = rawHours ? parseInt(rawHours, 10) : 24;
+      const hours = parseIntParam(rawHours, 24);
       const history = await getHistory(ticker.toUpperCase(), hours);
       return res.json({ action, ticker: ticker.toUpperCase(), hours, count: history.length, snapshots: history });
     }

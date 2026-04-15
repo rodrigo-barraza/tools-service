@@ -15,6 +15,7 @@
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createLspClient } from "./LspClient.js";
+import { sleep } from "../../utilities.js";
 
 // ── Constants ────────────────────────────────────────────────
 
@@ -288,10 +289,6 @@ export function createLspServerInstance(name, config) {
 }
 
 // ── Helpers ──────────────────────────────────────────────────
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function withTimeout(promise, ms, message) {
   let timer;

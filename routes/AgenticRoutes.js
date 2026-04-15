@@ -82,8 +82,8 @@ router.post("/file/read", agenticHandler(async (req) => {
   }
 
   return agenticReadFile(path, {
-    startLine: startLine ? parseInt(startLine) : undefined,
-    endLine: endLine ? parseInt(endLine) : undefined,
+    startLine: startLine ? parseInt(startLine, 10) : undefined,
+    endLine: endLine ? parseInt(endLine, 10) : undefined,
   });
 }));
 
@@ -148,7 +148,7 @@ router.post("/directory/list", agenticHandler(async (req) => {
 
   return agenticListDirectory(path, {
     recursive: recursive === true,
-    maxDepth: maxDepth ? Math.min(parseInt(maxDepth), 5) : 3,
+    maxDepth: maxDepth ? Math.min(parseInt(maxDepth, 10), 5) : 3,
   });
 }));
 
@@ -218,7 +218,7 @@ router.post("/web/search", async (req, res) => {
   }
 
   const result = await agenticWebSearch(query, {
-    limit: limit ? Math.min(parseInt(limit), 10) : 5,
+    limit: limit ? Math.min(parseInt(limit, 10), 10) : 5,
     dateRestrict,
     siteSearch,
   });
@@ -307,7 +307,7 @@ router.post("/command/run", async (req, res) => {
 
   const result = await executeCommand(command, {
     cwd: cwd || undefined,
-    timeout: timeout ? Math.min(parseInt(timeout), 120_000) : undefined,
+    timeout: timeout ? Math.min(parseInt(timeout, 10), 120_000) : undefined,
   });
 
   if (result.error && !result.stdout && !result.stderr) {
@@ -328,7 +328,7 @@ router.post("/command/stream", async (req, res) => {
 
   const result = await executeCommandStreaming(command, {
     cwd: cwd || undefined,
-    timeout: timeout ? Math.min(parseInt(timeout), 120_000) : undefined,
+    timeout: timeout ? Math.min(parseInt(timeout, 10), 120_000) : undefined,
     onChunk: (event, data) => send({ event, data }),
   });
 
@@ -515,8 +515,8 @@ router.post("/lsp/action", async (req, res) => {
   const result = await agenticLspAction({
     operation,
     filePath,
-    line: line != null ? parseInt(line) : undefined,
-    character: character != null ? parseInt(character) : undefined,
+    line: line != null ? parseInt(line, 10) : undefined,
+    character: character != null ? parseInt(character, 10) : undefined,
     workspacePath,
   });
 
@@ -632,7 +632,7 @@ router.post("/task/list", async (req, res) => {
 
   const result = await agenticTaskList(project, {
     status: status || undefined,
-    limit: limit ? parseInt(limit) : undefined,
+    limit: limit ? parseInt(limit, 10) : undefined,
   });
   if (result.error) return res.status(400).json(result);
   res.json(result);
@@ -653,7 +653,7 @@ router.get("/task/list-all", async (req, res) => {
     const tasks = await col
       .find(filter)
       .sort({ taskId: 1 })
-      .limit(Math.min(parseInt(limit) || 100, 500))
+      .limit(Math.min(parseInt(limit, 10) || 100, 500))
       .toArray();
 
     // Summary counts (scoped to same filter base)

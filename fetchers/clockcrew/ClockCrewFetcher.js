@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { sleep } from "../../utilities.js";
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -22,12 +23,7 @@ const HEADERS = {
 // Polite delay between requests to avoid hammering the forum
 const REQUEST_DELAY_MS = 800;
 
-/**
- * Sleep for the given milliseconds.
- */
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+
 
 /**
  * Fetch a URL and return the HTML body as a string.

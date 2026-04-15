@@ -1,4 +1,5 @@
 import CONFIG from "../../config.js";
+import { buildLocalUrl } from "../../utilities.js";
 
 const NEARBY_URL = "https://places.googleapis.com/v1/places:searchNearby";
 const TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText";
@@ -140,8 +141,7 @@ export function buildMapEmbedUrl(places) {
       name: p.name || null,
       address: p.shortAddress || p.address || null,
     }));
-  const embedParams = new URLSearchParams({ markers: JSON.stringify(markers) });
-  return `http://localhost:${CONFIG.TOOLS_PORT}/utility/map/embed?${embedParams.toString()}`;
+  return buildLocalUrl("utility/map/embed", { markers: JSON.stringify(markers) });
 }
 
 // ─── Nearby Search ────────────────────────────────────────────────
