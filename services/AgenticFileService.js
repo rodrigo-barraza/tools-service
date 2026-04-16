@@ -72,7 +72,13 @@ function validatePath(inputPath) {
     return { safe: false, resolved: "", error: "Path is required (string)" };
   }
 
-  const resolved = resolve(inputPath);
+  // Resolve relative paths against the primary workspace root, NOT process.cwd().
+  // Models often send "./file.js" or "file.js" — without this, resolve() uses
+  // the tools-api process directory as the base, which is outside the sandbox.
+  const isRelative = !inputPath.startsWith("/");
+  const resolved = isRelative
+    ? resolve(ALLOWED_ROOTS[0], inputPath)
+    : resolve(inputPath);
 
   // Check against allowed roots
   const inAllowedRoot = ALLOWED_ROOTS.some((root) =>

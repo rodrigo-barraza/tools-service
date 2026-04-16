@@ -5115,11 +5115,6 @@ const TOOL_DEFINITIONS = [
     parameters: {
       type: "object",
       properties: {
-        project: {
-          type: "string",
-          description:
-            "Project scope for the task (e.g. 'retina', 'prism', 'tools-api'). Tasks are isolated per project.",
-        },
         subject: {
           type: "string",
           description: "A brief title for the task (e.g. 'Migrate auth middleware to JWT').",
@@ -5143,7 +5138,7 @@ const TOOL_DEFINITIONS = [
           description: "Optional arbitrary key-value metadata to attach to the task.",
         },
       },
-      required: ["project", "subject", "description"],
+      required: ["subject", "description"],
     },
   },
   {
@@ -5161,10 +5156,6 @@ const TOOL_DEFINITIONS = [
     parameters: {
       type: "object",
       properties: {
-        project: {
-          type: "string",
-          description: "Project scope (e.g. 'retina', 'prism').",
-        },
         status: {
           type: "string",
           enum: ["pending", "in_progress", "completed"],
@@ -5175,7 +5166,7 @@ const TOOL_DEFINITIONS = [
           description: "Maximum number of tasks to return (default: 50, max: 200).",
         },
       },
-      required: ["project"],
+      required: [],
     },
   },
   {
@@ -5193,16 +5184,12 @@ const TOOL_DEFINITIONS = [
     parameters: {
       type: "object",
       properties: {
-        project: {
-          type: "string",
-          description: "Project scope (e.g. 'retina', 'prism').",
-        },
         taskId: {
           type: "integer",
           description: "The numeric ID of the task to retrieve.",
         },
       },
-      required: ["project", "taskId"],
+      required: ["taskId"],
     },
   },
   {
@@ -5221,10 +5208,6 @@ const TOOL_DEFINITIONS = [
     parameters: {
       type: "object",
       properties: {
-        project: {
-          type: "string",
-          description: "Project scope (e.g. 'retina', 'prism').",
-        },
         taskId: {
           type: "integer",
           description: "The numeric ID of the task to update.",
@@ -5252,7 +5235,7 @@ const TOOL_DEFINITIONS = [
           description: "Key-value pairs to merge into existing task metadata.",
         },
       },
-      required: ["project", "taskId"],
+      required: ["taskId"],
     },
   },
 
