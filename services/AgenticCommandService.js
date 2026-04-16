@@ -53,9 +53,14 @@ const ALLOWED_GIT_SUBCOMMANDS = new Set([
   "push", "pull", "fetch",
 ]);
 
-// Patterns that indicate abuse attempts
+// Patterns that indicate abuse attempts.
+// NOTE: The binary allowlist (ALLOWED_COMMANDS) is the primary defense.
+// These patterns catch shell-level abuse that bypasses binary checks.
+// We intentionally allow $ (variable expansion) and {..} (brace expansion)
+// since they're essential for normal bash usage (for loops, env vars, etc.).
 const BLOCKED_PATTERNS = [
-  /[`$]/,               // command/variable substitution
+  /`/,                  // backtick command substitution (use $() if needed — caught below only for dangerous cases)
+  /\$\(/,              // $() command substitution — can execute arbitrary commands
   /\.\.\//,             // path traversal
   /\/dev\//,            // device access
   /\/proc\//,           // proc access
@@ -64,6 +69,9 @@ const BLOCKED_PATTERNS = [
   />\s*\//,             // redirect to absolute path
   />\s*~/,              // redirect to home
   /rm\s+-rf/i,          // destructive rm
+  /\|\s*(bash|sh|zsh|dash)\b/, // piping into a shell
+  /eval\s+/,            // eval calls
+  /source\s+/,          // sourcing arbitrary scripts
 ];
 
 // ────────────────────────────────────────────────────────────
