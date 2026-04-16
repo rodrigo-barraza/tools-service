@@ -20,6 +20,13 @@ export const PRISM_API_URL = 'http://localhost:7777';
 // Example: '/home/youruser/projects/sun,/home/youruser/other-repo'
 export const WORKSPACE_ROOT = '';
 
+// ─── Worktree Directory ────────────────────────────────────────────
+// Directory where agent worktrees are created for parallel coding.
+// Defaults to /tmp/prism-worktrees (ephemeral, lost on reboot).
+// Set to a persistent path (e.g. '~/.prism/worktrees') if you want
+// worktrees to survive reboots for session recovery.
+export const WORKTREE_DIR = '';
+
 // ─── MongoDB ───────────────────────────────────────────────────────
 
 export const MONGO_URI = "mongodb://192.168.86.2:27017/tools?directConnection=true&replicaSet=rs0";

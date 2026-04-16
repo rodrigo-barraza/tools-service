@@ -8,6 +8,7 @@
 
 import { spawn } from "node:child_process";
 import { validatePath } from "./AgenticFileService.js";
+import { WORKTREE_DIR } from "../secrets.js";
 
 // ────────────────────────────────────────────────────────────
 // Constants
@@ -307,7 +308,7 @@ export async function agenticGitLog(repoPath, { limit = 20, author, since, path:
 // Git Worktree Operations (for Coordinator Mode)
 // ────────────────────────────────────────────────────────────
 
-const WORKTREE_BASE = "/tmp/prism-worktrees";
+const WORKTREE_BASE = WORKTREE_DIR?.trim() || "/tmp/prism-worktrees";
 
 /**
  * Create a git worktree with its own branch.
