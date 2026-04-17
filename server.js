@@ -20,6 +20,7 @@ import { setupGeomagneticStormCollection } from "./models/GeomagneticStorm.js";
 import { setupWebcamCollection } from "./models/Webcam.js";
 import { connectClockCrewDB, setupClockCrewCollections } from "./models/ClockCrewPost.js";
 import { setupNewgroundsCollections } from "./models/NewgroundsProfile.js";
+import { connectLuposDB, setupLuposCollections } from "./models/LuposMessage.js";
 import { setupToolCallsCollection } from "./middleware/ToolCallLoggerMiddleware.js";
 import { setupAgenticTaskCollection } from "./services/AgenticTaskService.js";
 
@@ -45,6 +46,7 @@ import communicationRoutes, { getCommunicationHealth } from "./routes/Communicat
 import creativeRoutes, { getCreativeHealth } from "./routes/CreativeRoutes.js";
 import clockcrewRoutes, { getClockCrewHealth } from "./routes/ClockCrewRoutes.js";
 import newgroundsRoutes, { getNewgroundsHealth } from "./routes/NewgroundsRoutes.js";
+import discordRoutes, { getDiscordHealth } from "./routes/DiscordRoutes.js";
 import adminRoutes from "./routes/AdminRoutes.js";
 import { mountMcpRoutes } from "./services/McpAdapter.js";
 
@@ -93,6 +95,7 @@ app.use("/communication", communicationRoutes);
 app.use("/creative", express.json({ limit: "50mb" }), creativeRoutes);
 app.use("/clockcrew", clockcrewRoutes);
 app.use("/newgrounds", newgroundsRoutes);
+app.use("/discord", discordRoutes);
 app.use("/admin", adminRoutes);
 mountMcpRoutes(app);
 
@@ -121,6 +124,7 @@ app.get("/health", (_req, res) => {
       creative: getCreativeHealth(),
       clockcrew: getClockCrewHealth(),
       newgrounds: getNewgroundsHealth(),
+      discord: getDiscordHealth(),
     },
   });
 });
@@ -160,6 +164,10 @@ async function start() {
     await connectClockCrewDB(CONFIG.MONGODB_URI);
     await setupClockCrewCollections();
     await setupNewgroundsCollections();
+
+    // Connect to separate Lupos database (Discord message archive)
+    await connectLuposDB(CONFIG.MONGODB_URI);
+    await setupLuposCollections();
   } catch (error) {
     console.error(`Failed to connect to MongoDB: ${error.message}`);
     process.exit(1);
@@ -181,10 +189,10 @@ async function start() {
     console.log(`🔧 Tools API running on port ${port}`);
     console.log(`   Database: ${CONFIG.MONGODB_URI}`);
     console.log(
-      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy, agentic, communication, creative, clockcrew, newgrounds",
+      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy, agentic, communication, creative, clockcrew, newgrounds, discord",
     );
     console.log(
-      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*, /agentic/*, /communication/*, /creative/*, /clockcrew/*, /newgrounds/*",
+      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*, /agentic/*, /communication/*, /creative/*, /clockcrew/*, /newgrounds/*, /discord/*",
     );
   });
 }

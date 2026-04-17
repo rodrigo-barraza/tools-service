@@ -5450,6 +5450,91 @@ const TOOL_DEFINITIONS = [
       required: ["imageUrls"],
     },
   },
+  // ── Discord (Lupos DB) ──────────────────────────────────────
+  {
+    name: "discord_message_search",
+    dataSource: onDemand("Lupos MongoDB"),
+    description:
+      "Search Discord message history from the server's stored messages. " +
+      "Filter by guild, channel, user, time range, and keyword. Returns message content, " +
+      "author, and timestamp. Useful for finding what users have been talking about, " +
+      "checking conversation history beyond the current context window, " +
+      "or looking up who said what and when. Max 200 results per call.",
+    endpoint: {
+      path: "/discord/messages/search",
+      queryParams: ["guildId", "channelId", "userId", "query", "before", "after", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        guildId: {
+          type: "string",
+          description: "Discord guild/server ID to search within",
+        },
+        channelId: {
+          type: "string",
+          description: "Filter to a specific channel ID",
+        },
+        userId: {
+          type: "string",
+          description: "Filter to messages by a specific user ID",
+        },
+        query: {
+          type: "string",
+          description: "Text search query — matches against message content",
+        },
+        before: {
+          type: "string",
+          description: "ISO date string — only messages before this date (e.g. '2025-03-01')",
+        },
+        after: {
+          type: "string",
+          description: "ISO date string — only messages after this date (e.g. '2025-01-01')",
+        },
+        limit: {
+          type: "number",
+          description: "Max results to return (default: 50, max: 200)",
+        },
+      },
+      required: ["guildId"],
+    },
+  },
+  {
+    name: "discord_server_activity",
+    dataSource: onDemand("Lupos MongoDB"),
+    description:
+      "Get Discord server activity statistics including top users (by message count), " +
+      "channel breakdown, hourly activity distribution, and engagement metrics. " +
+      "Useful for leaderboards, identifying active users, analyzing server health, " +
+      "and finding which channels or time periods are most active. " +
+      "Supports configurable lookback period (default: 7 days).",
+    endpoint: {
+      path: "/discord/activity",
+      queryParams: ["guildId", "channelId", "days", "topN"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        guildId: {
+          type: "string",
+          description: "Discord guild/server ID to analyze",
+        },
+        channelId: {
+          type: "string",
+          description: "Narrow analysis to a specific channel ID",
+        },
+        days: {
+          type: "number",
+          description: "Lookback period in days (default: 7, max: 365)",
+        },
+        topN: {
+          type: "number",
+          description: "Number of top users to return (default: 15, max: 50)",
+        },
+      },
+      required: ["guildId"],
+    },
+  },
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -5640,6 +5725,10 @@ const TOOL_DOMAINS = {
   // Creative (Image Generation & Vision)
   generate_image: "Creative",
   describe_image: "Creative",
+
+  // Discord (Lupos DB)
+  discord_message_search: "Discord",
+  discord_server_activity: "Discord",
 };
 
 // ────────────────────────────────────────────────────────────
@@ -5944,6 +6033,10 @@ const TOOL_LABELS = {
   // ── Creative (Image Generation & Vision) ────────────────────
   generate_image: ["creative", "media"],
   describe_image: ["creative", "media"],
+
+  // ── Discord ──────────────────────────────────────────────
+  discord_message_search: ["discord"],
+  discord_server_activity: ["discord"],
 };
 
 // ────────────────────────────────────────────────────────────
