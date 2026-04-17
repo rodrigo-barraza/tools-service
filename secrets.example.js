@@ -14,6 +14,11 @@ export const TOOLS_PORT = 5590;
 // describe_image) to call LLM providers for image generation and vision.
 export const PRISM_API_URL = 'http://localhost:7777';
 
+// ─── Smart Home (Lights) ──────────────────────────────────────────
+// URL of the Lights service — used by LIFX smart home tools to proxy
+// requests through the rate-limited Lights API.
+export const LIGHTS_API_URL = 'http://localhost:4444';
+
 // ─── Workspace Roots ───────────────────────────────────────────────
 // REQUIRED — comma-separated absolute paths the agentic tools are allowed to access.
 // tools-api will refuse to start if this is empty.

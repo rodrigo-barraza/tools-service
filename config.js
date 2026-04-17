@@ -57,6 +57,9 @@ import {
 
   // Prism (LLM Gateway)
   PRISM_API_URL,
+
+  // Smart Home (Lights)
+  LIGHTS_API_URL,
 } from "./secrets.js";
 
 const CONFIG = {
@@ -126,6 +129,9 @@ const CONFIG = {
 
   // ─── Prism (LLM Gateway) ────────────────────────────────────────
   PRISM_API_URL: PRISM_API_URL || "http://localhost:7777",
+
+  // ─── Smart Home (Lights) ────────────────────────────────────────
+  LIGHTS_API_URL: LIGHTS_API_URL || "http://localhost:4444",
 
   // ─── Proxy (Bright Data) ───────────────────────────────────────
   // Uncomment imports in secrets.js + config.js when ready.

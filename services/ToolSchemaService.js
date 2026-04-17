@@ -5542,6 +5542,282 @@ const TOOL_DEFINITIONS = [
       required: ["guildId"],
     },
   },
+  // ── Smart Home (LIFX Lights) ────────────────────────────────
+  {
+    name: "lifx_list_lights",
+    dataSource: onDemand("LIFX Cloud API"),
+    description:
+      "List LIFX smart lights and their current state including power, color (hue/saturation/kelvin), " +
+      "brightness, label, group, location, and connection status. Use this to discover available lights " +
+      "before controlling them, or to check the current state before making changes. " +
+      "Supports LIFX selectors: 'all', 'label:Kitchen', 'group:Bedroom', 'location:Home', 'id:d073d5xxxxxx'.",
+    endpoint: {
+      path: "/lights/list",
+      queryParams: ["selector"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        selector: {
+          type: "string",
+          description:
+            "LIFX selector to filter lights. Examples: 'all' (default), 'label:Desk Lamp', " +
+            "'group:Living Room', 'location:Home', 'id:d073d5xxxxxx'. " +
+            "Use 'all' to see every light.",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "lifx_set_state",
+    dataSource: onDemand("LIFX Cloud API"),
+    description:
+      "Set the state of LIFX lights — power, color, brightness, and color temperature. " +
+      "This is the primary control tool. Colors can be specified as: named colors ('red', 'blue', 'warm_white'), " +
+      "hex codes ('#FF5500'), HSBK ('hue:120 saturation:1.0 brightness:0.5'), " +
+      "kelvin ('kelvin:2700' for warm, 'kelvin:6500' for daylight), or RGB ('rgb:255,128,0'). " +
+      "Brightness ranges from 0.0 to 1.0. Duration controls transition time in seconds.",
+    endpoint: {
+      path: "/lights/state",
+      method: "POST",
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        selector: {
+          type: "string",
+          description:
+            "LIFX selector targeting which lights to control. " +
+            "Default: 'all'. Examples: 'label:Desk Lamp', 'group:Bedroom'.",
+        },
+        power: {
+          type: "string",
+          enum: ["on", "off"],
+          description: "Set power state to 'on' or 'off'.",
+        },
+        color: {
+          type: "string",
+          description:
+            "Color to set. Supports: named colors ('red', 'purple', 'warm_white'), " +
+            "hex ('#FF5500'), HSBK ('hue:240 saturation:1.0 brightness:0.8'), " +
+            "kelvin ('kelvin:2700'), RGB ('rgb:255,128,0').",
+        },
+        brightness: {
+          type: "number",
+          description: "Brightness level from 0.0 (off) to 1.0 (max). Overrides brightness in color if set.",
+        },
+        duration: {
+          type: "number",
+          description: "Transition time in seconds (default: 1). Use 0 for instant, larger values for smooth fades.",
+        },
+        kelvin: {
+          type: "number",
+          description:
+            "Color temperature from 2500 (warm/candle) to 9000 (cool/daylight). " +
+            "Common values: 2700 (warm white), 4000 (neutral), 5500 (daylight), 6500 (cool).",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "lifx_toggle_power",
+    dataSource: onDemand("LIFX Cloud API"),
+    description:
+      "Toggle LIFX light power — turns off lights that are on, or turns on lights that are off. " +
+      "All matched lights share the same power state after toggling.",
+    endpoint: {
+      path: "/lights/toggle",
+      method: "POST",
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        selector: {
+          type: "string",
+          description: "LIFX selector. Default: 'all'.",
+        },
+        duration: {
+          type: "number",
+          description: "Transition time in seconds (default: 1).",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "lifx_breathe_effect",
+    dataSource: onDemand("LIFX Cloud API"),
+    description:
+      "Run a breathe effect — slowly fades between two colors in a smooth sine wave pattern. " +
+      "Perfect for ambient mood lighting, meditation, relaxation, sunrise simulation, or gentle notifications. " +
+      "The effect oscillates between the current color (or fromColor) and the target color.",
+    endpoint: {
+      path: "/lights/effects/breathe",
+      method: "POST",
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        selector: {
+          type: "string",
+          description: "LIFX selector. Default: 'all'.",
+        },
+        color: {
+          type: "string",
+          description: "Target color for the breathe peak. Required. Examples: 'blue', '#FF0000', 'kelvin:2700'.",
+        },
+        fromColor: {
+          type: "string",
+          description: "Starting color. If omitted, uses the light's current color.",
+        },
+        period: {
+          type: "number",
+          description: "Time in seconds for one full breathe cycle (default: 1). Use 3-5 for relaxing, 0.5-1 for energetic.",
+        },
+        cycles: {
+          type: "number",
+          description: "Number of breathe cycles to perform (default: 1). Use 10+ for extended ambient effects.",
+        },
+        persist: {
+          type: "boolean",
+          description: "If true, keep the final color after the effect ends. If false (default), revert to the original color.",
+        },
+        powerOn: {
+          type: "boolean",
+          description: "If true (default), turn the light on if it's off before starting the effect.",
+        },
+        peak: {
+          type: "number",
+          description:
+            "Where in the cycle the target color peaks (0.0 to 1.0, default: 0.5). " +
+            "0.5 = symmetric, lower = faster ramp up, higher = faster ramp down.",
+        },
+      },
+      required: ["color"],
+    },
+  },
+  {
+    name: "lifx_pulse_effect",
+    dataSource: onDemand("LIFX Cloud API"),
+    description:
+      "Run a pulse effect — quickly flashes between two colors with a sharp square wave pattern. " +
+      "Great for alerts, notifications, party lighting, or attention-grabbing effects. " +
+      "More dramatic and abrupt than the breathe effect.",
+    endpoint: {
+      path: "/lights/effects/pulse",
+      method: "POST",
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        selector: {
+          type: "string",
+          description: "LIFX selector. Default: 'all'.",
+        },
+        color: {
+          type: "string",
+          description: "Target flash color. Required. Examples: 'red', '#00FF00', 'hue:0 saturation:1'.",
+        },
+        fromColor: {
+          type: "string",
+          description: "Starting color between flashes. If omitted, uses the light's current color.",
+        },
+        period: {
+          type: "number",
+          description: "Time in seconds for one flash cycle (default: 1). Use 0.3-0.5 for rapid strobe, 1-2 for slow pulse.",
+        },
+        cycles: {
+          type: "number",
+          description: "Number of flash cycles (default: 1). Use 5-10 for a noticeable alert.",
+        },
+        persist: {
+          type: "boolean",
+          description: "If true, keep the flash color after the effect ends. Default: false.",
+        },
+        powerOn: {
+          type: "boolean",
+          description: "If true (default), turn the light on if it's off.",
+        },
+      },
+      required: ["color"],
+    },
+  },
+  {
+    name: "lifx_effects_off",
+    dataSource: onDemand("LIFX Cloud API"),
+    description:
+      "Stop all running effects (breathe, pulse, move, morph, flame) on the selected lights. " +
+      "Optionally also power off the lights. Use this to cancel any active animation.",
+    endpoint: {
+      path: "/lights/effects/off",
+      method: "POST",
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        selector: {
+          type: "string",
+          description: "LIFX selector. Default: 'all'.",
+        },
+        powerOff: {
+          type: "boolean",
+          description: "If true, also turn off the lights after stopping effects. Default: false.",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "lifx_list_scenes",
+    dataSource: onDemand("LIFX Cloud API"),
+    description:
+      "List all saved LIFX scenes in the user's account. Scenes are pre-configured light states " +
+      "(color, brightness, power) that can be activated with lifx_activate_scene. " +
+      "Returns scene UUID (needed for activation), name, and light count.",
+    endpoint: {
+      path: "/lights/scenes",
+    },
+    parameters: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: "lifx_activate_scene",
+    dataSource: onDemand("LIFX Cloud API"),
+    description:
+      "Activate a saved LIFX scene by its UUID. Scenes apply pre-configured states " +
+      "(color, brightness, power) to specific lights. Use lifx_list_scenes first to discover " +
+      "available scenes and their UUIDs.",
+    endpoint: {
+      path: "/lights/scenes/activate",
+      method: "POST",
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        sceneId: {
+          type: "string",
+          description: "Scene UUID from lifx_list_scenes.",
+        },
+        duration: {
+          type: "number",
+          description: "Transition time in seconds to fade into the scene (default: 1).",
+        },
+        ignore: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Properties to NOT change when applying the scene. " +
+            "Options: 'power', 'infrared', 'duration', 'intensity', 'hue', 'saturation', 'brightness', 'kelvin'.",
+        },
+      },
+      required: ["sceneId"],
+    },
+  },
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -5736,6 +6012,16 @@ const TOOL_DOMAINS = {
   // Discord (Lupos DB)
   discord_message_search: "Discord",
   discord_server_activity: "Discord",
+
+  // Smart Home (LIFX Lights)
+  lifx_list_lights: "Smart Home",
+  lifx_set_state: "Smart Home",
+  lifx_toggle_power: "Smart Home",
+  lifx_breathe_effect: "Smart Home",
+  lifx_pulse_effect: "Smart Home",
+  lifx_effects_off: "Smart Home",
+  lifx_list_scenes: "Smart Home",
+  lifx_activate_scene: "Smart Home",
 };
 
 // ────────────────────────────────────────────────────────────
@@ -6044,6 +6330,16 @@ const TOOL_LABELS = {
   // ── Discord ──────────────────────────────────────────────
   discord_message_search: ["discord"],
   discord_server_activity: ["discord"],
+
+  // ── Smart Home (LIFX) ────────────────────────────────────
+  lifx_list_lights: ["smart_home", "lifx"],
+  lifx_set_state: ["smart_home", "lifx"],
+  lifx_toggle_power: ["smart_home", "lifx"],
+  lifx_breathe_effect: ["smart_home", "lifx"],
+  lifx_pulse_effect: ["smart_home", "lifx"],
+  lifx_effects_off: ["smart_home", "lifx"],
+  lifx_list_scenes: ["smart_home", "lifx"],
+  lifx_activate_scene: ["smart_home", "lifx"],
 };
 
 // ────────────────────────────────────────────────────────────

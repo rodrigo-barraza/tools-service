@@ -47,6 +47,7 @@ import creativeRoutes, { getCreativeHealth } from "./routes/CreativeRoutes.js";
 import clockcrewRoutes, { getClockCrewHealth } from "./routes/ClockCrewRoutes.js";
 import newgroundsRoutes, { getNewgroundsHealth } from "./routes/NewgroundsRoutes.js";
 import discordRoutes, { getDiscordHealth } from "./routes/DiscordRoutes.js";
+import lightsRoutes, { getLightsHealth } from "./routes/LightsRoutes.js";
 import adminRoutes from "./routes/AdminRoutes.js";
 import { mountMcpRoutes } from "./services/McpAdapter.js";
 
@@ -96,6 +97,7 @@ app.use("/creative", express.json({ limit: "50mb" }), creativeRoutes);
 app.use("/clockcrew", clockcrewRoutes);
 app.use("/newgrounds", newgroundsRoutes);
 app.use("/discord", discordRoutes);
+app.use("/lights", lightsRoutes);
 app.use("/admin", adminRoutes);
 mountMcpRoutes(app);
 
@@ -125,6 +127,7 @@ app.get("/health", (_req, res) => {
       clockcrew: getClockCrewHealth(),
       newgrounds: getNewgroundsHealth(),
       discord: getDiscordHealth(),
+      lights: getLightsHealth(),
     },
   });
 });
@@ -189,10 +192,10 @@ async function start() {
     console.log(`🔧 Tools API running on port ${port}`);
     console.log(`   Database: ${CONFIG.MONGODB_URI}`);
     console.log(
-      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy, agentic, communication, creative, clockcrew, newgrounds, discord",
+      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy, agentic, communication, creative, clockcrew, newgrounds, discord, lights",
     );
     console.log(
-      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*, /agentic/*, /communication/*, /creative/*, /clockcrew/*, /newgrounds/*, /discord/*",
+      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*, /agentic/*, /communication/*, /creative/*, /clockcrew/*, /newgrounds/*, /discord/*, /lights/*",
     );
   });
 }
