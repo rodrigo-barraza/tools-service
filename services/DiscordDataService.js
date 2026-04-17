@@ -7,6 +7,14 @@ import { getMessagesCollection } from "../models/LuposMessage.js";
 //  discord_message_search and discord_server_activity tools.
 // ═══════════════════════════════════════════════════════════════
 
+// ── Excluded Categories ──────────────────────────────────────
+// Messages from channels under these Discord category IDs are
+// NEVER returned by any query. This is a hard server-side filter.
+const EXCLUDED_CATEGORY_IDS = [
+  "609652454375555082", // Private/staff channels
+  "665736600042340352", // Staff/admin channels
+];
+
 const DiscordDataService = {
   /**
    * Search Discord messages with flexible filters.
@@ -40,6 +48,9 @@ const DiscordDataService = {
     // Exclude bot messages by default
     filter["author.bot"] = { $ne: true };
 
+    // Exclude messages from restricted categories (hard filter)
+    filter["channel.parentId"] = { $nin: EXCLUDED_CATEGORY_IDS };
+
     // Time range
     if (before || after) {
       filter.createdTimestamp = {};
@@ -67,15 +78,24 @@ const DiscordDataService = {
         "author.username": 1,
         "author.bot": 1,
         channelId: 1,
+        "channel.name": 1,
         guildId: 1,
+        "channel.guild.name": 1,
         createdTimestamp: 1,
         createdAt: 1,
       })
       .toArray();
 
-    // Format timestamps for readability
+    // Format into a clean shape with human-readable names
     const formatted = messages.map((m) => ({
-      ...m,
+      id: m.id,
+      content: m.content,
+      cleanContent: m.cleanContent,
+      author: m.author,
+      channelId: m.channelId,
+      channelName: m.channel?.name || null,
+      guildId: m.guildId,
+      guildName: m.channel?.guild?.name || null,
       createdAtISO: m.createdTimestamp
         ? new Date(m.createdTimestamp).toISOString()
         : m.createdAt,
@@ -108,6 +128,7 @@ const DiscordDataService = {
       guildId,
       createdTimestamp: { $gte: sinceTimestamp },
       "author.bot": { $ne: true },
+      "channel.parentId": { $nin: EXCLUDED_CATEGORY_IDS },
     };
     if (channelId) match.channelId = channelId;
 
