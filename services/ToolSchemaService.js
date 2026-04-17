@@ -5462,7 +5462,7 @@ const TOOL_DEFINITIONS = [
       "or looking up who said what and when. Max 200 results per call.",
     endpoint: {
       path: "/discord/messages/search",
-      queryParams: ["guildId", "channelId", "userId", "query", "before", "after", "limit"],
+      queryParams: ["guildId", "channelId", "userId", "username", "query", "before", "after", "limit"],
     },
     parameters: {
       type: "object",
@@ -5478,6 +5478,13 @@ const TOOL_DEFINITIONS = [
         userId: {
           type: "string",
           description: "Filter to messages by a specific user ID",
+        },
+        username: {
+          type: "string",
+          description:
+            "Filter by username or display name (case-insensitive). " +
+            "Use this when you know the person's name but not their user ID. " +
+            "Searches across username, global name, and server nickname.",
         },
         query: {
           type: "string",

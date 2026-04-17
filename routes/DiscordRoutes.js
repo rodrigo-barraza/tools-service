@@ -21,6 +21,7 @@ router.get("/messages/search", async (req, res) => {
       guildId: req.query.guildId,
       channelId: req.query.channelId,
       userId: req.query.userId,
+      username: req.query.username,
       query: req.query.query,
       before: req.query.before,
       after: req.query.after,

@@ -23,6 +23,7 @@ const DiscordDataService = {
    * @param {string} opts.guildId    - Filter by guild (required)
    * @param {string} [opts.channelId] - Filter by channel
    * @param {string} [opts.userId]    - Filter by author ID
+   * @param {string} [opts.username]  - Filter by username/display name (case-insensitive)
    * @param {string} [opts.query]     - Text search query
    * @param {string} [opts.before]    - ISO date string — messages before this date
    * @param {string} [opts.after]     - ISO date string — messages after this date
@@ -33,6 +34,7 @@ const DiscordDataService = {
     guildId,
     channelId,
     userId,
+    username,
     query,
     before,
     after,
@@ -44,6 +46,16 @@ const DiscordDataService = {
     if (guildId) filter.guildId = guildId;
     if (channelId) filter.channelId = channelId;
     if (userId) filter["author.id"] = userId;
+
+    // Username search — match across username, globalName, and displayName
+    if (username && !userId) {
+      const nameRegex = { $regex: username, $options: "i" };
+      filter.$or = [
+        { "author.username": nameRegex },
+        { "author.globalName": nameRegex },
+        { "member.displayName": nameRegex },
+      ];
+    }
 
     // Exclude bot messages by default
     filter["author.bot"] = { $ne: true };
@@ -76,30 +88,70 @@ const DiscordDataService = {
         cleanContent: 1,
         "author.id": 1,
         "author.username": 1,
+        "author.globalName": 1,
         "author.bot": 1,
+        "member.displayName": 1,
         channelId: 1,
         "channel.name": 1,
         guildId: 1,
         "channel.guild.name": 1,
         createdTimestamp: 1,
         createdAt: 1,
+        // Reply context
+        reference: 1,
+        // Attachments (images, files)
+        attachments: 1,
+        // Embeds (link previews)
+        embeds: 1,
+        // Stickers
+        stickers: 1,
       })
       .toArray();
 
     // Format into a clean shape with human-readable names
-    const formatted = messages.map((m) => ({
-      id: m.id,
-      content: m.content,
-      cleanContent: m.cleanContent,
-      author: m.author,
-      channelId: m.channelId,
-      channelName: m.channel?.name || null,
-      guildId: m.guildId,
-      guildName: m.channel?.guild?.name || null,
-      createdAtISO: m.createdTimestamp
-        ? new Date(m.createdTimestamp).toISOString()
-        : m.createdAt,
-    }));
+    const formatted = messages.map((m) => {
+      // Build attachment summary (don't send full URLs, just metadata)
+      const attachments = Array.isArray(m.attachments) && m.attachments.length > 0
+        ? m.attachments.map((a) => ({
+          name: a.name || null,
+          contentType: a.contentType || null,
+          size: a.size || null,
+        }))
+        : undefined;
+
+      // Build embed summary (just titles/descriptions, not full payloads)
+      const embeds = Array.isArray(m.embeds) && m.embeds.length > 0
+        ? m.embeds.map((e) => e.title || e.description || e.url).filter(Boolean).slice(0, 3)
+        : undefined;
+
+      return {
+        id: m.id,
+        content: m.content,
+        cleanContent: m.cleanContent,
+        author: {
+          id: m.author?.id,
+          username: m.author?.username,
+          displayName: m.member?.displayName || m.author?.globalName || m.author?.username,
+        },
+        channelId: m.channelId,
+        channelName: m.channel?.name || null,
+        guildId: m.guildId,
+        guildName: m.channel?.guild?.name || null,
+        createdAtISO: m.createdTimestamp
+          ? new Date(m.createdTimestamp).toISOString()
+          : m.createdAt,
+        // Direct link to the message in Discord
+        messageUrl: m.guildId && m.channelId && m.id
+          ? `https://discord.com/channels/${m.guildId}/${m.channelId}/${m.id}`
+          : null,
+        // Reply reference — so Lupos can follow conversation threads
+        replyTo: m.reference?.messageId || null,
+        // Media indicators
+        ...(attachments && { attachments }),
+        ...(embeds && { embeds }),
+        ...(m.stickers?.length > 0 && { stickerCount: m.stickers.length }),
+      };
+    });
 
     return { count: formatted.length, messages: formatted };
   },
