@@ -5381,15 +5381,15 @@ const TOOL_DEFINITIONS = [
     },
   },
 
-  // ── Creative (Image Generation & Vision) ────────────────────
   {
     name: "generate_image",
     dataSource: onDemand("Google Gemini via Prism"),
     description:
-      "Generate an image from a detailed text prompt using AI image generation. " +
-      "Can also edit or redraw existing images from the conversation when reference images are available. " +
-      "Always provide a highly detailed, descriptive prompt for best results — include specifics about style, " +
-      "composition, subjects, colors, mood, lighting, and artistic direction. " +
+      "Generate or edit an image using AI image generation. " +
+      "When reference images are attached in the conversation, they are automatically passed to the image model — " +
+      "write a SHORT edit instruction (e.g. 'Redraw this with bigger eyes', 'Make this character blue'). " +
+      "Do NOT re-describe the attached image; the model can already see it. " +
+      "When NO reference images are attached, write a rich, detailed prompt from scratch. " +
       "The generated image will be delivered to the user automatically. " +
       "IMPORTANT: Do NOT call this tool unless the user's current message explicitly asks for an " +
       "image, drawing, painting, illustration, or artwork. Never call it for greetings, " +
@@ -5405,9 +5405,10 @@ const TOOL_DEFINITIONS = [
         prompt: {
           type: "string",
           description:
-            "A detailed text prompt describing the image to generate. " +
-            "Be specific about style, composition, subjects, colors, mood, " +
-            "lighting, perspective, and artistic direction. The more detail, the better the result.",
+            "When reference images are attached: write a SHORT edit instruction describing what to change " +
+            "(e.g. 'Redraw this with bigger eyes', 'Make this pink'). Do NOT re-describe the image contents. " +
+            "When NO images are attached: write a detailed prompt describing style, composition, subjects, " +
+            "colors, mood, lighting, and artistic direction.",
         },
       },
       required: ["prompt"],

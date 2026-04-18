@@ -163,6 +163,15 @@ router.post("/generate-image", async (req, res) => {
         },
       ];
 
+      // When reference images are present, instruct the image model to
+      // preserve and edit them rather than re-imagining from scratch.
+      const systemPrompt = referenceImages?.length > 0
+        ? "You are an image editor. The user has attached reference image(s). " +
+          "Use the attached image(s) as the direct basis for your output. " +
+          "Preserve the appearance, features, and identity of subjects in the reference image(s) as closely as possible. " +
+          "Apply ONLY the specific changes described in the prompt. Do not re-imagine or reinvent the image from scratch."
+        : undefined;
+
       try {
         result = await PrismService.chat({
           provider: IMAGE_PROVIDER,
@@ -175,6 +184,7 @@ router.post("/generate-image", async (req, res) => {
           traceId: callerTraceId,
           agentSessionId: callerAgentSessionId,
           skipConversation: true,
+          ...(systemPrompt && { systemPrompt }),
         });
       } catch (err) {
         logger.error(`[CreativeRoutes] Prism chat failed: ${err.message}`);
