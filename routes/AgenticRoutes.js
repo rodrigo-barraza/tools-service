@@ -594,6 +594,7 @@ export function getAgenticHealth() {
     lspServers: agenticLspHealth(),
     taskManagement: "on-demand (MongoDB agent_tasks)",
     memoryUpsert: "on-demand (Prism MemoryService post-processing)",
+    customAgentCreate: "on-demand (Prism CustomAgentService)",
   };
 }
 
@@ -836,6 +837,71 @@ router.post("/memory/upsert", async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: `Memory storage failed: ${err.message}` });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 15. Custom Agent Creation
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * POST /agentic/custom-agent/create
+ *
+ * Creates a new custom agent persona by proxying to Prism's
+ * POST /custom-agents. The agent is persisted to MongoDB and
+ * registered into the live AgentPersonaRegistry.
+ *
+ * Same cross-service pattern as memory/upsert → Prism.
+ */
+router.post("/custom-agent/create", async (req, res) => {
+  const {
+    name,
+    description,
+    project,
+    icon,
+    color,
+    backgroundImage,
+    identity,
+    guidelines,
+    toolPolicy,
+    enabledTools,
+    usesDirectoryTree,
+    usesCodingGuidelines,
+  } = req.body;
+
+  if (!name || typeof name !== "string" || !name.trim()) {
+    return res.status(400).json({ error: "Request body must include 'name' (non-empty string)" });
+  }
+
+  try {
+    const prismRes = await fetch(`${CONFIG.PRISM_API_URL}/custom-agents`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: name.trim(),
+        description: description || "",
+        project: project || "coding",
+        icon: icon || "",
+        color: color || "",
+        backgroundImage: backgroundImage || "",
+        identity: identity || "",
+        guidelines: guidelines || "",
+        toolPolicy: toolPolicy || "",
+        enabledTools: Array.isArray(enabledTools) ? enabledTools : [],
+        usesDirectoryTree: usesDirectoryTree === true,
+        usesCodingGuidelines: usesCodingGuidelines === true,
+      }),
+    });
+
+    if (!prismRes.ok) {
+      const err = await prismRes.json().catch(() => ({}));
+      return res.status(prismRes.status).json({ error: err.error || `Prism returned ${prismRes.status}` });
+    }
+
+    const created = await prismRes.json();
+    res.status(201).json(created);
+  } catch (err) {
+    res.status(500).json({ error: `Custom agent creation failed: ${err.message}` });
   }
 });
 

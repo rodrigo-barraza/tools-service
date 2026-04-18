@@ -71,7 +71,7 @@ app.use((req, res, next) => {
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
 app.use(requestLoggerMiddleware);
 app.use(toolCallLoggerMiddleware);
 app.use(fieldProjectionMiddleware);

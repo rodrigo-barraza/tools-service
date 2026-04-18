@@ -5819,6 +5819,113 @@ const TOOL_DEFINITIONS = [
       required: ["sceneId"],
     },
   },
+
+  // ── Agent Management ──────────────────────────────────────
+  {
+    name: "create_custom_agent",
+    dataSource: onDemand("Prism CustomAgentService"),
+    description:
+      "Create a new custom AI agent persona. Custom agents allow tailoring the system prompt identity, " +
+      "response guidelines, tool policy, enabled tools, and visual branding (icon, accent color, background image). " +
+      "The agent is persisted to the database and immediately registered for use. " +
+      "Use this when the user asks to create, set up, or define a new specialized agent, assistant, or persona. " +
+      "The created agent will appear in the agent picker and can be selected for future conversations.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/custom-agent/create",
+      bodyParams: [
+        "name", "description", "project", "icon", "color", "backgroundImage",
+        "identity", "guidelines", "toolPolicy", "enabledTools",
+        "usesDirectoryTree", "usesCodingGuidelines",
+      ],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description:
+            "Display name for the agent (e.g. 'DevOps Engineer', 'Creative Writer'). " +
+            "Must be unique. A stable ID is auto-derived as CUSTOM_<UPPERCASED_NAME>.",
+        },
+        description: {
+          type: "string",
+          description:
+            "Short description shown in the agent picker (1-2 sentences). " +
+            "Helps the user understand what this agent specializes in.",
+        },
+        project: {
+          type: "string",
+          description:
+            "Project scope for sessions created with this agent. Default: 'coding'. " +
+            "Examples: 'coding', 'writing', 'research'.",
+        },
+        icon: {
+          type: "string",
+          description:
+            "Lucide icon name for visual branding. Default: 'Bot'. " +
+            "Examples: 'Brain', 'Rocket', 'Shield', 'Palette', 'Microscope', 'Code2', " +
+            "'Flame', 'Zap', 'GraduationCap', 'Hammer', 'Sparkles', 'Crown', 'Atom', " +
+            "'Briefcase', 'Heart', 'Star', 'Telescope', 'FlaskConical', 'Lightbulb', " +
+            "'Music', 'Gamepad2', 'Camera', 'Leaf', 'Dog', 'Cat', 'Coffee', 'Swords'.",
+        },
+        color: {
+          type: "string",
+          description:
+            "Hex color code for accent theming (icon background, UI accents). " +
+            "Examples: '#6366f1' (Indigo), '#8b5cf6' (Violet), '#ef4444' (Red), " +
+            "'#f97316' (Orange), '#22c55e' (Green), '#06b6d4' (Cyan), '#3b82f6' (Blue), " +
+            "'#ec4899' (Pink), '#eab308' (Yellow), '#14b8a6' (Teal). " +
+            "Leave empty for default gradient.",
+        },
+        backgroundImage: {
+          type: "string",
+          description:
+            "URL to a background image displayed behind chat messages. " +
+            "Use a subtle, dark image for best readability. Leave empty for default.",
+        },
+        identity: {
+          type: "string",
+          description:
+            "Core personality and role prompt — injected at the top of the system prompt. " +
+            "Example: 'You are a senior backend engineer specializing in distributed systems...'",
+        },
+        guidelines: {
+          type: "string",
+          description:
+            "Behavioral instructions for how the agent should respond. Always injected into the system prompt. " +
+            "Example: '## Guidelines\n- Always explain your reasoning\n- Use bullet points for clarity'",
+        },
+        toolPolicy: {
+          type: "string",
+          description:
+            "Instructions for how the agent should use its tools. " +
+            "Example: '# Tool Usage\n- Use read_file before editing\n- Always run tests after changes'",
+        },
+        enabledTools: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Array of tool names this agent can use. If empty, the agent has no tool access. " +
+            "Pass specific tool names from the tool schema registry (e.g. ['read_file', 'write_file', 'web_search']). " +
+            "The user can also configure tools later via the settings UI.",
+        },
+        usesDirectoryTree: {
+          type: "boolean",
+          description:
+            "If true, inject the workspace file/directory structure into the agent's context. " +
+            "Useful for coding agents that need to navigate project structure. Default: false.",
+        },
+        usesCodingGuidelines: {
+          type: "boolean",
+          description:
+            "If true, inject generic coding conventions and coordinator orchestration mode " +
+            "into the system prompt. Default: false.",
+        },
+      },
+      required: ["name", "identity"],
+    },
+  },
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -5999,6 +6106,9 @@ const TOOL_DOMAINS = {
   // Agentic — Memory Persistence
   upsert_memory: "Agentic: Memory",
 
+  // Agentic — Agent Management
+  create_custom_agent: "Agentic: Agent Management",
+
   // Communication (Twilio)
   send_sms: "Communication",
   list_sms_messages: "Communication",
@@ -6110,6 +6220,9 @@ const TOOL_REQUIRED_KEYS = {
   // Creative (require Prism as LLM backend)
   generate_image: ["PRISM_API_URL"],
   describe_image: ["PRISM_API_URL"],
+
+  // Agent Management (require Prism for CustomAgentService)
+  create_custom_agent: ["PRISM_API_URL"],
 };
 
 /**
@@ -6316,6 +6429,9 @@ const TOOL_LABELS = {
 
   // ── Agentic: Memory ──────────────────────────────────────
   upsert_memory: ["coding"],
+
+  // ── Agentic: Agent Management ────────────────────────────
+  create_custom_agent: ["coding"],
 
   // ── Communication ────────────────────────────────────────
   send_sms: ["communication"],
