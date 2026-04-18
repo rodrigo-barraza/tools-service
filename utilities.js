@@ -485,6 +485,20 @@ ${styles}
 </head><body>
 ${bodyContent}
 ${scripts}
+<script>
+  // Report rendered content dimensions to parent for iframe auto-resize
+  function reportSize() {
+    var el = document.body;
+    var w = el.scrollWidth;
+    var h = el.scrollHeight;
+    if (w && h) {
+      window.parent.postMessage({ type: "embed-resize", width: w, height: h }, "*");
+    }
+  }
+  // Report after initial render, fonts, and any async rendering (KaTeX, Mermaid)
+  requestAnimationFrame(function() { setTimeout(reportSize, 200); });
+  window.addEventListener("load", function() { setTimeout(reportSize, 300); });
+</${"script"}>
 </body></html>`;
 }
 
