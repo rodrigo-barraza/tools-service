@@ -330,3 +330,60 @@ export async function executeCommandStreaming(command, { cwd, timeout = DEFAULT_
 export function getAllowedCommands() {
   return [...ALLOWED_COMMANDS].sort();
 }
+
+/**
+ * Kill a process tree by PID.
+ * Attempts SIGTERM first, then SIGKILL after a grace period.
+ *
+ * @param {number} pid - Process ID to kill
+ * @param {object} [options]
+ * @param {number} [options.gracePeriodMs=3000] - Time to wait before escalating to SIGKILL
+ * @returns {Promise<object>} Result with killed status
+ */
+export async function killProcessTree(pid, { gracePeriodMs = 3000 } = {}) {
+  if (!pid || typeof pid !== "number" || pid <= 0) {
+    return { success: false, error: "Valid PID is required (positive integer)" };
+  }
+
+  // Safety: refuse to kill PID 1 or our own process
+  if (pid === 1 || pid === process.pid) {
+    return { success: false, error: `Refusing to kill PID ${pid} (protected process)` };
+  }
+
+  try {
+    // Check if the process exists first
+    process.kill(pid, 0); // Signal 0 = existence check, no actual signal sent
+  } catch {
+    return { success: false, error: `Process ${pid} not found or not accessible` };
+  }
+
+  try {
+    // Try to kill the entire process group (negative PID)
+    // This catches child processes spawned by the target
+    try {
+      process.kill(-pid, "SIGTERM");
+    } catch {
+      // If process group kill fails (e.g. not a group leader), kill just the process
+      process.kill(pid, "SIGTERM");
+    }
+
+    // Wait for grace period then check if still alive
+    await new Promise((resolve) => setTimeout(resolve, gracePeriodMs));
+
+    try {
+      process.kill(pid, 0); // Still alive?
+      // Escalate to SIGKILL
+      try {
+        process.kill(-pid, "SIGKILL");
+      } catch {
+        process.kill(pid, "SIGKILL");
+      }
+      return { success: true, pid, signal: "SIGKILL", escalated: true };
+    } catch {
+      // Process is gone — SIGTERM was sufficient
+      return { success: true, pid, signal: "SIGTERM", escalated: false };
+    }
+  } catch (err) {
+    return { success: false, pid, error: `Failed to kill process: ${err.message}` };
+  }
+}

@@ -33,6 +33,7 @@ import {
   executeCommand,
   executeCommandStreaming,
   getAllowedCommands,
+  killProcessTree,
 } from "../services/AgenticCommandService.js";
 import {
   agenticGitStatus,
@@ -338,6 +339,21 @@ router.post("/command/stream", async (req, res) => {
 
 router.get("/command/allowed", (_req, res) => {
   res.json({ commands: getAllowedCommands() });
+});
+
+// ── Kill Process ───────────────────────────────────────────
+
+router.post("/command/kill", async (req, res) => {
+  const { pid } = req.body;
+  if (!pid || typeof pid !== "number") {
+    return res.status(400).json({ error: "Request body must include 'pid' (positive integer)" });
+  }
+
+  const result = await killProcessTree(pid);
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
 });
 
 // ═══════════════════════════════════════════════════════════════
