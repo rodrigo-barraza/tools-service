@@ -67,6 +67,14 @@ import {
   agenticTaskUpdate,
   agenticTaskDelete,
 } from "../services/AgenticTaskService.js";
+import { agenticToolSearch } from "../services/AgenticToolSearchService.js";
+import {
+  agenticScheduleCreate,
+  agenticScheduleList,
+  agenticScheduleDelete,
+  agenticTriggerFire,
+} from "../services/AgenticSchedulerService.js";
+import { agenticNotebookEdit } from "../services/AgenticNotebookService.js";
 
 const router = Router();
 
@@ -595,6 +603,9 @@ export function getAgenticHealth() {
     taskManagement: "on-demand (MongoDB agent_tasks)",
     memoryUpsert: "on-demand (Prism MemoryService post-processing)",
     customAgentCreate: "on-demand (Prism CustomAgentService)",
+    toolSearch: "on-demand (ToolSchemaService keyword search)",
+    scheduling: "on-demand (MongoDB agent_schedules + 60s poller)",
+    notebookEdit: "on-demand (sandboxed ipynb JSON editing)",
   };
 }
 
@@ -904,5 +915,114 @@ router.post("/custom-agent/create", async (req, res) => {
     res.status(500).json({ error: `Custom agent creation failed: ${err.message}` });
   }
 });
+
+// ═══════════════════════════════════════════════════════════════
+// 16. Tool Search (Meta-Tool)
+// ═══════════════════════════════════════════════════════════════
+
+router.post("/tool/search", agenticHandler(async (req) => {
+  const { query, domain, label, limit } = req.body;
+  if (!query && !domain && !label) {
+    return { error: "At least one of 'query', 'domain', or 'label' is required" };
+  }
+
+  return agenticToolSearch(query, {
+    domain: domain || undefined,
+    label: label || undefined,
+    limit: limit ? Math.min(parseInt(limit, 10), 50) : 20,
+  });
+}));
+
+// ═══════════════════════════════════════════════════════════════
+// 17. Scheduling (Cron + Remote Trigger)
+// ═══════════════════════════════════════════════════════════════
+
+// ── Create Schedule ───────────────────────────────────────────
+
+router.post("/schedule/create", async (req, res) => {
+  const { project, name, schedule, prompt, type, agent, model } = req.body;
+  if (!project || typeof project !== "string") {
+    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+  }
+  if (!name || typeof name !== "string") {
+    return res.status(400).json({ error: "Request body must include 'name' (string)" });
+  }
+  if (!prompt || typeof prompt !== "string") {
+    return res.status(400).json({ error: "Request body must include 'prompt' (string)" });
+  }
+
+  const result = await agenticScheduleCreate({ project, name, schedule, prompt, type, agent, model });
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// ── List Schedules ────────────────────────────────────────────
+
+router.post("/schedule/list", async (req, res) => {
+  const { project, type, limit } = req.body;
+  if (!project || typeof project !== "string") {
+    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+  }
+
+  const result = await agenticScheduleList(project, {
+    type: type || undefined,
+    limit: limit ? parseInt(limit, 10) : undefined,
+  });
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// ── Delete Schedule ───────────────────────────────────────────
+
+router.post("/schedule/delete", async (req, res) => {
+  const { project, scheduleId } = req.body;
+  if (!project || typeof project !== "string") {
+    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+  }
+  if (scheduleId == null) {
+    return res.status(400).json({ error: "Request body must include 'scheduleId' (number)" });
+  }
+
+  const result = await agenticScheduleDelete(project, scheduleId);
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// ── Fire Remote Trigger ───────────────────────────────────────
+
+router.post("/trigger/fire", async (req, res) => {
+  const { project, triggerName, payload } = req.body;
+  if (!project || typeof project !== "string") {
+    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+  }
+  if (!triggerName || typeof triggerName !== "string") {
+    return res.status(400).json({ error: "Request body must include 'triggerName' (string)" });
+  }
+
+  const result = await agenticTriggerFire(project, triggerName, payload || {});
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 18. Notebook Editing
+// ═══════════════════════════════════════════════════════════════
+
+router.post("/notebook/edit", agenticHandler(async (req) => {
+  const { path, action, cellIndex, content, cellType } = req.body;
+  if (!path || typeof path !== "string") {
+    return { error: "Request body must include 'path' (string) — path to .ipynb file" };
+  }
+  if (!action || typeof action !== "string") {
+    return { error: "Request body must include 'action' (string)" };
+  }
+
+  return agenticNotebookEdit(path, {
+    action,
+    cellIndex: cellIndex != null ? parseInt(cellIndex, 10) : undefined,
+    content,
+    cellType,
+  });
+}));
 
 export default router;

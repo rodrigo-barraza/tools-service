@@ -6388,6 +6388,181 @@ const TOOL_DEFINITIONS = [
       required: ["name", "identity"],
     },
   },
+
+  // ── Tool Discovery (Meta-Tool) ────────────────────────────
+  {
+    name: "tool_search",
+    dataSource: onDemand("ToolSchemaService"),
+    description:
+      "Search for available tools by keyword, domain, or label. Returns matching tool names, " +
+      "descriptions, and schemas. Use this to discover what capabilities are available when " +
+      "you need a tool you haven't used before, or to find domain-specific tools (e.g. weather, " +
+      "finance, health). This is a read-only discovery tool — it does not execute anything.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/tool/search",
+      bodyParams: ["query", "domain", "label", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "Search keyword(s) to match against tool names and descriptions. " +
+            "Example: 'weather', 'file read', 'stock price', 'image generation'.",
+        },
+        domain: {
+          type: "string",
+          description:
+            "Filter by tool domain. Known domains include: 'Weather & Environment', " +
+            "'Finance & Markets', 'Health & Nutrition', 'Knowledge & Reference', " +
+            "'Agentic: File Operations', 'Agentic: Search', 'Communication', 'Creative', etc.",
+        },
+        label: {
+          type: "string",
+          description: "Filter by label category (e.g. 'coding', 'web', 'smart_home').",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum results to return (1–50). Default: 20.",
+        },
+      },
+      required: [],
+    },
+  },
+
+  // ── Scheduling ────────────────────────────────────────────
+  {
+    name: "cron_create",
+    dataSource: onDemand("AgenticSchedulerService"),
+    description:
+      "Create a scheduled or triggered task. Schedules persist across sessions and fire " +
+      "automatically when due. Use type 'once' for a one-shot delayed task, 'cron' for " +
+      "recurring tasks, or 'trigger' for named triggers that fire on external events. " +
+      "Schedule expressions use delay format: '5m', '30m', '1h', '2h', '24h', '1d', '7d'. " +
+      "Triggers don't need a schedule expression — fire them with remote_trigger.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/schedule/create",
+      bodyParams: ["project", "name", "schedule", "prompt", "type", "agent", "model"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "Human-readable name for this schedule (e.g. 'Daily test run', 'Deploy check').",
+        },
+        schedule: {
+          type: "string",
+          description:
+            "Delay expression for when to run. Format: <number><unit> where unit is " +
+            "s (seconds), m (minutes), h (hours), d (days). Examples: '30m', '2h', '1d'. " +
+            "Not required for type 'trigger'.",
+        },
+        prompt: {
+          type: "string",
+          description:
+            "The prompt to send to the agent when the schedule fires. " +
+            "Should be self-contained — the scheduled run has no prior conversation context.",
+        },
+        type: {
+          type: "string",
+          enum: ["once", "cron", "trigger"],
+          description:
+            "Schedule type. 'once': fires once then disables. 'cron': repeats at interval. " +
+            "'trigger': fires only when remote_trigger is called. Default: 'once'.",
+        },
+        agent: {
+          type: "string",
+          description: "Agent persona to use when firing (e.g. 'CODING'). Default: 'CODING'.",
+        },
+        model: {
+          type: "string",
+          description: "Optional model override for the scheduled run.",
+        },
+      },
+      required: ["name", "prompt"],
+    },
+  },
+  {
+    name: "remote_trigger",
+    dataSource: onDemand("AgenticSchedulerService"),
+    description:
+      "Fire a named remote trigger. The trigger must have been previously created with " +
+      "cron_create using type 'trigger'. When fired, the trigger's stored prompt is sent " +
+      "to the agent for execution. An optional payload object is appended to the prompt.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/trigger/fire",
+      bodyParams: ["project", "triggerName", "payload"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        triggerName: {
+          type: "string",
+          description: "Name of the trigger to fire (must match a trigger created with cron_create).",
+        },
+        payload: {
+          type: "object",
+          description:
+            "Optional key-value payload appended to the trigger's prompt as context. " +
+            "Example: { event: 'deploy_complete', version: '2.1.0' }.",
+        },
+      },
+      required: ["triggerName"],
+    },
+  },
+
+  // ── Notebook Editing ──────────────────────────────────────
+  {
+    name: "notebook_edit",
+    dataSource: onDemand("AgenticNotebookService"),
+    description:
+      "Edit Jupyter Notebook (.ipynb) files. Supports structured cell operations: " +
+      "list_cells (enumerate all cells with previews), get_cell (read full cell content), " +
+      "insert_cell (add a new cell), replace_cell (update content/type), delete_cell (remove a cell). " +
+      "All operations work on the notebook's JSON structure — no raw text editing needed.",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/notebook/edit",
+      bodyParams: ["path", "action", "cellIndex", "content", "cellType"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Absolute path to the .ipynb notebook file.",
+        },
+        action: {
+          type: "string",
+          enum: ["list_cells", "get_cell", "insert_cell", "replace_cell", "delete_cell"],
+          description:
+            "Operation to perform. 'list_cells': overview of all cells. 'get_cell': read one cell. " +
+            "'insert_cell': add a cell at position. 'replace_cell': update a cell. 'delete_cell': remove a cell.",
+        },
+        cellIndex: {
+          type: "number",
+          description:
+            "0-based cell index. Required for get_cell, replace_cell, delete_cell. " +
+            "Optional for insert_cell (defaults to appending at end).",
+        },
+        content: {
+          type: "string",
+          description: "Cell source content. Required for insert_cell, optional for replace_cell.",
+        },
+        cellType: {
+          type: "string",
+          enum: ["code", "markdown", "raw"],
+          description: "Cell type. Default: 'code' for insert, unchanged for replace.",
+        },
+      },
+      required: ["path", "action"],
+    },
+  },
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -6585,6 +6760,16 @@ const TOOL_DOMAINS = {
 
   // Agentic — Agent Management
   create_custom_agent: "Agentic: Agent Management",
+
+  // Agentic — Tool Discovery
+  tool_search: "Agentic: Meta",
+
+  // Agentic — Scheduling
+  cron_create: "Agentic: Scheduling",
+  remote_trigger: "Agentic: Scheduling",
+
+  // Agentic — Notebook Editing
+  notebook_edit: "Agentic: File Operations",
 
   // Communication (Twilio)
   send_sms: "Communication",
@@ -6913,6 +7098,16 @@ const TOOL_LABELS = {
 
   // ── Agentic: Agent Management ────────────────────────────
   create_custom_agent: ["coding"],
+
+  // ── Agentic: Tool Discovery ──────────────────────────────
+  tool_search: ["coding", "meta"],
+
+  // ── Agentic: Scheduling ──────────────────────────────────
+  cron_create: ["coding", "automation"],
+  remote_trigger: ["coding", "automation"],
+
+  // ── Agentic: Notebook Editing ────────────────────────────
+  notebook_edit: ["coding", "data_science"],
 
   // ── Communication ────────────────────────────────────────
   send_sms: ["communication"],

@@ -23,6 +23,7 @@ import { setupNewgroundsCollections } from "./models/NewgroundsProfile.js";
 import { connectLuposDB, setupLuposCollections } from "./models/LuposMessage.js";
 import { setupToolCallsCollection } from "./middleware/ToolCallLoggerMiddleware.js";
 import { setupAgenticTaskCollection } from "./services/AgenticTaskService.js";
+import { setupAgenticScheduleCollection, startSchedulePoller } from "./services/AgenticSchedulerService.js";
 
 // ─── Routes ────────────────────────────────────────────────────────
 
@@ -161,6 +162,7 @@ async function start() {
       setupWebcamCollection(),
       setupToolCallsCollection(),
       setupAgenticTaskCollection(),
+      setupAgenticScheduleCollection(),
     ]);
 
     // Connect to separate Clock Crew database (also hosts Newgrounds collections)
@@ -186,6 +188,9 @@ async function start() {
 
   // Start AIS Stream WebSocket (if API key is configured)
   startAisStream();
+
+  // Start schedule poller (checks for due schedules every 60s)
+  startSchedulePoller();
 
   const port = CONFIG.TOOLS_PORT;
   app.listen(port, () => {
