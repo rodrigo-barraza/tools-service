@@ -80,6 +80,7 @@ export const DOMAINS = {
   AGENTIC_CONTROL: "Agentic: Control Flow",
   AGENTIC_STRUCTURED: "Agentic: Structured Output",
   AGENTIC_GIT_ISOLATION: "Agentic: Git Isolation",
+  AGENTIC_TASK_MGMT: "Agentic: Task Management",
 };
 
 // ── Prefixed enabledTools Helpers ────────────────────────────
