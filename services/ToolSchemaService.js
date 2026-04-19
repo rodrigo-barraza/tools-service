@@ -6588,9 +6588,25 @@ const TOOL_DOMAINS = {
   get_nasa_apod: "Weather & Environment",
   get_weather_warnings: "Weather & Environment",
   get_detailed_air_quality: "Weather & Environment",
+  get_weather_history: "Weather & Environment",
+  get_weather_marine: "Weather & Environment",
+  get_weather_astronomy: "Weather & Environment",
+  get_weather_alerts: "Weather & Environment",
 
   // Events
   get_events: "Events",
+
+  // Sports
+  get_live_scores: "Sports",
+  get_upcoming_matches: "Sports",
+  get_recent_results: "Sports",
+  get_league_standings: "Sports",
+  get_match_details: "Sports",
+  get_head_to_head: "Sports",
+  search_teams: "Sports",
+  search_players: "Sports",
+  get_team_squad: "Sports",
+  get_league_top_scorers: "Sports",
 
   // Markets & Commodities
   get_commodities: "Markets & Commodities",
@@ -6920,7 +6936,7 @@ const TOOL_LABELS = {
   get_trending_media: ["media"],
   discover_media: ["media"],
   get_media_genres: ["media"],
-  git: ["coding"],
+  git: ["coding", "git"],
   lookup_book: ["reference"],
   get_country_data: ["reference"],
   get_element_data: ["reference"],
@@ -6939,6 +6955,19 @@ const TOOL_LABELS = {
   get_weather_astronomy: ["location"],
   get_weather_alerts: ["location"],
   get_avalanche_forecast: ["location"],
+  get_earthquakes: ["location"],
+  get_solar_activity: ["reference"],
+  get_aurora_forecast: ["location"],
+  get_solar_wind: ["reference"],
+  get_twilight: ["location"],
+  get_tides: ["location"],
+  get_wildfires: ["location"],
+  get_iss_location: ["reference"],
+  get_near_earth_objects: ["reference"],
+  get_space_launches: ["reference"],
+  get_nasa_apod: ["reference"],
+  get_weather_warnings: ["location"],
+  get_detailed_air_quality: ["location", "health"],
 
   // ── Sports ───────────────────────────────────────────────
   get_live_scores: ["sports"],
@@ -6981,6 +7010,7 @@ const TOOL_LABELS = {
   get_wikipedia_summary: ["reference"],
   get_on_this_day: ["reference"],
   list_development_indicators: ["reference"],
+  get_pypi_package: ["coding", "reference"],
 
   // ── Movies & TV ──────────────────────────────────────────
 
@@ -7007,6 +7037,7 @@ const TOOL_LABELS = {
   calculate_hydration_needs: ["health"],
   build_meal_plan: ["health"],
   check_drug_nutrient_interactions: ["health"],
+  get_pollen_forecast: ["health", "location"],
 
   // ── Transit ──────────────────────────────────────────────
   get_next_bus: ["location"],
@@ -7122,6 +7153,8 @@ const TOOL_LABELS = {
   // ── Creative (Image Generation & Vision) ────────────────────
   generate_image: ["creative", "media"],
   describe_image: ["creative", "media"],
+  text_to_speech: ["creative", "media"],
+  speech_to_text: ["creative", "media"],
 
   // ── Discord ──────────────────────────────────────────────
   discord_message_search: ["discord"],
