@@ -7175,6 +7175,9 @@ const TOOL_LABELS = {
 // Public API
 // ────────────────────────────────────────────────────────────
 
+// Re-export taxonomy registries for testing and downstream consumers
+export { TOOL_DOMAINS, TOOL_LABELS, TOOL_DEFINITIONS };
+
 /**
  * Get all tool schemas with endpoint metadata.
  * Used by clients (like Retina) to build dynamic executors.

@@ -25,7 +25,8 @@
     "test:drugs": "node --test tests/HealthDrugEndpoints.test.js",
     "test:utility": "node --test tests/UtilityEndpoints.test.js",
     "test:transit": "node --test tests/TransitAndHealthEndpoints.test.js",
-    "test:static": "node --test tests/StaticDatasetEndpoints.test.js"
+    "test:static": "node --test tests/StaticDatasetEndpoints.test.js",
+    "test:taxonomy": "node --test tests/ToolTaxonomy.test.js"
   },
   "author": "",
   "license": "ISC",
