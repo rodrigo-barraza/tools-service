@@ -71,4 +71,100 @@ export async function health() {
   }
 }
 
-export default { chat, health };
+/**
+ * Call Prism's /text-to-audio endpoint to generate speech.
+ * Collects the streamed binary response into a base64-encoded buffer.
+ *
+ * @param {object} params
+ * @param {string} params.text - Text to synthesize
+ * @param {string} [params.provider="elevenlabs"] - TTS provider
+ * @param {string} [params.voice] - Voice identifier
+ * @param {string} [params.model] - Model name
+ * @param {string} [params.project] - Project identifier
+ * @param {string} [params.username] - Username identifier
+ * @returns {Promise<{ audioBase64: string, contentType: string }>}
+ */
+export async function textToSpeech(params) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60_000);
+
+    const res = await fetch(`${PRISM_URL}/text-to-audio`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider: params.provider || "elevenlabs",
+        text: params.text,
+        voice: params.voice || undefined,
+        model: params.model || undefined,
+        skipConversation: true,
+        project: params.project || "tools-api",
+        username: params.username || "system",
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      throw new Error(`Prism TTS returned ${res.status}: ${errText.slice(0, 200)}`);
+    }
+
+    const contentType = res.headers.get("content-type") || "audio/mpeg";
+    const arrayBuffer = await res.arrayBuffer();
+    const audioBase64 = Buffer.from(arrayBuffer).toString("base64");
+
+    return { audioBase64, contentType };
+  } catch (err) {
+    logger.error(`[PrismService] textToSpeech failed: ${err.message}`);
+    throw err;
+  }
+}
+
+/**
+ * Call Prism's /audio-to-text endpoint to transcribe audio.
+ *
+ * @param {object} params
+ * @param {string} params.audio - Base64-encoded audio or data URL
+ * @param {string} [params.provider="openai"] - STT provider
+ * @param {string} [params.model] - Model name
+ * @param {string} [params.language] - Language hint (ISO 639-1)
+ * @param {string} [params.project] - Project identifier
+ * @param {string} [params.username] - Username identifier
+ * @returns {Promise<{ text: string, usage?: object }>}
+ */
+export async function speechToText(params) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120_000);
+
+    const res = await fetch(`${PRISM_URL}/audio-to-text`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        provider: params.provider || "openai",
+        audio: params.audio,
+        model: params.model || undefined,
+        language: params.language || undefined,
+        skipConversation: true,
+        project: params.project || "tools-api",
+        username: params.username || "system",
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      throw new Error(`Prism STT returned ${res.status}: ${errText.slice(0, 200)}`);
+    }
+
+    return await res.json();
+  } catch (err) {
+    logger.error(`[PrismService] speechToText failed: ${err.message}`);
+    throw err;
+  }
+}
+
+export default { chat, health, textToSpeech, speechToText };
+

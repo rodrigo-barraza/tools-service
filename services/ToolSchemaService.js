@@ -1540,6 +1540,388 @@ const TOOL_DEFINITIONS = [
     },
   },
 
+  // ── Earthquakes ────────────────────────────────────────────
+  {
+    name: "get_earthquakes",
+    dataSource: onDemand("USGS Earthquake API (cached)"),
+    description:
+      "Get recent earthquake data from the USGS. Returns seismic events with magnitude, location, depth, " +
+      "tsunami alerts, and significance. Supports filtering by lookback hours, minimum magnitude, and result limit.",
+    endpoint: {
+      path: "/weather/earthquakes/recent",
+      queryParams: ["hours", "minMag", "limit", "fields"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        hours: {
+          type: "number",
+          description: "Lookback period in hours (default: 24, max: 168)",
+        },
+        minMag: {
+          type: "number",
+          description: "Minimum magnitude filter (e.g. 4.0 for significant quakes only)",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum number of results (default: 100)",
+        },
+        ...fieldsParam(FIELDS.EARTHQUAKES),
+      },
+    },
+  },
+
+  // ── Space Weather ──────────────────────────────────────────
+  {
+    name: "get_solar_activity",
+    dataSource: onDemand("NASA DONKI (cached)"),
+    description:
+      "Get current space weather activity including solar flares, coronal mass ejections (CMEs), " +
+      "geomagnetic storms, and earth-directed events. Returns a summary with counts, strongest flare, " +
+      "fastest CME, and estimated arrival times.",
+    endpoint: {
+      path: "/weather/space-weather/summary",
+      queryParams: ["fields"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.SOLAR_ACTIVITY),
+      },
+    },
+  },
+
+  // ── Aurora / Kp Index ──────────────────────────────────────
+  {
+    name: "get_aurora_forecast",
+    dataSource: onDemand("NOAA SWPC Kp Index (cached)"),
+    description:
+      "Get the current planetary Kp index and aurora forecast. The Kp index (0-9) indicates geomagnetic " +
+      "activity — Kp ≥ 5 means a geomagnetic storm with possible aurora visibility at lower latitudes. " +
+      "Returns current Kp, classification (quiet/unsettled/storm), and 24h peak.",
+    endpoint: {
+      path: "/weather/kp/current",
+      queryParams: ["fields"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.AURORA),
+      },
+    },
+  },
+
+  // ── Solar Wind ─────────────────────────────────────────────
+  {
+    name: "get_solar_wind",
+    dataSource: onDemand("NOAA DSCOVR (cached)"),
+    description:
+      "Get real-time solar wind data from the DSCOVR satellite at the L1 Lagrange point. " +
+      "Returns speed (km/s), density (protons/cm³), temperature, and interplanetary magnetic field components (Bz, Bt). " +
+      "A southward Bz (negative) and high speed (>500 km/s) indicate conditions favorable for aurora.",
+    endpoint: {
+      path: "/weather/solar-wind/latest",
+      queryParams: ["fields"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.SOLAR_WIND),
+      },
+    },
+  },
+
+  // ── Twilight ───────────────────────────────────────────────
+  {
+    name: "get_twilight",
+    dataSource: onDemand("Sunrise-Sunset API (cached)"),
+    description:
+      "Get sunrise, sunset, twilight times, solar noon, and day length for the server's location. " +
+      "Includes civil, nautical, and astronomical twilight begin/end times. " +
+      "Useful for circadian light automation, photography golden hour, and astronomical observation planning.",
+    endpoint: {
+      path: "/weather/twilight",
+      queryParams: ["fields"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.TWILIGHT),
+      },
+    },
+  },
+
+  // ── Tides ──────────────────────────────────────────────────
+  {
+    name: "get_tides",
+    dataSource: onDemand("NOAA Tides & Currents (cached)"),
+    description:
+      "Get current and upcoming tide predictions for the configured tide station. " +
+      "Returns tide times, heights, and type (high/low). Use get_tides for the full schedule, " +
+      "or request via get_local_environment with source='tides' for the cached version.",
+    endpoint: {
+      path: "/weather/tides",
+      queryParams: ["fields"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.TIDES),
+      },
+    },
+  },
+
+  // ── Wildfires ──────────────────────────────────────────────
+  {
+    name: "get_wildfires",
+    dataSource: onDemand("NASA EONET (cached)"),
+    description:
+      "Get active wildfire events worldwide from NASA's Earth Observatory. " +
+      "Returns fire name, coordinates, status (open/closed), magnitude, and source URLs. " +
+      "Data is refreshed from the EONET API automatically.",
+    endpoint: {
+      path: "/weather/wildfires",
+      queryParams: ["fields"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.WILDFIRES),
+      },
+    },
+  },
+
+  // ── ISS ────────────────────────────────────────────────────
+  {
+    name: "get_iss_location",
+    dataSource: onDemand("ISS API (cached)"),
+    description:
+      "Get the current position of the International Space Station (latitude, longitude, timestamp) " +
+      "and the list of astronauts currently aboard. Position is updated frequently via the ISS-Now API.",
+    endpoint: {
+      path: "/weather/iss",
+      queryParams: ["fields"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.ISS),
+      },
+    },
+  },
+
+  // ── Near-Earth Objects ─────────────────────────────────────
+  {
+    name: "get_near_earth_objects",
+    dataSource: onDemand("NASA NeoWs (cached)"),
+    description:
+      "Get near-Earth objects (asteroids) tracked by NASA. Returns total count, hazardous count, " +
+      "closest approach details (miss distance in km and lunar distances), largest object, " +
+      "and relative velocities. Supports filtering by lookback days and hazardous-only.",
+    endpoint: {
+      path: "/weather/neo/recent",
+      queryParams: ["days", "hazardousOnly", "limit", "fields"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        days: {
+          type: "number",
+          description: "Lookback period in days (default: 7)",
+        },
+        hazardousOnly: {
+          type: "boolean",
+          description: "If true, only return potentially hazardous asteroids",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum number of results (default: 100)",
+        },
+        ...fieldsParam(FIELDS.NEO),
+      },
+    },
+  },
+
+  // ── Space Launches ─────────────────────────────────────────
+  {
+    name: "get_space_launches",
+    dataSource: onDemand("Launch Library 2 (cached)"),
+    description:
+      "Get upcoming and recent space launches worldwide. Returns launch name, status, provider, " +
+      "rocket, mission description, pad location, and images. Use the summary endpoint for a quick " +
+      "overview including the next upcoming launch.",
+    endpoint: {
+      path: "/weather/launches/summary",
+      queryParams: ["fields"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.LAUNCHES),
+      },
+    },
+  },
+
+  // ── NASA APOD ──────────────────────────────────────────────
+  {
+    name: "get_nasa_apod",
+    dataSource: onDemand("NASA APOD API (cached)"),
+    description:
+      "Get NASA's Astronomy Picture of the Day. Returns the title, explanation, image URL " +
+      "(standard and HD), media type (image/video), date, and copyright info. " +
+      "A new picture is posted each day by NASA.",
+    endpoint: {
+      path: "/weather/apod",
+      queryParams: ["fields"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.APOD),
+      },
+    },
+  },
+
+  // ── Pollen Forecast ────────────────────────────────────────
+  {
+    name: "get_pollen_forecast",
+    dataSource: onDemand("Google Pollen API (cached)"),
+    description:
+      "Get current pollen levels for grass, tree, and weed allergens. Returns index values (0-5), " +
+      "categories (None/Very Low/Low/Moderate/High/Very High), and whether each type is in season. " +
+      "Useful for allergy sufferers and outdoor activity planning.",
+    endpoint: {
+      path: "/weather/pollen/today",
+      queryParams: ["fields"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.POLLEN),
+      },
+    },
+  },
+
+  // ── Weather Warnings ───────────────────────────────────────
+  {
+    name: "get_weather_warnings",
+    dataSource: onDemand("Environment Canada (cached)"),
+    description:
+      "Get active weather warnings and advisories from Environment Canada. " +
+      "Returns warning count and details including type, severity, and affected areas. " +
+      "Useful for severe weather awareness.",
+    endpoint: {
+      path: "/weather/warnings",
+      queryParams: ["fields"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.WEATHER_WARNINGS),
+      },
+    },
+  },
+
+  // ── Detailed Air Quality ───────────────────────────────────
+  {
+    name: "get_detailed_air_quality",
+    dataSource: onDemand("Google Air Quality API (cached)"),
+    description:
+      "Get detailed air quality data from Google's Air Quality API. Returns the Universal AQI, " +
+      "US EPA AQI, dominant pollutant, and individual pollutant concentrations (PM2.5, PM10, O3, NO2, SO2, CO). " +
+      "More granular than the standard air quality from get_local_environment.",
+    endpoint: {
+      path: "/weather/airquality/google",
+      queryParams: ["fields"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        ...fieldsParam(FIELDS.GOOGLE_AIR_QUALITY),
+      },
+    },
+  },
+
+  // ── PDF Reader ─────────────────────────────────────────────
+  {
+    name: "read_pdf_url",
+    dataSource: onDemand("pdf-parse"),
+    description:
+      "Fetch and extract text content from a PDF file at a given URL. Returns the full text, " +
+      "page count, and metadata. Useful for reading research papers, reports, documentation, " +
+      "and any PDF accessible via a public URL. Supports limiting the number of pages extracted.",
+    endpoint: {
+      path: "/knowledge/pdf/read",
+      queryParams: ["url", "maxPages"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        url: {
+          type: "string",
+          description: "URL of the PDF file to read",
+        },
+        maxPages: {
+          type: "number",
+          description: "Maximum number of pages to extract (default: all pages)",
+        },
+      },
+      required: ["url"],
+    },
+  },
+
+  // ── RSS Feed Reader ────────────────────────────────────────
+  {
+    name: "read_rss_feed",
+    dataSource: onDemand("xml2js"),
+    description:
+      "Fetch and parse an RSS or Atom feed from a URL. Returns the feed title, description, " +
+      "and a list of entries with title, link, published date, and content/summary. " +
+      "Useful for reading blog posts, news feeds, podcast feeds, and any syndicated content.",
+    endpoint: {
+      path: "/knowledge/rss/feed",
+      queryParams: ["url", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        url: {
+          type: "string",
+          description: "URL of the RSS or Atom feed",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum number of feed entries to return (default: 20)",
+        },
+      },
+      required: ["url"],
+    },
+  },
+
+  // ── PyPI Package ───────────────────────────────────────────
+  {
+    name: "get_pypi_package",
+    dataSource: onDemand("PyPI JSON API"),
+    description:
+      "Look up a Python package on PyPI. Returns the package name, version, summary, author, " +
+      "license, homepage, repository URL, Python version requirements, and dependencies. " +
+      "Similar to get_package_info but specifically for the PyPI registry.",
+    endpoint: {
+      path: "/knowledge/pypi/package",
+      queryParams: ["name"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "PyPI package name (e.g. 'numpy', 'requests', 'fastapi')",
+        },
+      },
+      required: ["name"],
+    },
+  },
+
   // ── Events (4 → 1) ────────────────────────────────────────
   {
     name: "get_events",
@@ -5451,6 +5833,86 @@ const TOOL_DEFINITIONS = [
       required: ["imageUrls"],
     },
   },
+
+  // ── Text-to-Speech ──────────────────────────────────────────
+  {
+    name: "text_to_speech",
+    dataSource: onDemand("ElevenLabs / OpenAI via Prism"),
+    description:
+      "Convert text into spoken audio using a text-to-speech provider. Returns base64-encoded audio data. " +
+      "Use this when the user asks you to read something aloud, narrate text, or generate audio from text. " +
+      "Supports multiple voices and providers.",
+    endpoint: {
+      path: "/creative/text-to-speech",
+      method: "POST",
+      bodyParams: ["text", "voice", "provider", "model"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        text: {
+          type: "string",
+          description: "The text to convert to speech. Keep under 5000 characters for best results.",
+        },
+        voice: {
+          type: "string",
+          description: "Voice identifier (e.g. 'alloy', 'echo', 'shimmer' for OpenAI; ElevenLabs voice ID for ElevenLabs). Omit for default voice.",
+        },
+        provider: {
+          type: "string",
+          description: "TTS provider to use",
+          enum: ["elevenlabs", "openai", "google"],
+        },
+        model: {
+          type: "string",
+          description: "Model name (optional — uses provider default)",
+        },
+      },
+      required: ["text"],
+    },
+  },
+
+  // ── Speech-to-Text ──────────────────────────────────────────
+  {
+    name: "speech_to_text",
+    dataSource: onDemand("OpenAI Whisper / Google via Prism"),
+    description:
+      "Transcribe audio into text using a speech-to-text provider. Accepts either a URL to an audio file " +
+      "or base64-encoded audio data. Use this when the user asks to transcribe a recording, podcast, " +
+      "voice message, or any audio content.",
+    endpoint: {
+      path: "/creative/speech-to-text",
+      method: "POST",
+      bodyParams: ["audioUrl", "audio", "provider", "model", "language"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        audioUrl: {
+          type: "string",
+          description: "URL to the audio file to transcribe (MP3, WAV, M4A, WEBM, etc.)",
+        },
+        audio: {
+          type: "string",
+          description: "Base64-encoded audio data (alternative to audioUrl). Can be a data URL.",
+        },
+        provider: {
+          type: "string",
+          description: "STT provider to use",
+          enum: ["openai", "google"],
+        },
+        model: {
+          type: "string",
+          description: "Model name (optional — uses provider default, e.g. 'whisper-1')",
+        },
+        language: {
+          type: "string",
+          description: "Language hint in ISO 639-1 format (e.g. 'en', 'es', 'fr'). Improves accuracy for non-English audio.",
+        },
+      },
+    },
+  },
+
   // ── Discord (Lupos DB) ──────────────────────────────────────
   {
     name: "discord_message_search",
@@ -5938,6 +6400,19 @@ const TOOL_DOMAINS = {
   get_local_environment: "Weather & Environment",
   get_weather_forecast: "Weather & Environment",
   get_avalanche_forecast: "Weather & Environment",
+  get_earthquakes: "Weather & Environment",
+  get_solar_activity: "Weather & Environment",
+  get_aurora_forecast: "Weather & Environment",
+  get_solar_wind: "Weather & Environment",
+  get_twilight: "Weather & Environment",
+  get_tides: "Weather & Environment",
+  get_wildfires: "Weather & Environment",
+  get_iss_location: "Weather & Environment",
+  get_near_earth_objects: "Weather & Environment",
+  get_space_launches: "Weather & Environment",
+  get_nasa_apod: "Weather & Environment",
+  get_weather_warnings: "Weather & Environment",
+  get_detailed_air_quality: "Weather & Environment",
 
   // Events
   get_events: "Events",
@@ -5978,6 +6453,7 @@ const TOOL_DOMAINS = {
   get_package_info: "Knowledge",
   read_pdf_url: "Knowledge",
   read_rss_feed: "Knowledge",
+  get_pypi_package: "Knowledge",
 
   // Movies & TV
   search_media: "Movies & TV",
@@ -6012,6 +6488,7 @@ const TOOL_DOMAINS = {
   calculate_hydration_needs: "Health",
   build_meal_plan: "Health",
   check_drug_nutrient_interactions: "Health",
+  get_pollen_forecast: "Health",
 
   // Transit
   get_next_bus: "Transit",
@@ -6116,9 +6593,11 @@ const TOOL_DOMAINS = {
   lookup_phone_number: "Communication",
   list_twilio_numbers: "Communication",
 
-  // Creative (Image Generation & Vision)
+  // Creative (Image Generation, Vision, Audio)
   generate_image: "Creative",
   describe_image: "Creative",
+  text_to_speech: "Creative",
+  speech_to_text: "Creative",
 
   // Discord (Lupos DB)
   discord_message_search: "Discord",
@@ -6220,6 +6699,8 @@ const TOOL_REQUIRED_KEYS = {
   // Creative (require Prism as LLM backend)
   generate_image: ["PRISM_API_URL"],
   describe_image: ["PRISM_API_URL"],
+  text_to_speech: ["PRISM_API_URL"],
+  speech_to_text: ["PRISM_API_URL"],
 
   // Agent Management (require Prism for CustomAgentService)
   create_custom_agent: ["PRISM_API_URL"],

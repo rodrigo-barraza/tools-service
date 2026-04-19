@@ -369,6 +369,98 @@ router.post("/describe-image", async (req, res) => {
 });
 
 // ────────────────────────────────────────────────────────────
+// POST /creative/text-to-speech
+// ────────────────────────────────────────────────────────────
+
+router.post("/text-to-speech", async (req, res) => {
+  const { text, voice, provider, model } = req.body;
+
+  if (!text) {
+    return res.status(400).json({ error: "Missing required parameter: text" });
+  }
+
+  const callerProject = req.headers["x-project"] || "tools-api";
+  const callerUsername = req.headers["x-username"] || "system";
+
+  try {
+    const result = await PrismService.textToSpeech({
+      text,
+      voice,
+      provider: provider || "elevenlabs",
+      model,
+      project: callerProject,
+      username: callerUsername,
+    });
+
+    res.json({
+      success: true,
+      message: "Audio generated and delivered to the user.",
+      audio: {
+        data: result.audioBase64,
+        mimeType: result.contentType,
+      },
+      textLength: text.length,
+    });
+  } catch (err) {
+    logger.error(`[CreativeRoutes] text-to-speech failed: ${err.message}`);
+    res.status(500).json({ error: `Text-to-speech failed: ${err.message}` });
+  }
+});
+
+// ────────────────────────────────────────────────────────────
+// POST /creative/speech-to-text
+// ────────────────────────────────────────────────────────────
+
+router.post("/speech-to-text", async (req, res) => {
+  const { audioUrl, audio, provider, model, language } = req.body;
+
+  // Accept either a URL (we fetch it) or raw base64 audio
+  let audioData = audio;
+  if (!audioData && audioUrl) {
+    try {
+      const response = await fetch(audioUrl);
+      if (!response.ok) {
+        return res.status(400).json({ error: `Failed to fetch audio from URL: ${response.status}` });
+      }
+      const buffer = await response.arrayBuffer();
+      const mimeType = response.headers.get("content-type") || "audio/mpeg";
+      audioData = `data:${mimeType};base64,${Buffer.from(buffer).toString("base64")}`;
+    } catch (err) {
+      return res.status(400).json({ error: `Failed to fetch audio URL: ${err.message}` });
+    }
+  }
+
+  if (!audioData) {
+    return res.status(400).json({
+      error: "Missing required parameter: 'audio' (base64) or 'audioUrl' (URL to audio file)",
+    });
+  }
+
+  const callerProject = req.headers["x-project"] || "tools-api";
+  const callerUsername = req.headers["x-username"] || "system";
+
+  try {
+    const result = await PrismService.speechToText({
+      audio: audioData,
+      provider: provider || "openai",
+      model,
+      language,
+      project: callerProject,
+      username: callerUsername,
+    });
+
+    res.json({
+      success: true,
+      text: result.text,
+      usage: result.usage || {},
+    });
+  } catch (err) {
+    logger.error(`[CreativeRoutes] speech-to-text failed: ${err.message}`);
+    res.status(500).json({ error: `Speech-to-text failed: ${err.message}` });
+  }
+});
+
+// ────────────────────────────────────────────────────────────
 // Health
 // ────────────────────────────────────────────────────────────
 
@@ -376,6 +468,8 @@ export function getCreativeHealth() {
   return {
     generateImage: "on-demand (Google Gemini via Prism)",
     describeImage: "on-demand (Google Gemini via Prism)",
+    textToSpeech: "on-demand (ElevenLabs/OpenAI via Prism)",
+    speechToText: "on-demand (OpenAI Whisper via Prism)",
   };
 }
 
