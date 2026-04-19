@@ -7076,8 +7076,8 @@ const TOOL_LABELS = {
   project_summary: ["coding"],
 
   // ── Agentic: Web ─────────────────────────────────────────
-  fetch_url: ["web"],
-  web_search: ["web"],
+  fetch_url: ["coding", "web"],
+  web_search: ["coding", "web"],
 
   // ── Agentic: Command Execution ───────────────────────────
   run_command: ["coding"],
@@ -7085,7 +7085,10 @@ const TOOL_LABELS = {
   // ── Agentic: Git ─────────────────────────────────────────
 
   // ── Agentic: Browser ─────────────────────────────────────
-  browser_action: ["web"],
+  browser_action: ["coding", "web"],
+
+  // ── Agentic: Code Intelligence (LSP) ─────────────────────
+  lsp_action: ["coding"],
 
   // ── Agentic: Task Management ─────────────────────────────
   task_create: ["coding"],
