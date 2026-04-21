@@ -314,10 +314,19 @@ router.post("/command/run", async (req, res) => {
     return res.status(400).json({ error: "Request body must include 'command' (string)" });
   }
 
+  // Create an AbortController so we can kill the child process if the
+  // upstream client disconnects (e.g. user pressed Stop in the UI).
+  const ac = new AbortController();
+  req.on("close", () => ac.abort());
+
   const result = await executeCommand(command, {
     cwd: cwd || undefined,
     timeout: timeout ? Math.min(parseInt(timeout, 10), 120_000) : undefined,
+    signal: ac.signal,
   });
+
+  // Guard: response may already be closed if the client disconnected
+  if (res.headersSent || res.writableEnded) return;
 
   if (result.error && !result.stdout && !result.stderr) {
     return res.status(400).json(result);
@@ -335,14 +344,23 @@ router.post("/command/stream", async (req, res) => {
   const send = setupStreamingSSE(res);
   send({ event: "start", command });
 
+  // Create an AbortController so we can kill the child process if the
+  // upstream client disconnects (e.g. user pressed Stop in the UI).
+  const ac = new AbortController();
+  req.on("close", () => ac.abort());
+
   const result = await executeCommandStreaming(command, {
     cwd: cwd || undefined,
     timeout: timeout ? Math.min(parseInt(timeout, 10), 120_000) : undefined,
     onChunk: (event, data) => send({ event, data }),
+    signal: ac.signal,
   });
 
-  send({ event: "exit", exitCode: result.exitCode, executionTimeMs: result.executionTimeMs, success: result.success, timedOut: result.timedOut, error: result.error || undefined });
-  res.end();
+  // Guard: response may already be closed if the client disconnected
+  if (!res.writableEnded) {
+    send({ event: "exit", exitCode: result.exitCode, executionTimeMs: result.executionTimeMs, success: result.success, timedOut: result.timedOut, aborted: result.aborted || undefined, error: result.error || undefined });
+    res.end();
+  }
 });
 
 router.get("/command/allowed", (_req, res) => {

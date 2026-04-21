@@ -133,7 +133,7 @@ function validateCommand(command) {
  * @param {number} [options.timeout=60000] - Timeout in ms (max 120000)
  * @returns {Promise<object>}
  */
-export async function executeCommand(command, { cwd, timeout = DEFAULT_TIMEOUT_MS } = {}) {
+export async function executeCommand(command, { cwd, timeout = DEFAULT_TIMEOUT_MS, signal } = {}) {
   const clampedTimeout = Math.min(Math.max(timeout, 1000), MAX_TIMEOUT_MS);
 
   // Validate command
@@ -148,6 +148,11 @@ export async function executeCommand(command, { cwd, timeout = DEFAULT_TIMEOUT_M
     return { success: false, stdout: "", stderr: "", exitCode: null, executionTimeMs: 0, error: `Invalid working directory: ${cwdValidation.error}` };
   }
 
+  // Fast path: already aborted before we spawn
+  if (signal?.aborted) {
+    return { success: false, stdout: "", stderr: "", exitCode: null, executionTimeMs: 0, aborted: true, error: "Command aborted before execution" };
+  }
+
   const startTime = performance.now();
 
   return new Promise((resolve) => {
@@ -156,6 +161,7 @@ export async function executeCommand(command, { cwd, timeout = DEFAULT_TIMEOUT_M
     let stdoutLen = 0;
     let stderrLen = 0;
     let timedOut = false;
+    let aborted = false;
     let settled = false;
 
     // Use bash -l -c to get full PATH (conda, nvm, etc.)
@@ -192,23 +198,36 @@ export async function executeCommand(command, { cwd, timeout = DEFAULT_TIMEOUT_M
       child.kill("SIGKILL");
     }, clampedTimeout);
 
+    // Kill child process when upstream abort signal fires (user pressed Stop)
+    const onAbort = () => {
+      if (!settled) {
+        aborted = true;
+        child.kill("SIGKILL");
+      }
+    };
+    if (signal && !signal.aborted) {
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
+
     function finish(exitCode) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      if (signal) signal.removeEventListener("abort", onAbort);
 
       const stdout = Buffer.concat(stdoutChunks).toString("utf-8");
       const stderr = Buffer.concat(stderrChunks).toString("utf-8");
       const executionTimeMs = Math.round(performance.now() - startTime);
 
       resolve({
-        success: exitCode === 0 && !timedOut,
+        success: exitCode === 0 && !timedOut && !aborted,
         stdout: stdoutLen > MAX_OUTPUT_BYTES ? stdout + "\n... [output truncated]" : stdout,
         stderr: stderrLen > MAX_OUTPUT_BYTES ? stderr + "\n... [output truncated]" : stderr,
-        exitCode: timedOut ? null : exitCode,
+        exitCode: (timedOut || aborted) ? null : exitCode,
         executionTimeMs,
         timedOut,
-        ...(timedOut && { error: `Command timed out after ${clampedTimeout}ms` }),
+        ...(aborted && { aborted: true, error: "Command aborted (session stopped)" }),
+        ...(timedOut && !aborted && { error: `Command timed out after ${clampedTimeout}ms` }),
       });
     }
 
@@ -217,6 +236,7 @@ export async function executeCommand(command, { cwd, timeout = DEFAULT_TIMEOUT_M
       if (!settled) {
         settled = true;
         clearTimeout(timer);
+        if (signal) signal.removeEventListener("abort", onAbort);
         resolve({
           success: false, stdout: "", stderr: "", exitCode: null,
           executionTimeMs: Math.round(performance.now() - startTime),
@@ -237,7 +257,7 @@ export async function executeCommand(command, { cwd, timeout = DEFAULT_TIMEOUT_M
  * @param {function} [options.onChunk] - (event: "stdout"|"stderr", data: string) => void
  * @returns {Promise<object>}
  */
-export async function executeCommandStreaming(command, { cwd, timeout = DEFAULT_TIMEOUT_MS, onChunk } = {}) {
+export async function executeCommandStreaming(command, { cwd, timeout = DEFAULT_TIMEOUT_MS, onChunk, signal } = {}) {
   const clampedTimeout = Math.min(Math.max(timeout, 1000), MAX_TIMEOUT_MS);
 
   const validation = validateCommand(command);
@@ -250,6 +270,11 @@ export async function executeCommandStreaming(command, { cwd, timeout = DEFAULT_
     return { success: false, stdout: "", stderr: "", exitCode: null, executionTimeMs: 0, error: `Invalid working directory: ${cwdValidation.error}` };
   }
 
+  // Fast path: already aborted before we spawn
+  if (signal?.aborted) {
+    return { success: false, stdout: "", stderr: "", exitCode: null, executionTimeMs: 0, aborted: true, error: "Command aborted before execution" };
+  }
+
   const startTime = performance.now();
 
   return new Promise((resolve) => {
@@ -258,6 +283,7 @@ export async function executeCommandStreaming(command, { cwd, timeout = DEFAULT_
     let stdoutLen = 0;
     let stderrLen = 0;
     let timedOut = false;
+    let aborted = false;
     let settled = false;
 
     const child = spawn("bash", ["-l", "-c", command], {
@@ -292,20 +318,33 @@ export async function executeCommandStreaming(command, { cwd, timeout = DEFAULT_
 
     const timer = setTimeout(() => { timedOut = true; child.kill("SIGKILL"); }, clampedTimeout);
 
+    // Kill child process when upstream abort signal fires (user pressed Stop)
+    const onAbort = () => {
+      if (!settled) {
+        aborted = true;
+        child.kill("SIGKILL");
+      }
+    };
+    if (signal && !signal.aborted) {
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
+
     function finish(exitCode) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      if (signal) signal.removeEventListener("abort", onAbort);
       const stdout = Buffer.concat(stdoutChunks).toString("utf-8");
       const stderr = Buffer.concat(stderrChunks).toString("utf-8");
       resolve({
-        success: exitCode === 0 && !timedOut,
+        success: exitCode === 0 && !timedOut && !aborted,
         stdout: stdoutLen > MAX_OUTPUT_BYTES ? stdout + "\n... [output truncated]" : stdout,
         stderr: stderrLen > MAX_OUTPUT_BYTES ? stderr + "\n... [output truncated]" : stderr,
-        exitCode: timedOut ? null : exitCode,
+        exitCode: (timedOut || aborted) ? null : exitCode,
         executionTimeMs: Math.round(performance.now() - startTime),
         timedOut,
-        ...(timedOut && { error: `Command timed out after ${clampedTimeout}ms` }),
+        ...(aborted && { aborted: true, error: "Command aborted (session stopped)" }),
+        ...(timedOut && !aborted && { error: `Command timed out after ${clampedTimeout}ms` }),
       });
     }
 
@@ -314,6 +353,7 @@ export async function executeCommandStreaming(command, { cwd, timeout = DEFAULT_
       if (!settled) {
         settled = true;
         clearTimeout(timer);
+        if (signal) signal.removeEventListener("abort", onAbort);
         resolve({
           success: false, stdout: "", stderr: "", exitCode: null,
           executionTimeMs: Math.round(performance.now() - startTime),
