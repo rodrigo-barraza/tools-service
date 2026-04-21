@@ -5,10 +5,16 @@
 // Each session is a unique page context with auto-cleanup.
 //
 // Actions: navigate, screenshot, click, type, scroll,
-//          evaluate, get_content, wait, close
+//          evaluate, get_content, get_elements, wait, close,
+//          snapshot, click_ref, type_ref, hover_ref, select_ref,
+//          run_script
 // ============================================================
 
 import { chromium } from "playwright";
+import { writeFile, unlink, mkdtemp } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { spawn } from "node:child_process";
 import logger from "../logger.js";
 
 // ────────────────────────────────────────────────────────────
@@ -458,6 +464,361 @@ async function actionGetElements(page, { selector, limit }) {
 }
 
 // ────────────────────────────────────────────────────────────
+// Accessibility Snapshot Actions
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Capture an ARIA accessibility tree snapshot of the page.
+ *
+ * Returns a YAML-like text representation of the page's accessibility tree
+ * with roles, names, states, and ref IDs for interactive elements.
+ * This is ~4x more token-efficient than screenshots for LLM page understanding.
+ *
+ * Ref IDs (e.g. [ref=s1e5]) can be used with click_ref/type_ref actions.
+ */
+async function actionSnapshot(page, { selector }) {
+  try {
+    const locator = selector ? page.locator(selector) : page.locator("body");
+
+    // Playwright ≥1.49 supports locator.ariaSnapshot()
+    if (typeof locator.ariaSnapshot === "function") {
+      const snapshot = await locator.ariaSnapshot();
+      return {
+        action: "snapshot",
+        url: page.url(),
+        title: await page.title(),
+        snapshot,
+        format: "aria",
+      };
+    }
+
+    // Fallback: use page.accessibility.snapshot() + format ourselves
+    const tree = await page.accessibility.snapshot({ interestingOnly: true });
+    const formatted = formatAccessibilityTree(tree, 0);
+    return {
+      action: "snapshot",
+      url: page.url(),
+      title: await page.title(),
+      snapshot: formatted,
+      format: "a11y-tree",
+    };
+  } catch (err) {
+    return { error: `Snapshot failed: ${err.message}` };
+  }
+}
+
+/**
+ * Format an accessibility tree node into a readable indented text representation.
+ * Fallback for when locator.ariaSnapshot() is unavailable.
+ */
+function formatAccessibilityTree(node, depth) {
+  if (!node) return "";
+  const indent = "  ".repeat(depth);
+  const parts = [];
+
+  // Role
+  let line = `${indent}- ${node.role}`;
+
+  // Name (accessible name)
+  if (node.name) line += ` "${node.name}"`;
+
+  // Key attributes
+  const attrs = [];
+  if (node.level != null) attrs.push(`level=${node.level}`);
+  if (node.checked != null) attrs.push(`checked=${node.checked}`);
+  if (node.disabled) attrs.push("disabled");
+  if (node.expanded != null) attrs.push(`expanded=${node.expanded}`);
+  if (node.pressed != null) attrs.push(`pressed=${node.pressed}`);
+  if (node.selected != null) attrs.push(`selected=${node.selected}`);
+  if (node.required) attrs.push("required");
+  if (node.valuetext) attrs.push(`value="${node.valuetext}"`);
+  if (node.value != null && !node.valuetext) attrs.push(`value="${node.value}"`);
+  if (attrs.length) line += ` [${attrs.join("][")}]`;
+
+  parts.push(line);
+
+  // Recurse children
+  if (node.children) {
+    for (const child of node.children) {
+      parts.push(formatAccessibilityTree(child, depth + 1));
+    }
+  }
+
+  return parts.filter(Boolean).join("\n");
+}
+
+// ────────────────────────────────────────────────────────────
+// Ref-Based Interaction Actions
+// ────────────────────────────────────────────────────────────
+// These use ARIA role + name locators from snapshot output
+// to interact with elements without CSS selectors.
+
+/**
+ * Resolve a ref string from an aria snapshot to a Playwright locator.
+ *
+ * Supports two modes:
+ * 1. If ariaSnapshot gave us [ref=X] IDs (Playwright ≥1.49), use getByRole/getByLabel
+ * 2. Direct role + name matching: "button:Submit", "link:Home", "textbox:Search"
+ */
+function resolveRef(page, ref) {
+  // Format: "role:name" (e.g. "button:Submit", "link:Get started")
+  const colonIdx = ref.indexOf(":");
+  if (colonIdx > 0) {
+    const role = ref.slice(0, colonIdx).trim();
+    const name = ref.slice(colonIdx + 1).trim();
+    return page.getByRole(role, { name, exact: false });
+  }
+
+  // Fallback: try as aria-label
+  return page.getByLabel(ref, { exact: false });
+}
+
+async function actionClickRef(page, { ref }) {
+  if (!ref) return { error: "Missing required parameter: ref" };
+
+  try {
+    const locator = resolveRef(page, ref);
+    await locator.click({ timeout: 10_000 });
+    await page.waitForLoadState("domcontentloaded", { timeout: 5_000 }).catch(() => {});
+
+    return {
+      action: "click_ref",
+      ref,
+      url: page.url(),
+      title: await page.title(),
+    };
+  } catch (err) {
+    return { error: `click_ref failed for "${ref}": ${err.message}` };
+  }
+}
+
+async function actionTypeRef(page, { ref, text, pressEnter }) {
+  if (!ref) return { error: "Missing required parameter: ref" };
+  if (text === undefined || text === null) return { error: "Missing required parameter: text" };
+
+  try {
+    const locator = resolveRef(page, ref);
+    await locator.fill("", { timeout: 10_000 });
+    await locator.fill(text, { timeout: 10_000 });
+
+    if (pressEnter) {
+      await locator.press("Enter");
+      await page.waitForLoadState("domcontentloaded", { timeout: 5_000 }).catch(() => {});
+    }
+
+    return {
+      action: "type_ref",
+      ref,
+      text,
+      pressEnter: pressEnter || false,
+      url: page.url(),
+      title: await page.title(),
+    };
+  } catch (err) {
+    return { error: `type_ref failed for "${ref}": ${err.message}` };
+  }
+}
+
+async function actionHoverRef(page, { ref }) {
+  if (!ref) return { error: "Missing required parameter: ref" };
+
+  try {
+    const locator = resolveRef(page, ref);
+    await locator.hover({ timeout: 10_000 });
+
+    return {
+      action: "hover_ref",
+      ref,
+      url: page.url(),
+    };
+  } catch (err) {
+    return { error: `hover_ref failed for "${ref}": ${err.message}` };
+  }
+}
+
+async function actionSelectRef(page, { ref, value }) {
+  if (!ref) return { error: "Missing required parameter: ref" };
+  if (!value) return { error: "Missing required parameter: value" };
+
+  try {
+    const locator = resolveRef(page, ref);
+    await locator.selectOption(value, { timeout: 10_000 });
+
+    return {
+      action: "select_ref",
+      ref,
+      value,
+      url: page.url(),
+      title: await page.title(),
+    };
+  } catch (err) {
+    return { error: `select_ref failed for "${ref}": ${err.message}` };
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// Playwright Script Execution
+// ────────────────────────────────────────────────────────────
+
+const SCRIPT_TIMEOUT_MS = 60_000;
+const MAX_SCRIPT_OUTPUT = 256 * 1024;
+
+/**
+ * Execute an arbitrary Playwright script in a subprocess.
+ *
+ * The script is written to a temp file and executed via `node`. It receives
+ * the browser's WebSocket endpoint via the BROWSER_WS_ENDPOINT env var,
+ * allowing it to connect to the existing singleton browser session.
+ *
+ * Scripts should use `chromium.connectOverCDP(process.env.BROWSER_WS_ENDPOINT)`
+ * to connect.
+ */
+async function actionRunScript(_page, { script, timeout }) {
+  if (!script) return { error: "Missing required parameter: script" };
+
+  // Ensure the browser is running and get its WebSocket endpoint
+  const b = await getBrowser();
+  const wsEndpoint = b.wsEndpoint?.() || null;
+
+  // Wrap the user script with boilerplate for connecting to our browser
+  const wrappedScript = `
+const { chromium } = require('playwright');
+
+(async () => {
+  const BROWSER_WS = process.env.BROWSER_WS_ENDPOINT;
+  let browser;
+  if (BROWSER_WS) {
+    browser = await chromium.connectOverCDP(BROWSER_WS);
+  } else {
+    browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  }
+  const context = browser.contexts()[0] || await browser.newContext();
+  const page = context.pages()[0] || await context.newPage();
+
+  try {
+    // ── User Script Start ──
+    ${script}
+    // ── User Script End ──
+  } catch (err) {
+    console.error('Script error:', err.message);
+    process.exit(1);
+  } finally {
+    if (!BROWSER_WS) await browser.close();
+  }
+})();
+`;
+
+  let tmpDir;
+  let scriptPath;
+
+  try {
+    // Write script to temp file
+    tmpDir = await mkdtemp(join(tmpdir(), "pw-script-"));
+    scriptPath = join(tmpDir, "script.cjs");
+    await writeFile(scriptPath, wrappedScript, "utf-8");
+
+    // Execute in subprocess
+    const clampedTimeout = Math.min(Math.max(timeout || SCRIPT_TIMEOUT_MS, 5_000), 120_000);
+    const result = await executeScript(scriptPath, wsEndpoint, clampedTimeout);
+
+    return {
+      action: "run_script",
+      ...result,
+    };
+  } catch (err) {
+    return { error: `run_script failed: ${err.message}` };
+  } finally {
+    // Cleanup
+    if (scriptPath) {
+      unlink(scriptPath).catch(() => {});
+    }
+    if (tmpDir) {
+      import("node:fs").then(fs => fs.rmSync(tmpDir, { recursive: true, force: true })).catch(() => {});
+    }
+  }
+}
+
+/**
+ * Execute a Playwright script file in a subprocess.
+ */
+function executeScript(scriptPath, wsEndpoint, timeoutMs) {
+  return new Promise((resolve) => {
+    const stdoutChunks = [];
+    const stderrChunks = [];
+    let stdoutLen = 0;
+    let stderrLen = 0;
+    let timedOut = false;
+    let settled = false;
+
+    const child = spawn("node", [scriptPath], {
+      stdio: ["pipe", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        BROWSER_WS_ENDPOINT: wsEndpoint || "",
+        CI: "true",
+        FORCE_COLOR: "0",
+        NO_COLOR: "1",
+      },
+      detached: false,
+    });
+
+    child.stdin.end();
+
+    child.stdout.on("data", (chunk) => {
+      if (stdoutLen < MAX_SCRIPT_OUTPUT) {
+        stdoutChunks.push(chunk);
+        stdoutLen += chunk.length;
+      }
+    });
+
+    child.stderr.on("data", (chunk) => {
+      if (stderrLen < MAX_SCRIPT_OUTPUT) {
+        stderrChunks.push(chunk);
+        stderrLen += chunk.length;
+      }
+    });
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGKILL");
+    }, timeoutMs);
+
+    function finish(exitCode) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+
+      const stdout = Buffer.concat(stdoutChunks).toString("utf-8");
+      const stderr = Buffer.concat(stderrChunks).toString("utf-8");
+
+      resolve({
+        success: exitCode === 0 && !timedOut,
+        stdout: stdoutLen > MAX_SCRIPT_OUTPUT ? stdout + "\n... [output truncated]" : stdout,
+        stderr: stderrLen > MAX_SCRIPT_OUTPUT ? stderr + "\n... [output truncated]" : stderr,
+        exitCode: timedOut ? null : exitCode,
+        timedOut,
+        ...(timedOut && { error: `Script timed out after ${timeoutMs}ms` }),
+      });
+    }
+
+    child.on("close", (code) => finish(code));
+    child.on("error", (err) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        resolve({
+          success: false,
+          stdout: "",
+          stderr: "",
+          exitCode: null,
+          error: `Process error: ${err.message}`,
+        });
+      }
+    });
+  });
+}
+
+// ────────────────────────────────────────────────────────────
 // Public API
 // ────────────────────────────────────────────────────────────
 
@@ -471,6 +832,12 @@ const ACTION_HANDLERS = {
   get_content: actionGetContent,
   get_elements: actionGetElements,
   wait: actionWait,
+  snapshot: actionSnapshot,
+  click_ref: actionClickRef,
+  type_ref: actionTypeRef,
+  hover_ref: actionHoverRef,
+  select_ref: actionSelectRef,
+  run_script: actionRunScript,
 };
 
 /**

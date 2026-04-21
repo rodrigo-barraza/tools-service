@@ -5350,11 +5350,14 @@ const TOOL_DEFINITIONS = [
     name: "browser_action",
     dataSource: compute("headless Chromium (Playwright)"),
     description:
-      "Control a headless Chromium browser for web automation, E2E testing, visual QA, and interacting with JavaScript-rendered pages that fetch_url cannot handle. Supports navigation, screenshots, clicking, typing, scrolling, JS evaluation, content extraction, element discovery, and waiting. Each call performs ONE action. The browser session persists between calls (same sessionId) so you can build multi-step flows: navigate → get_elements → click → type → screenshot. IMPORTANT: After navigating to a page, use 'get_elements' to discover available interactive elements and their CSS selectors before clicking or typing — never guess selectors. Sessions auto-close after 5 minutes of inactivity.",
+      "Control a headless Chromium browser for web automation, E2E testing, visual QA, and interacting with JavaScript-rendered pages that fetch_url cannot handle. Each call performs ONE action. The browser session persists between calls (same sessionId) so you can build multi-step flows.\n\n" +
+      "RECOMMENDED WORKFLOW: navigate → snapshot → click_ref/type_ref. The 'snapshot' action returns an ARIA accessibility tree (roles, names, states) which is ~4x more token-efficient than screenshots. It outputs elements like: heading \"Title\" [level=1], button \"Submit\", textbox \"Search\". Use 'click_ref' or 'type_ref' with a 'role:name' ref string (e.g. ref=\"button:Submit\") to interact with elements from the snapshot — no CSS selectors needed.\n\n" +
+      "ALTERNATIVE WORKFLOW: navigate → get_elements → click/type (uses CSS selectors instead of ARIA refs).\n\n" +
+      "For complex multi-step browser automation, use the 'browser_script' tool instead — it executes a full Playwright script in a single call. Sessions auto-close after 5 minutes of inactivity.",
     endpoint: {
       method: "POST",
       path: "/agentic/browser/action",
-      bodyParams: ["action", "sessionId", "url", "selector", "text", "pressEnter", "fullPage", "direction", "amount", "expression", "format", "timeout", "state", "limit"],
+      bodyParams: ["action", "sessionId", "url", "selector", "text", "pressEnter", "fullPage", "direction", "amount", "expression", "format", "timeout", "state", "limit", "ref", "value", "script"],
     },
     parameters: {
       type: "object",
@@ -5362,8 +5365,8 @@ const TOOL_DEFINITIONS = [
         action: {
           type: "string",
           description:
-            "The browser action to perform. One of: 'navigate' (go to URL), 'screenshot' (capture viewport), 'click' (click element), 'type' (enter text), 'scroll' (scroll page), 'evaluate' (run JS), 'get_content' (extract text/HTML), 'get_elements' (discover interactive elements with their CSS selectors — use this after navigating to find clickable/typeable elements), 'wait' (wait for element/time), 'close' (end session).",
-          enum: ["navigate", "screenshot", "click", "type", "scroll", "evaluate", "get_content", "get_elements", "wait", "close"],
+            "The browser action to perform. SNAPSHOT FLOW: 'snapshot' (get ARIA accessibility tree — preferred over screenshot for page understanding), 'click_ref' (click element by role:name ref), 'type_ref' (type into element by ref), 'hover_ref' (hover element by ref), 'select_ref' (select dropdown option by ref). SELECTOR FLOW: 'click' (click by CSS selector), 'type' (type by CSS selector), 'get_elements' (discover interactive elements). GENERAL: 'navigate' (go to URL), 'screenshot' (capture viewport as image), 'scroll' (scroll page), 'evaluate' (run JS), 'get_content' (extract text/HTML), 'wait' (wait for element/time), 'run_script' (execute Playwright script), 'close' (end session).",
+          enum: ["navigate", "screenshot", "click", "type", "scroll", "evaluate", "get_content", "get_elements", "wait", "close", "snapshot", "click_ref", "type_ref", "hover_ref", "select_ref", "run_script"],
         },
         sessionId: {
           type: "string",
@@ -5376,15 +5379,24 @@ const TOOL_DEFINITIONS = [
         },
         selector: {
           type: "string",
-          description: "CSS selector targeting an element (used by 'click', 'type', 'screenshot', 'scroll', 'get_content', 'wait').",
+          description: "CSS selector targeting an element (used by 'click', 'type', 'screenshot', 'scroll', 'get_content', 'wait', 'snapshot').",
+        },
+        ref: {
+          type: "string",
+          description:
+            "Element ref from an ARIA snapshot, formatted as 'role:name' (e.g. 'button:Submit', 'link:Home', 'textbox:Search'). Used by 'click_ref', 'type_ref', 'hover_ref', 'select_ref' actions. Get these from the 'snapshot' action output.",
         },
         text: {
           type: "string",
-          description: "Text to type into the selected element (required for 'type' action).",
+          description: "Text to type (required for 'type' and 'type_ref' actions).",
+        },
+        value: {
+          type: "string",
+          description: "Option value to select (required for 'select_ref' action).",
         },
         pressEnter: {
           type: "boolean",
-          description: "If true, press Enter after typing (for 'type' action). Useful for submitting search forms.",
+          description: "If true, press Enter after typing (for 'type' and 'type_ref' actions). Useful for submitting search forms.",
         },
         fullPage: {
           type: "boolean",
@@ -5408,7 +5420,7 @@ const TOOL_DEFINITIONS = [
         },
         timeout: {
           type: "integer",
-          description: "Timeout in milliseconds (for 'wait' action, default: 10000, max: 30000).",
+          description: "Timeout in milliseconds (for 'wait' and 'run_script' actions, default: 10000/60000, max: 30000/120000).",
         },
         state: {
           type: "string",
@@ -5418,8 +5430,50 @@ const TOOL_DEFINITIONS = [
           type: "integer",
           description: "Maximum number of elements to return (for 'get_elements' action, default: 50, max: 100).",
         },
+        script: {
+          type: "string",
+          description:
+            "Playwright script body to execute (for 'run_script' action). The script runs inside an async IIFE with 'browser', 'context', and 'page' already available. Use console.log() for output. Example: await page.goto('https://example.com'); console.log(await page.title());",
+        },
       },
       required: ["action"],
+    },
+  },
+  {
+    name: "browser_script",
+    dataSource: compute("headless Chromium (Playwright subprocess)"),
+    description:
+      "Write and execute a complete Playwright script for complex multi-step browser automation that would be too many round-trips with browser_action. The script runs in a Node.js subprocess connected to the existing headless browser session.\n\n" +
+      "The script body executes inside an async context with 'browser', 'context', and 'page' already initialized. Use console.log() to return data. " +
+      "Use this for: scraping multi-page data, filling complex forms with validation, running E2E test sequences, browser-based data extraction pipelines, or any workflow requiring 3+ sequential browser actions.\n\n" +
+      "Example script:\n" +
+      "await page.goto('https://news.ycombinator.com');\n" +
+      "const titles = await page.$$eval('.titleline > a', els => els.slice(0,10).map(e => e.textContent));\n" +
+      "console.log(JSON.stringify(titles, null, 2));",
+    endpoint: {
+      method: "POST",
+      path: "/agentic/browser/script",
+      bodyParams: ["script", "sessionId", "timeout"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        script: {
+          type: "string",
+          description:
+            "The Playwright script body. Runs inside async IIFE with 'browser', 'context', 'page' pre-initialized. Use standard Playwright API: page.goto(), page.click(), page.fill(), page.$$eval(), page.locator(), etc. Use console.log() to output results.",
+        },
+        sessionId: {
+          type: "string",
+          description:
+            "Optional session identifier. The script connects to the existing browser and uses the first available page, or creates a new one.",
+        },
+        timeout: {
+          type: "integer",
+          description: "Script execution timeout in milliseconds (default: 60000, max: 120000).",
+        },
+      },
+      required: ["script"],
     },
   },
 
@@ -6761,6 +6815,7 @@ const TOOL_DOMAINS = {
   git: "Agentic: Git",
   // Agentic — Browser Automation
   browser_action: "Agentic: Browser",
+  browser_script: "Agentic: Browser",
 
   // Agentic — Code Intelligence (LSP)
   lsp_action: "Agentic: Code Intelligence",
@@ -7117,6 +7172,7 @@ const TOOL_LABELS = {
 
   // ── Agentic: Browser ─────────────────────────────────────
   browser_action: ["coding", "web"],
+  browser_script: ["coding", "web"],
 
   // ── Agentic: Code Intelligence (LSP) ─────────────────────
   lsp_action: ["coding"],

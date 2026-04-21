@@ -521,6 +521,27 @@ router.post("/browser/action", async (req, res) => {
   res.json(result);
 });
 
+// ── Browser Script Execution ──────────────────────────────────
+
+router.post("/browser/script", async (req, res) => {
+  const { script, sessionId, timeout } = req.body;
+  if (!script || typeof script !== "string") {
+    return res.status(400).json({ error: "Request body must include 'script' (string)" });
+  }
+
+  const result = await agenticBrowserAction({
+    action: "run_script",
+    sessionId,
+    script,
+    timeout,
+  });
+
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
 // ═══════════════════════════════════════════════════════════════
 // 10. LSP Code Intelligence
 // ═══════════════════════════════════════════════════════════════
@@ -598,6 +619,7 @@ export function getAgenticHealth() {
     gitWorktreeCleanup: "on-demand (git prune)",
     projectSummary: "on-demand (fs scan)",
     browserAction: getBrowserHealth(),
+    browserScript: "on-demand (Playwright subprocess)",
     lspAction: "on-demand (LSP stdio JSON-RPC)",
     lspServers: agenticLspHealth(),
     taskManagement: "on-demand (MongoDB agent_tasks)",
