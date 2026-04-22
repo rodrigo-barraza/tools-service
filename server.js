@@ -5,6 +5,7 @@ import { initLocation } from "./services/LocationService.js";
 import { requestLoggerMiddleware } from "./middleware/RequestLoggerMiddleware.js";
 import { toolCallLoggerMiddleware } from "./middleware/ToolCallLoggerMiddleware.js";
 import { fieldProjectionMiddleware } from "./middleware/FieldProjectionMiddleware.js";
+import { headerPropagationMiddleware } from "./middleware/HeaderPropagationMiddleware.js";
 
 // ─── Model Setup ───────────────────────────────────────────────────
 
@@ -68,7 +69,7 @@ const app = express();
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Content-Type, X-Project, X-Username, X-Agent, X-Request-Id, X-Conversation-Id, X-Iteration");
+  res.header("Access-Control-Allow-Headers", "Content-Type, X-Project, X-Username, X-Agent, X-Request-Id, X-Conversation-Id, X-Iteration, X-Workspace-Id");
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
@@ -76,6 +77,7 @@ app.use(express.json({ limit: "50mb" }));
 app.use(requestLoggerMiddleware);
 app.use(toolCallLoggerMiddleware);
 app.use(fieldProjectionMiddleware);
+app.use(headerPropagationMiddleware);
 
 // ─── Mount Domain Routers ──────────────────────────────────────────
 
