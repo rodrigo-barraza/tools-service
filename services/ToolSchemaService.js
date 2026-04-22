@@ -4156,11 +4156,14 @@ const TOOL_DEFINITIONS = [
     dataSource: compute("internal"),
     description:
       "Draw graphics using LOGO Turtle commands on an HTML5 canvas. The turtle starts at center facing north. " +
-      "Send an array of step-by-step commands to draw shapes, patterns, fractals, or art. " +
-      "Supports incremental drawing: omit sessionId for a new drawing, or pass the returned sessionId " +
-      "to append commands to an existing drawing across multiple tool calls. " +
-      "The response contains a turtleEmbedUrl — you MUST render it in your response using " +
-      "![Turtle Drawing](turtleEmbedUrl) markdown syntax so the user sees the animated drawing inline. " +
+      "IMPORTANT: You MUST draw incrementally — break the drawing into logical parts (e.g. each shape, each side, " +
+      "each layer) and call this tool multiple times using the sessionId returned from the first call. " +
+      "Send at most 20-30 commands per call. Between calls, briefly describe what you just drew and what comes next. " +
+      "This lets the user follow along as the drawing builds up piece by piece. " +
+      "Do NOT send the entire drawing in a single call. " +
+      "Workflow: 1) First call without sessionId → creates session. " +
+      "2) Each subsequent call passes the sessionId to append. " +
+      "3) Only render the FINAL turtleEmbedUrl with ![Turtle Drawing](url) in your last message. " +
       "Available commands: forward/fd (distance), backward/bk (distance), right/rt (angle°), left/lt (angle°), " +
       "penup/pu, pendown/pd, color (CSS color), width (pixels), goto (x,y from center), setheading/seth (angle°), " +
       "circle (radius), arc (radius, extent°), dot/stamp (size), label/write (text), " +
