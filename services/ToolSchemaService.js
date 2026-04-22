@@ -6418,6 +6418,249 @@ const TOOL_DEFINITIONS = [
       required: ["sceneId"],
     },
   },
+  {
+    name: "lifx_move_effect",
+    dataSource: onDemand("LIFX Cloud API"),
+    description:
+      "Run a move effect — flowing color animation along LIFX strip products (Z, Beam). " +
+      "The existing color pattern moves forward or backward along the strip. " +
+      "Perfect for ambient flowing light effects. Only works on multizone strip products.",
+    endpoint: {
+      path: "/lights/effects/move",
+      method: "POST",
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        selector: {
+          type: "string",
+          description: "LIFX selector. Default: 'all'.",
+        },
+        direction: {
+          type: "string",
+          enum: ["forward", "backward"],
+          description: "Direction of movement along the strip. Default: 'forward'.",
+        },
+        period: {
+          type: "number",
+          description: "Seconds per movement cycle (default: 1). Lower = faster flow.",
+        },
+        cycles: {
+          type: "number",
+          description: "Number of cycles to run. Omit for infinite (until stopped with lifx_effects_off).",
+        },
+        powerOn: {
+          type: "boolean",
+          description: "If true (default), turn the light on if it's off.",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "lifx_flame_effect",
+    dataSource: onDemand("LIFX Cloud API"),
+    description:
+      "Run a flame effect — flickering fire animation that runs on LIFX matrix device firmware " +
+      "(Tile, Candle). Creates a realistic candle/fireplace simulation. " +
+      "Only works on matrix-capable products.",
+    endpoint: {
+      path: "/lights/effects/flame",
+      method: "POST",
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        selector: {
+          type: "string",
+          description: "LIFX selector. Default: 'all'.",
+        },
+        period: {
+          type: "number",
+          description: "Speed of the flame in seconds (default: 5). Lower = more active flame.",
+        },
+        duration: {
+          type: "number",
+          description: "How long to run in seconds. Omit for indefinite (until stopped with lifx_effects_off).",
+        },
+        powerOn: {
+          type: "boolean",
+          description: "If true (default), turn the light on if it's off.",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "lifx_morph_effect",
+    dataSource: onDemand("LIFX Cloud API"),
+    description:
+      "Run a morph effect — continuous color-blending animation on LIFX matrix devices " +
+      "(Tile, Candle). Smoothly transitions between provided palette colors. " +
+      "Great for ambient mood lighting with multiple colors. Only works on matrix-capable products.",
+    endpoint: {
+      path: "/lights/effects/morph",
+      method: "POST",
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        selector: {
+          type: "string",
+          description: "LIFX selector. Default: 'all'.",
+        },
+        palette: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Array of color strings to blend between. Examples: ['red', 'blue', 'green'], " +
+            "['#FF0000', '#00FF00', '#0000FF'], ['kelvin:2700', 'kelvin:6500'].",
+        },
+        period: {
+          type: "number",
+          description: "Seconds per blend cycle (default: 5). Lower = faster transitions.",
+        },
+        duration: {
+          type: "number",
+          description: "How long to run in seconds. Omit for indefinite (until stopped with lifx_effects_off).",
+        },
+        powerOn: {
+          type: "boolean",
+          description: "If true (default), turn the light on if it's off.",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "lifx_set_states",
+    dataSource: onDemand("LIFX Cloud API"),
+    description:
+      "Set different states on multiple LIFX light selectors in a single API call. " +
+      "Allows setting up to 50 different light states simultaneously — each with its own " +
+      "selector, power, color, brightness, and duration. Much more efficient than calling " +
+      "lifx_set_state multiple times. Use 'defaults' to set common values across all entries.",
+    endpoint: {
+      path: "/lights/states",
+      method: "PUT",
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        states: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              selector: { type: "string", description: "LIFX selector for this state entry." },
+              power: { type: "string", enum: ["on", "off"] },
+              color: { type: "string", description: "Color string." },
+              brightness: { type: "number", description: "0.0 to 1.0." },
+              duration: { type: "number", description: "Transition seconds." },
+              kelvin: { type: "number", description: "Color temperature 2500-9000." },
+            },
+          },
+          description:
+            "Array of state objects (max 50). Each must have a selector and any " +
+            "combination of power/color/brightness/duration/kelvin.",
+        },
+        defaults: {
+          type: "object",
+          description:
+            "Default values applied to all state entries. Same properties as individual states " +
+            "(power, color, brightness, duration, kelvin). Individual entries override defaults.",
+        },
+      },
+      required: ["states"],
+    },
+  },
+  {
+    name: "lifx_set_state_delta",
+    dataSource: onDemand("LIFX Cloud API"),
+    description:
+      "Make relative adjustments to the current state of LIFX lights — increase/decrease brightness, " +
+      "shift hue, adjust saturation, or change color temperature by a delta value. " +
+      "Unlike lifx_set_state (which sets absolute values), this adds or subtracts from the current state. " +
+      "Example: brightness +0.2 makes lights 20% brighter than they currently are.",
+    endpoint: {
+      path: "/lights/state/delta",
+      method: "POST",
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        selector: {
+          type: "string",
+          description: "LIFX selector. Default: 'all'.",
+        },
+        hue: {
+          type: "number",
+          description: "Hue adjustment from -360 to 360 degrees.",
+        },
+        saturation: {
+          type: "number",
+          description: "Saturation adjustment from -1.0 to 1.0.",
+        },
+        brightness: {
+          type: "number",
+          description: "Brightness adjustment from -1.0 to 1.0. Positive = brighter, negative = dimmer.",
+        },
+        kelvin: {
+          type: "number",
+          description: "Color temperature adjustment from -9000 to 9000. Positive = cooler, negative = warmer.",
+        },
+        duration: {
+          type: "number",
+          description: "Transition time in seconds (default: 1).",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "lifx_night_lock",
+    dataSource: onDemand("LIFX Cloud API"),
+    description:
+      "Check, toggle, or set the night lock status on the smart lighting system. " +
+      "When locked, external requests to turn lights on are blocked (the automation engine " +
+      "handles sleep-time lockout automatically). Use action 'status' to check, 'toggle' to flip, " +
+      "or 'set' to explicitly lock/unlock.",
+    endpoint: {
+      path: "/lights/nightlock",
+      method: "POST",
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          enum: ["status", "toggle", "set"],
+          description: "Action to perform. 'status': check current state. 'toggle': flip lock. 'set': explicitly set.",
+        },
+        locked: {
+          type: "boolean",
+          description: "Required when action is 'set'. True to lock, false to unlock.",
+        },
+      },
+      required: ["action"],
+    },
+  },
+  {
+    name: "lifx_health",
+    dataSource: onDemand("Lights Service"),
+    description:
+      "Get health and diagnostics from the smart lighting service — uptime, current automation phase " +
+      "(sleep/sunrise/daytime/sunset/nighttime), night lock status, LIFX API rate limit usage, " +
+      "sunrise/sunset times, and current weather conditions affecting lighting.",
+    endpoint: {
+      path: "/lights/health",
+    },
+    parameters: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
 
   // ── Agent Management ──────────────────────────────────────
   {
@@ -6949,9 +7192,16 @@ const TOOL_DOMAINS = {
   lifx_toggle_power: "Smart Home",
   lifx_breathe_effect: "Smart Home",
   lifx_pulse_effect: "Smart Home",
+  lifx_move_effect: "Smart Home",
+  lifx_flame_effect: "Smart Home",
+  lifx_morph_effect: "Smart Home",
+  lifx_set_states: "Smart Home",
+  lifx_set_state_delta: "Smart Home",
   lifx_effects_off: "Smart Home",
   lifx_list_scenes: "Smart Home",
   lifx_activate_scene: "Smart Home",
+  lifx_night_lock: "Smart Home",
+  lifx_health: "Smart Home",
 };
 
 // ────────────────────────────────────────────────────────────
@@ -7307,9 +7557,16 @@ const TOOL_LABELS = {
   lifx_toggle_power: ["smart_home", "lifx"],
   lifx_breathe_effect: ["smart_home", "lifx"],
   lifx_pulse_effect: ["smart_home", "lifx"],
+  lifx_move_effect: ["smart_home", "lifx"],
+  lifx_flame_effect: ["smart_home", "lifx"],
+  lifx_morph_effect: ["smart_home", "lifx"],
+  lifx_set_states: ["smart_home", "lifx"],
+  lifx_set_state_delta: ["smart_home", "lifx"],
   lifx_effects_off: ["smart_home", "lifx"],
   lifx_list_scenes: ["smart_home", "lifx"],
   lifx_activate_scene: ["smart_home", "lifx"],
+  lifx_night_lock: ["smart_home", "lifx"],
+  lifx_health: ["smart_home", "lifx"],
 };
 
 // ────────────────────────────────────────────────────────────

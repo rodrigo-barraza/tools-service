@@ -10,37 +10,35 @@ import {
   getUserByName,
   getClockCrewDB,
 } from "../models/ClockCrewPost.js";
+import { asyncHandler, parseIntParam, HealthTracker } from "../utilities.js";
 
 const router = Router();
 
 // ─── Health ─────────────────────────────────────────────────────
 
-const state = { lastChecked: null, error: null };
+const health = new HealthTracker();
 
 export function getClockCrewHealth() {
-  return { lastChecked: state.lastChecked, error: state.error };
+  return health.getHealth();
 }
+
+const opts = { errorStatus: 500, health };
 
 // ─── GET /stats ─────────────────────────────────────────────────
 // Returns scrape progress stats.
 
-router.get("/stats", async (_req, res) => {
-  try {
-    const stats = await getScrapeStats();
-    state.lastChecked = new Date();
-    res.json(stats);
-  } catch (error) {
-    state.error = error.message;
-    res.status(500).json({ error: error.message });
-  }
-});
+router.get(
+  "/stats",
+  asyncHandler(() => getScrapeStats(), "Clock Crew stats", opts),
+);
 
 // ─── GET /threads ───────────────────────────────────────────────
 // List threads with optional filters.
 // Query: ?boardId=6&author=RobClock&limit=50&skip=0
 
-router.get("/threads", async (req, res) => {
-  try {
+router.get(
+  "/threads",
+  asyncHandler(async (req) => {
     const db = getClockCrewDB();
     const col = db.collection("ClockCrewNetThreads");
 
@@ -48,87 +46,82 @@ router.get("/threads", async (req, res) => {
     if (req.query.boardId) query.boardId = parseInt(req.query.boardId, 10);
     if (req.query.author) query.author = new RegExp(`^${req.query.author}$`, "i");
 
-    const limit = Math.min(parseInt(req.query.limit) || 50, 500);
-    const skip = parseInt(req.query.skip) || 0;
+    const limit = parseIntParam(req.query.limit, 50, 500);
+    const skip = parseIntParam(req.query.skip, 0);
 
     const [threads, count] = await Promise.all([
       col.find(query).sort({ date: -1 }).skip(skip).limit(limit).toArray(),
       col.countDocuments(query),
     ]);
 
-    res.json({ count, threads });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+    return { count, threads };
+  }, "Thread listing", 500),
+);
 
 // ─── GET /threads/:topicId/posts ────────────────────────────────
 // Get all posts in a specific thread.
 
-router.get("/threads/:topicId/posts", async (req, res) => {
-  try {
+router.get(
+  "/threads/:topicId/posts",
+  asyncHandler(async (req) => {
     const topicId = parseInt(req.params.topicId, 10);
-    const limit = Math.min(parseInt(req.query.limit) || 500, 2000);
+    const limit = parseIntParam(req.query.limit, 500, 2000);
     const posts = await getPostsByThread(topicId, limit);
-    res.json({ count: posts.length, posts });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+    return { count: posts.length, posts };
+  }, "Thread posts", 500),
+);
 
 // ─── GET /posts/by-author/:author ───────────────────────────────
 // Get all posts by a specific author.
 
-router.get("/posts/by-author/:author", async (req, res) => {
-  try {
-    const limit = Math.min(parseInt(req.query.limit) || 200, 1000);
+router.get(
+  "/posts/by-author/:author",
+  asyncHandler(async (req) => {
+    const limit = parseIntParam(req.query.limit, 200, 1000);
     const posts = await getPostsByAuthor(req.params.author, limit);
-    res.json({ count: posts.length, posts });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+    return { count: posts.length, posts };
+  }, "Author posts", 500),
+);
 
 // ─── GET /posts/search ──────────────────────────────────────────
 // Full-text search across post bodies.
 // Query: ?q=clockmas&author=VCRClock&boardId=6&limit=50
 
-router.get("/posts/search", async (req, res) => {
-  try {
+router.get(
+  "/posts/search",
+  asyncHandler(async (req) => {
     const posts = await searchPosts({
       q: req.query.q,
       author: req.query.author,
       boardId: req.query.boardId
         ? parseInt(req.query.boardId, 10)
         : undefined,
-      limit: Math.min(parseInt(req.query.limit) || 100, 500),
+      limit: parseIntParam(req.query.limit, 100, 500),
     });
-    res.json({ count: posts.length, posts });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+    return { count: posts.length, posts };
+  }, "Post search", 500),
+);
 
 // ─── GET /boards ────────────────────────────────────────────────
 // Returns all scraped boards from the ClockCrewNetBoards collection.
 
-router.get("/boards", async (_req, res) => {
-  try {
+router.get(
+  "/boards",
+  asyncHandler(async () => {
     const boards = await getAllBoards();
-    res.json({ count: boards.length, boards });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+    return { count: boards.length, boards };
+  }, "Board listing", 500),
+);
 
 // ─── GET /authors ───────────────────────────────────────────────
 // Top posters by post count.
 
-router.get("/authors", async (req, res) => {
-  try {
+router.get(
+  "/authors",
+  asyncHandler(async (req) => {
     const db = getClockCrewDB();
     const col = db.collection("ClockCrewNetPosts");
-    const limit = Math.min(parseInt(req.query.limit) || 50, 500);
+    const limit = parseIntParam(req.query.limit, 50, 500);
 
     const authors = await col
       .aggregate([
@@ -146,7 +139,7 @@ router.get("/authors", async (req, res) => {
       ])
       .toArray();
 
-    res.json({
+    return {
       count: authors.length,
       authors: authors.map((a) => ({
         author: a._id,
@@ -154,50 +147,39 @@ router.get("/authors", async (req, res) => {
         firstPost: a.firstPost,
         lastPost: a.lastPost,
       })),
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+    };
+  }, "Author listing", 500),
+);
 
 // ─── GET /users ─────────────────────────────────────────────────
 // All scraped user profiles.
 
-router.get("/users", async (req, res) => {
-  try {
-    const limit = Math.min(parseInt(req.query.limit) || 500, 2000);
+router.get(
+  "/users",
+  asyncHandler(async (req) => {
+    const limit = parseIntParam(req.query.limit, 500, 2000);
     const users = await getAllUsers(limit);
-    res.json({ count: users.length, users });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+    return { count: users.length, users };
+  }, "User listing", 500),
+);
 
 // ─── GET /users/:userId ────────────────────────────────────────
 // Get a specific user profile by SMF userId.
 
 router.get("/users/:userId", async (req, res) => {
-  try {
-    const userId = parseInt(req.params.userId, 10);
-    const user = await getUser(userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  const userId = parseInt(req.params.userId, 10);
+  const user = await getUser(userId);
+  if (!user) return res.status(404).json({ error: "User not found" });
+  res.json(user);
 });
 
 // ─── GET /users/by-name/:username ─────────────────────────────
 // Lookup a user by username (case-insensitive).
 
 router.get("/users/by-name/:username", async (req, res) => {
-  try {
-    const user = await getUserByName(req.params.username);
-    if (!user) return res.status(404).json({ error: "User not found" });
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  const user = await getUserByName(req.params.username);
+  if (!user) return res.status(404).json({ error: "User not found" });
+  res.json(user);
 });
 
 export default router;

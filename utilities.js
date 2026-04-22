@@ -125,15 +125,18 @@ export function chunk(array, size) {
 // ─── Route Utilities ───────────────────────────────────────────────
 
 /**
- * Parse an integer query param with a default fallback.
+ * Parse an integer query param with a default fallback and optional max clamp.
+ * Replaces the repeated `Math.min(parseInt(req.query.X) || default, max)` pattern.
  * @param {string|undefined} value - Raw query string value
  * @param {number} defaultValue
+ * @param {number} [max] - Optional upper bound (clamped via Math.min)
  * @returns {number}
  */
-export function parseIntParam(value, defaultValue) {
+export function parseIntParam(value, defaultValue, max) {
   if (value == null) return defaultValue;
   const parsed = parseInt(value, 10);
-  return isNaN(parsed) ? defaultValue : parsed;
+  const result = isNaN(parsed) ? defaultValue : parsed;
+  return max != null ? Math.min(result, max) : result;
 }
 
 // ─── Scraping Utilities ────────────────────────────────────────────
@@ -287,15 +290,21 @@ export function computeTrendingScore(product) {
  *
  * @param {Function} fn - (req, res) => Promise<any> — return value is sent as JSON
  * @param {string} label - Error context label (e.g. "Dictionary lookup")
- * @param {number} [errorStatus=502] - HTTP status on error (502 for upstream, 500 for internal)
+ * @param {number|object} [errorStatusOrOpts=502] - HTTP status on error, or options object
+ * @param {number} [errorStatusOrOpts.errorStatus=502] - HTTP status on error
+ * @param {HealthTracker} [errorStatusOrOpts.health] - Optional HealthTracker to update
  * @returns {Function} Express middleware
  */
-export function asyncHandler(fn, label, errorStatus = 502) {
+export function asyncHandler(fn, label, errorStatusOrOpts = 502) {
+  const errorStatus = typeof errorStatusOrOpts === "number" ? errorStatusOrOpts : (errorStatusOrOpts.errorStatus || 502);
+  const health = typeof errorStatusOrOpts === "object" ? errorStatusOrOpts.health : undefined;
   return async (req, res) => {
     try {
       const result = await fn(req, res);
+      if (health) health.markSuccess();
       if (result !== undefined) res.json(result);
     } catch (err) {
+      if (health) health.markError(err);
       res.status(errorStatus).json({ error: `${label} failed: ${err.message}` });
     }
   };
@@ -500,5 +509,71 @@ ${scripts}
   window.addEventListener("load", function() { setTimeout(reportSize, 300); });
 </${"script"}>
 </body></html>`;
+}
+
+// ─── Health Tracker ───────────────────────────────────────────
+
+/**
+ * Reusable health-state tracker for route domains.
+ * Replaces the duplicated `const state = { lastChecked, error }` +
+ * `getXxxHealth()` + `state.lastChecked = new Date()` pattern
+ * found in ClockCrew, Lights, Newgrounds, and Discord routes.
+ */
+export class HealthTracker {
+  #state = { lastChecked: null, error: null };
+
+  /** Return a snapshot of the current health state. */
+  getHealth() {
+    return { ...this.#state };
+  }
+
+  /** Mark a successful operation. */
+  markSuccess() {
+    this.#state.lastChecked = new Date();
+    this.#state.error = null;
+  }
+
+  /** Mark a failed operation. */
+  markError(err) {
+    this.#state.error = typeof err === "string" ? err : err.message;
+  }
+}
+
+// ─── Caller Context Extraction ────────────────────────────────
+
+/**
+ * Extract caller identity context from request headers.
+ * Replaces the duplicated 5-line header extraction block in
+ * CreativeRoutes (4 occurrences) and AgenticRoutes.
+ * @param {import("express").Request} req
+ * @returns {{ project: string, username: string, agent: string|null, traceId: string|null, agentSessionId: string|null }}
+ */
+export function extractCallerContext(req) {
+  return {
+    project: req.headers["x-project"] || "tools-api",
+    username: req.headers["x-username"] || "system",
+    agent: req.headers["x-agent"] || null,
+    traceId: req.headers["x-trace-id"] || null,
+    agentSessionId: req.headers["x-agent-session-id"] || null,
+  };
+}
+
+// ─── Lazy Import Factory ──────────────────────────────────────
+
+/**
+ * Create a lazy-loading async getter for an ES module.
+ * Replaces the duplicated `let mod; async function getMod() { ... }` pattern
+ * used 6 times in ComputeRoutes.
+ *
+ * @param {string} specifier - The import specifier (e.g. "qrcode")
+ * @param {(m: any) => any} [extract=m => m.default] - Extractor for the module export
+ * @returns {() => Promise<any>}
+ */
+export function lazyImport(specifier, extract = (m) => m.default) {
+  let cached;
+  return async () => {
+    if (!cached) cached = extract(await import(specifier));
+    return cached;
+  };
 }
 

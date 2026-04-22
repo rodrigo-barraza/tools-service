@@ -13,6 +13,7 @@
 import { Router } from "express";
 import PrismService from "../services/PrismService.js";
 import logger from "../logger.js";
+import { extractCallerContext } from "../utilities.js";
 
 const router = Router();
 
@@ -143,11 +144,7 @@ router.post("/generate-image", async (req, res) => {
   }
 
   // Extract caller context from headers for Prism attribution
-  const callerProject = req.headers["x-project"] || "tools-api";
-  const callerUsername = req.headers["x-username"] || "system";
-  const callerAgent = req.headers["x-agent"] || null;
-  const callerTraceId = req.headers["x-trace-id"] || null;
-  const callerAgentSessionId = req.headers["x-agent-session-id"] || null;
+  const { project: callerProject, username: callerUsername, agent: callerAgent, traceId: callerTraceId, agentSessionId: callerAgentSessionId } = extractCallerContext(req);
 
   try {
     let currentPrompt = prompt;
@@ -283,11 +280,7 @@ router.post("/describe-image", async (req, res) => {
   }
 
   // Extract caller context from headers for Prism attribution
-  const callerProject = req.headers["x-project"] || "tools-api";
-  const callerUsername = req.headers["x-username"] || "system";
-  const callerAgent = req.headers["x-agent"] || null;
-  const callerTraceId = req.headers["x-trace-id"] || null;
-  const callerAgentSessionId = req.headers["x-agent-session-id"] || null;
+  const { project: callerProject, username: callerUsername, agent: callerAgent, traceId: callerTraceId, agentSessionId: callerAgentSessionId } = extractCallerContext(req);
 
   // Tailor the prompt based on image context
   const prompts = {
@@ -379,8 +372,7 @@ router.post("/text-to-speech", async (req, res) => {
     return res.status(400).json({ error: "Missing required parameter: text" });
   }
 
-  const callerProject = req.headers["x-project"] || "tools-api";
-  const callerUsername = req.headers["x-username"] || "system";
+  const { project: callerProject, username: callerUsername } = extractCallerContext(req);
 
   try {
     const result = await PrismService.textToSpeech({
@@ -436,8 +428,7 @@ router.post("/speech-to-text", async (req, res) => {
     });
   }
 
-  const callerProject = req.headers["x-project"] || "tools-api";
-  const callerUsername = req.headers["x-username"] || "system";
+  const { project: callerProject, username: callerUsername } = extractCallerContext(req);
 
   try {
     const result = await PrismService.speechToText({

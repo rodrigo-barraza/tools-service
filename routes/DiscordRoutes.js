@@ -1,23 +1,27 @@
 import { Router } from "express";
 import DiscordDataService from "../services/DiscordDataService.js";
+import { asyncHandler, parseIntParam, HealthTracker } from "../utilities.js";
 
 const router = Router();
 
 // ─── Health ─────────────────────────────────────────────────────
 
-const state = { lastChecked: null, error: null };
+const health = new HealthTracker();
 
 export function getDiscordHealth() {
-  return { lastChecked: state.lastChecked, error: state.error };
+  return health.getHealth();
 }
+
+const opts = { errorStatus: 500, health };
 
 // ─── GET /messages/search ───────────────────────────────────────
 // Search Discord messages with flexible filters.
 // Query: ?guildId=...&channelId=...&userId=...&query=...&before=...&after=...&limit=50
 
-router.get("/messages/search", async (req, res) => {
-  try {
-    const result = await DiscordDataService.searchMessages({
+router.get(
+  "/messages/search",
+  asyncHandler((req) => {
+    return DiscordDataService.searchMessages({
       guildId: req.query.guildId,
       channelId: req.query.channelId,
       userId: req.query.userId,
@@ -25,38 +29,25 @@ router.get("/messages/search", async (req, res) => {
       query: req.query.query,
       before: req.query.before,
       after: req.query.after,
-      limit: req.query.limit ? parseInt(req.query.limit, 10) : 50,
+      limit: parseIntParam(req.query.limit, 50),
     });
-
-    state.lastChecked = new Date();
-    res.json(result);
-  } catch (error) {
-    state.error = error.message;
-    console.error("[DiscordRoutes] /messages/search error:", error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
+  }, "Message search", opts),
+);
 
 // ─── GET /activity ──────────────────────────────────────────────
 // Get server activity stats: top users, channel breakdown, hourly distribution.
 // Query: ?guildId=...&channelId=...&days=7&topN=15
 
-router.get("/activity", async (req, res) => {
-  try {
-    const result = await DiscordDataService.getServerActivity({
+router.get(
+  "/activity",
+  asyncHandler((req) => {
+    return DiscordDataService.getServerActivity({
       guildId: req.query.guildId,
       channelId: req.query.channelId,
-      days: req.query.days ? parseInt(req.query.days, 10) : 7,
-      topN: req.query.topN ? parseInt(req.query.topN, 10) : 15,
+      days: parseIntParam(req.query.days, 7),
+      topN: parseIntParam(req.query.topN, 15),
     });
-
-    state.lastChecked = new Date();
-    res.json(result);
-  } catch (error) {
-    state.error = error.message;
-    console.error("[DiscordRoutes] /activity error:", error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
+  }, "Server activity", opts),
+);
 
 export default router;

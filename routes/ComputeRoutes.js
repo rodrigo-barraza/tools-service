@@ -20,47 +20,17 @@ import {
 } from "../services/ShellExecutorService.js";
 import { MAX_CODE_LENGTH, MAX_COMMAND_LENGTH } from "../constants.js";
 import crypto from "node:crypto";
-import { setupStreamingSSE, EphemeralStore, buildLocalUrl, validateMaxLength, buildEmbedHtml } from "../utilities.js";
+import { setupStreamingSSE, EphemeralStore, buildLocalUrl, validateMaxLength, buildEmbedHtml, lazyImport } from "../utilities.js";
 
 // ─── Lazy-loaded dependencies ──────────────────────────────────────
 // These are loaded on first use to avoid blocking startup.
 
-let convertUnits;
-let dateFns;
-let dateFnsTz;
-let JSONPath;
-let QRCode;
-let Diff;
-
-async function getConvertUnits() {
-  if (!convertUnits) convertUnits = (await import("convert-units")).default;
-  return convertUnits;
-}
-
-async function getDateFns() {
-  if (!dateFns) dateFns = await import("date-fns");
-  return dateFns;
-}
-
-async function getDateFnsTz() {
-  if (!dateFnsTz) dateFnsTz = await import("date-fns-tz");
-  return dateFnsTz;
-}
-
-async function getJSONPath() {
-  if (!JSONPath) JSONPath = (await import("jsonpath-plus")).JSONPath;
-  return JSONPath;
-}
-
-async function getQRCode() {
-  if (!QRCode) QRCode = (await import("qrcode")).default;
-  return QRCode;
-}
-
-async function getDiff() {
-  if (!Diff) Diff = await import("diff");
-  return Diff;
-}
+const getConvertUnits = lazyImport("convert-units");
+const getDateFns = lazyImport("date-fns", (m) => m);
+const getDateFnsTz = lazyImport("date-fns-tz", (m) => m);
+const getJSONPath = lazyImport("jsonpath-plus", (m) => m.JSONPath);
+const getQRCode = lazyImport("qrcode");
+const getDiff = lazyImport("diff", (m) => m);
 
 const router = Router();
 

@@ -18,17 +18,10 @@ router.get(
 
 // ─── Browse Data Tree ──────────────────────────────────────────────
 
-router.get("/browse", async (req, res) => {
+router.get("/browse", asyncHandler((req) => {
   const route = req.query.route || "";
-  try {
-    const result = await browseRoute(route);
-    res.json(result);
-  } catch (err) {
-    res
-      .status(502)
-      .json({ error: `Failed to browse EIA route: ${err.message}` });
-  }
-});
+  return browseRoute(route);
+}, "EIA browse"));
 
 // ─── Facet Values ──────────────────────────────────────────────────
 
@@ -40,23 +33,22 @@ router.get("/facets", async (req, res) => {
       .json({ error: "Parameters 'route' and 'facetId' are required" });
   }
   try {
-    const result = await getFacetValues(route, facetId);
-    res.json(result);
+    res.json(await getFacetValues(route, facetId));
   } catch (err) {
     res
       .status(502)
-      .json({ error: `Failed to fetch facets: ${err.message}` });
+      .json({ error: `Facet fetch failed: ${err.message}` });
   }
 });
 
 // ─── Data Query ────────────────────────────────────────────────────
 
-router.get("/data", async (req, res) => {
+router.get("/data", asyncHandler(async (req) => {
   const { route, frequency, start, end, sort, length, offset, ...rest } =
     req.query;
 
   if (!route) {
-    return res.status(400).json({ error: "Parameter 'route' is required" });
+    return { error: "Parameter 'route' is required" };
   }
 
   // Parse data[] columns from query string
@@ -80,22 +72,17 @@ router.get("/data", async (req, res) => {
     }
   }
 
-  try {
-    const result = await getData(route, {
-      data: dataColumns,
-      facets: Object.keys(facets).length > 0 ? facets : undefined,
-      frequency,
-      start,
-      end,
-      sort,
-      length: parseInt(length, 10) || 100,
-      offset: parseInt(offset, 10) || 0,
-    });
-    res.json(result);
-  } catch (err) {
-    res.status(502).json({ error: `Failed to fetch EIA data: ${err.message}` });
-  }
-});
+  return getData(route, {
+    data: dataColumns,
+    facets: Object.keys(facets).length > 0 ? facets : undefined,
+    frequency,
+    start,
+    end,
+    sort,
+    length: parseInt(length, 10) || 100,
+    offset: parseInt(offset, 10) || 0,
+  });
+}, "EIA data"));
 
 // ─── Convenience: Electricity ──────────────────────────────────────
 

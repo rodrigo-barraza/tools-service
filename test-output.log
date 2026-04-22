@@ -1,0 +1,3748 @@
+
+> tools-api@0.1.0 test
+> node --test tests/**/*.test.js
+
+TAP version 13
+# Subtest: GET /event/cached
+    # Subtest: returns all cached events with count
+    ok 1 - returns all cached events with count
+      ---
+      duration_ms: 67.037887
+      type: 'test'
+      ...
+    1..1
+ok 1 - GET /event/cached
+  ---
+  duration_ms: 67.976257
+  type: 'suite'
+  ...
+# Subtest: GET /event/summary
+    # Subtest: returns event summary with category and source breakdowns
+    ok 1 - returns event summary with category and source breakdowns
+      ---
+      duration_ms: 17.943707
+      type: 'test'
+      ...
+    1..1
+ok 2 - GET /event/summary
+  ---
+  duration_ms: 18.071359
+  type: 'suite'
+  ...
+# Subtest: GET /event/today
+    # Subtest: returns today's events
+    ok 1 - returns today's events
+      ---
+      duration_ms: 37.443691
+      type: 'test'
+      ...
+    1..1
+ok 3 - GET /event/today
+  ---
+  duration_ms: 37.622945
+  type: 'suite'
+  ...
+# Subtest: GET /event/upcoming
+    # Subtest: returns upcoming events
+    ok 1 - returns upcoming events
+      ---
+      duration_ms: 23.722417
+      type: 'test'
+      ...
+    # Subtest: respects days parameter
+    ok 2 - respects days parameter
+      ---
+      duration_ms: 6.885726
+      type: 'test'
+      ...
+    1..2
+ok 4 - GET /event/upcoming
+  ---
+  duration_ms: 31.145623
+  type: 'suite'
+  ...
+# Subtest: GET /event/past
+    # Subtest: returns past events
+    ok 1 - returns past events
+      ---
+      duration_ms: 28.835264
+      type: 'test'
+      ...
+    1..1
+ok 5 - GET /event/past
+  ---
+  duration_ms: 29.146513
+  type: 'suite'
+  ...
+# Subtest: GET /event/search
+    # Subtest: returns search results with query echo
+    ok 1 - returns search results with query echo
+      ---
+      duration_ms: 19.359927
+      type: 'test'
+      ...
+    # Subtest: returns empty results for nonsense query
+    ok 2 - returns empty results for nonsense query
+      ---
+      duration_ms: 10.6659
+      type: 'test'
+      ...
+    1..2
+ok 6 - GET /event/search
+  ---
+  duration_ms: 30.295974
+  type: 'suite'
+  ...
+# Subtest: FieldProjection — foods wrapper
+    # Subtest: returns full response when no fields param is provided
+    ok 1 - returns full response when no fields param is provided
+      ---
+      duration_ms: 47.066431
+      type: 'test'
+      ...
+    # Subtest: projects name only from foods array items
+    ok 2 - projects name only from foods array items
+      ---
+      duration_ms: 52.736892
+      type: 'test'
+      ...
+    # Subtest: projects name and nested perHundredGrams.macros
+    ok 3 - projects name and nested perHundredGrams.macros
+      ---
+      duration_ms: 2.908671
+      type: 'test'
+      ...
+    # Subtest: projects multiple nested paths
+    ok 4 - projects multiple nested paths
+      ---
+      duration_ms: 2.694237
+      type: 'test'
+      ...
+    # Subtest: projects name and description together
+    ok 5 - projects name and description together
+      ---
+      duration_ms: 2.369401
+      type: 'test'
+      ...
+    # Subtest: projects taxonomy nested fields
+    ok 6 - projects taxonomy nested fields
+      ---
+      duration_ms: 2.353963
+      type: 'test'
+      ...
+    # Subtest: preserves top-level metadata when projecting foods
+    ok 7 - preserves top-level metadata when projecting foods
+      ---
+      duration_ms: 2.486896
+      type: 'test'
+      ...
+    1..7
+ok 7 - FieldProjection — foods wrapper
+  ---
+  duration_ms: 114.340371
+  type: 'suite'
+  ...
+# Subtest: FieldProjection — comparison wrapper
+    # Subtest: returns full comparison when no fields param
+    ok 1 - returns full comparison when no fields param
+      ---
+      duration_ms: 2.6384
+      type: 'test'
+      ...
+    # Subtest: projects name and macros from comparison items
+    ok 2 - projects name and macros from comparison items
+      ---
+      duration_ms: 3.545309
+      type: 'test'
+      ...
+    # Subtest: preserves comparison metadata
+    ok 3 - preserves comparison metadata
+      ---
+      duration_ms: 2.030118
+      type: 'test'
+      ...
+    1..3
+ok 8 - FieldProjection — comparison wrapper
+  ---
+  duration_ms: 8.68773
+  type: 'suite'
+  ...
+# Subtest: FieldProjection — ranked foods wrapper
+    # Subtest: projects name and value from ranked foods
+    ok 1 - projects name and value from ranked foods
+      ---
+      duration_ms: 2.614075
+      type: 'test'
+      ...
+    # Subtest: preserves nutrient metadata
+    ok 2 - preserves nutrient metadata
+      ---
+      duration_ms: 5.724632
+      type: 'test'
+      ...
+    1..2
+ok 9 - FieldProjection — ranked foods wrapper
+  ---
+  duration_ms: 8.725573
+  type: 'suite'
+  ...
+# Subtest: FieldProjection — internal field stripping
+    # Subtest: strips _id and __v from array items without fields param
+    ok 1 - strips _id and __v from array items without fields param
+      ---
+      duration_ms: 3.969043
+      type: 'test'
+      ...
+    # Subtest: strips _id and __v from array items with fields param
+    ok 2 - strips _id and __v from array items with fields param
+      ---
+      duration_ms: 4.635634
+      type: 'test'
+      ...
+    1..2
+ok 10 - FieldProjection — internal field stripping
+  ---
+  duration_ms: 8.835913
+  type: 'suite'
+  ...
+# Subtest: FieldProjection — edge cases
+    # Subtest: handles empty fields gracefully (returns full response)
+    ok 1 - handles empty fields gracefully (returns full response)
+      ---
+      duration_ms: 2.161777
+      type: 'test'
+      ...
+    # Subtest: handles non-existent field paths gracefully
+    ok 2 - handles non-existent field paths gracefully
+      ---
+      duration_ms: 1.24133
+      type: 'test'
+      ...
+    # Subtest: handles deeply nested non-existent paths
+    ok 3 - handles deeply nested non-existent paths
+      ---
+      duration_ms: 1.363285
+      type: 'test'
+      ...
+    # Subtest: trims whitespace in field names
+    ok 4 - trims whitespace in field names
+      ---
+      duration_ms: 1.511678
+      type: 'test'
+      ...
+    1..4
+ok 11 - FieldProjection — edge cases
+  ---
+  duration_ms: 6.528136
+  type: 'suite'
+  ...
+# Subtest: FieldProjection — wrapper-prefix dot-notation
+    # Subtest: projects foods.name → strips prefix, returns name on each item
+    ok 1 - projects foods.name → strips prefix, returns name on each item
+      ---
+      duration_ms: 1.346648
+      type: 'test'
+      ...
+    # Subtest: projects foods.name,foods.description → multiple wrapper-prefixed fields
+    ok 2 - projects foods.name,foods.description → multiple wrapper-prefixed fields
+      ---
+      duration_ms: 1.252152
+      type: 'test'
+      ...
+    # Subtest: projects foods.name,foods.value from ranked results
+    ok 3 - projects foods.name,foods.value from ranked results
+      ---
+      duration_ms: 1.386584
+      type: 'test'
+      ...
+    # Subtest: preserves top-level metadata when using wrapper-prefixed fields
+    ok 4 - preserves top-level metadata when using wrapper-prefixed fields
+      ---
+      duration_ms: 1.734185
+      type: 'test'
+      ...
+    # Subtest: mixes wrapper-prefixed and top-level fields
+    ok 5 - mixes wrapper-prefixed and top-level fields
+      ---
+      duration_ms: 1.209448
+      type: 'test'
+      ...
+    # Subtest: projects wrapper-prefixed nested paths (foods.perHundredGrams.macros)
+    ok 6 - projects wrapper-prefixed nested paths (foods.perHundredGrams.macros)
+      ---
+      duration_ms: 1.385983
+      type: 'test'
+      ...
+    # Subtest: bare 'foods' alongside prefixed fields keeps full array unprojected
+    ok 7 - bare 'foods' alongside prefixed fields keeps full array unprojected
+      ---
+      duration_ms: 1.972068
+      type: 'test'
+      ...
+    # Subtest: comparison wrapper with prefix: comparison.name,comparison.query
+    ok 8 - comparison wrapper with prefix: comparison.name,comparison.query
+      ---
+      duration_ms: 1.742219
+      type: 'test'
+      ...
+    1..8
+ok 12 - FieldProjection — wrapper-prefix dot-notation
+  ---
+  duration_ms: 12.371816
+  type: 'suite'
+  ...
+# Subtest: GET /finance/news
+    # Subtest: returns cached market news articles
+    ok 1 - returns cached market news articles
+      ---
+      duration_ms: 44.231438
+      type: 'test'
+      ...
+    1..1
+ok 13 - GET /finance/news
+  ---
+  duration_ms: 44.929943
+  type: 'suite'
+  ...
+# Subtest: GET /finance/earnings
+    # Subtest: returns cached earnings calendar
+    ok 1 - returns cached earnings calendar
+      ---
+      duration_ms: 154.586144
+      type: 'test'
+      ...
+    1..1
+ok 14 - GET /finance/earnings
+  ---
+  duration_ms: 154.896402
+  type: 'suite'
+  ...
+# Subtest: GET /finance/quote/:symbol
+    # Subtest: returns a stock quote for AAPL
+    ok 1 - returns a stock quote for AAPL
+      ---
+      duration_ms: 1218.334046
+      type: 'test'
+      ...
+    1..1
+ok 15 - GET /finance/quote/:symbol
+  ---
+  duration_ms: 1218.527217
+  type: 'suite'
+  ...
+# Subtest: GET /finance/profile/:symbol
+    # Subtest: returns a company profile for AAPL
+    ok 1 - returns a company profile for AAPL
+      ---
+      duration_ms: 176.240343
+      type: 'test'
+      ...
+    1..1
+ok 16 - GET /finance/profile/:symbol
+  ---
+  duration_ms: 176.367391
+  type: 'suite'
+  ...
+# Subtest: GET /finance/recommendation/:symbol
+    # Subtest: returns analyst recommendations for AAPL
+    ok 1 - returns analyst recommendations for AAPL
+      ---
+      duration_ms: 112.340828
+      type: 'test'
+      ...
+    1..1
+ok 17 - GET /finance/recommendation/:symbol
+  ---
+  duration_ms: 112.528251
+  type: 'suite'
+  ...
+# Subtest: GET /finance/financials/:symbol
+    # Subtest: returns basic financials for AAPL
+    ok 1 - returns basic financials for AAPL
+      ---
+      duration_ms: 133.277329
+      type: 'test'
+      ...
+    1..1
+ok 18 - GET /finance/financials/:symbol
+  ---
+  duration_ms: 133.451979
+  type: 'suite'
+  ...
+# Subtest: GET /finance/macro/indicators
+    # Subtest: returns key macroeconomic indicators
+    ok 1 - returns key macroeconomic indicators
+      ---
+      duration_ms: 655.422692
+      type: 'test'
+      ...
+    1..1
+ok 19 - GET /finance/macro/indicators
+  ---
+  duration_ms: 655.679848
+  type: 'suite'
+  ...
+# Subtest: GET /finance/macro/search
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 1.723388
+      type: 'test'
+      ...
+    # Subtest: returns FRED series results for GDP
+    ok 2 - returns FRED series results for GDP
+      ---
+      duration_ms: 3498.720219
+      type: 'test'
+      ...
+    1..2
+ok 20 - GET /finance/macro/search
+  ---
+  duration_ms: 3500.725403
+  type: 'suite'
+  ...
+# Subtest: GET /health/drugs/search
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 850.02427
+      type: 'test'
+      ...
+    # Subtest: returns drug label results
+    ok 2 - returns drug label results
+      ---
+      duration_ms: 389.64981
+      type: 'test'
+      ...
+    1..2
+ok 21 - GET /health/drugs/search
+  ---
+  duration_ms: 1240.508255
+  type: 'suite'
+  ...
+# Subtest: GET /health/drugs/adverse-events
+    # Subtest: returns 400 when drug is missing
+    ok 1 - returns 400 when drug is missing
+      ---
+      duration_ms: 132.652353
+      type: 'test'
+      ...
+    # Subtest: returns adverse event data
+    ok 2 - returns adverse event data
+      ---
+      duration_ms: 239.905378
+      type: 'test'
+      ...
+    1..2
+ok 22 - GET /health/drugs/adverse-events
+  ---
+  duration_ms: 372.745542
+  type: 'suite'
+  ...
+# Subtest: GET /health/drugs/recalls
+    # Subtest: returns drug recall data
+    ok 1 - returns drug recall data
+      ---
+      duration_ms: 146.997926
+      type: 'test'
+      ...
+    1..1
+ok 23 - GET /health/drugs/recalls
+  ---
+  duration_ms: 147.164397
+  type: 'suite'
+  ...
+# Subtest: GET /health/drugs/ndc/search
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 1.692704
+      type: 'test'
+      ...
+    # Subtest: returns NDC drug search results
+    ok 2 - returns NDC drug search results
+      ---
+      duration_ms: 24.479523
+      type: 'test'
+      ...
+    1..2
+ok 24 - GET /health/drugs/ndc/search
+  ---
+  duration_ms: 26.398643
+  type: 'suite'
+  ...
+# Subtest: GET /health/drugs/ndc/dosage-forms
+    # Subtest: returns available dosage forms
+    ok 1 - returns available dosage forms
+      ---
+      duration_ms: 5.258771
+      type: 'test'
+      ...
+    1..1
+ok 25 - GET /health/drugs/ndc/dosage-forms
+  ---
+  duration_ms: 5.35038
+  type: 'suite'
+  ...
+# Subtest: GET /health/drugs/ndc/ingredient
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 3.295652
+      type: 'test'
+      ...
+    # Subtest: returns drugs by ingredient
+    ok 2 - returns drugs by ingredient
+      ---
+      duration_ms: 16.073228
+      type: 'test'
+      ...
+    1..2
+ok 26 - GET /health/drugs/ndc/ingredient
+  ---
+  duration_ms: 19.510395
+  type: 'suite'
+  ...
+# Subtest: GET /health/drugs/ndc/pharm-class
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 2.82058
+      type: 'test'
+      ...
+    # Subtest: returns drugs by pharmacological class
+    ok 2 - returns drugs by pharmacological class
+      ---
+      duration_ms: 14.922633
+      type: 'test'
+      ...
+    1..2
+ok 27 - GET /health/drugs/ndc/pharm-class
+  ---
+  duration_ms: 17.893155
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/dictionary/:word
+    # Subtest: returns a definition for a known word
+    ok 1 - returns a definition for a known word
+      ---
+      duration_ms: 1114.265388
+      type: 'test'
+      ...
+    1..1
+ok 28 - GET /knowledge/dictionary/:word
+  ---
+  duration_ms: 1115.081975
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/books/search
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 17.643128
+      type: 'test'
+      ...
+    # Subtest: returns book search results
+    ok 2 - returns book search results
+      ---
+      duration_ms: 519.652101
+      type: 'test'
+      ...
+    1..2
+ok 29 - GET /knowledge/books/search
+  ---
+  duration_ms: 537.458634
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/countries/search/:name
+    # Subtest: returns country data for Canada
+    not ok 1 - returns country data for Canada
+      ---
+      duration_ms: 10229.212195
+      type: 'test'
+      location: '/home/rodrigo/development/sun/tools-api/tests/KnowledgeEndpoints.test.js:47:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        502 !== 200
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 200
+      actual: 502
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/rodrigo/development/sun/tools-api/tests/KnowledgeEndpoints.test.js:49:12)
+        process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..1
+not ok 30 - GET /knowledge/countries/search/:name
+  ---
+  duration_ms: 10229.846052
+  type: 'suite'
+  location: '/home/rodrigo/development/sun/tools-api/tests/KnowledgeEndpoints.test.js:46:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: GET /knowledge/countries/code/:code
+    # Subtest: returns country data by ISO code
+    not ok 1 - returns country data by ISO code
+      ---
+      duration_ms: 10479.39959
+      type: 'test'
+      location: '/home/rodrigo/development/sun/tools-api/tests/KnowledgeEndpoints.test.js:55:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        502 !== 200
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 200
+      actual: 502
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/rodrigo/development/sun/tools-api/tests/KnowledgeEndpoints.test.js:57:12)
+        process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..1
+not ok 31 - GET /knowledge/countries/code/:code
+  ---
+  duration_ms: 10480.097471
+  type: 'suite'
+  location: '/home/rodrigo/development/sun/tools-api/tests/KnowledgeEndpoints.test.js:54:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: GET /knowledge/papers/search
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 3.24469
+      type: 'test'
+      ...
+    # Subtest: returns arXiv paper results (tolerates upstream failures)
+    ok 2 - returns arXiv paper results (tolerates upstream failures)
+      ---
+      duration_ms: 1179.645538
+      type: 'test'
+      ...
+    1..2
+ok 32 - GET /knowledge/papers/search
+  ---
+  duration_ms: 1183.194437
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/wikipedia/summary/:title
+    # Subtest: returns a Wikipedia summary
+    ok 1 - returns a Wikipedia summary
+      ---
+      duration_ms: 91.990173
+      type: 'test'
+      ...
+    1..1
+ok 33 - GET /knowledge/wikipedia/summary/:title
+  ---
+  duration_ms: 92.138581
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/wikipedia/onthisday
+    # Subtest: returns On This Day events
+    ok 1 - returns On This Day events
+      ---
+      duration_ms: 1034.073435
+      type: 'test'
+      ...
+    1..1
+ok 34 - GET /knowledge/wikipedia/onthisday
+  ---
+  duration_ms: 1034.345777
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/anime/search
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 2.498438
+      type: 'test'
+      ...
+    # Subtest: returns anime search results
+    ok 2 - returns anime search results
+      ---
+      duration_ms: 596.318205
+      type: 'test'
+      ...
+    1..2
+ok 35 - GET /knowledge/anime/search
+  ---
+  duration_ms: 598.967376
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/anime/top
+    # Subtest: returns top-ranked anime
+    ok 1 - returns top-ranked anime
+      ---
+      duration_ms: 152.300687
+      type: 'test'
+      ...
+    1..1
+ok 36 - GET /knowledge/anime/top
+  ---
+  duration_ms: 152.41896
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/movies/search
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 1.360141
+      type: 'test'
+      ...
+    # Subtest: returns movie search results
+    ok 2 - returns movie search results
+      ---
+      duration_ms: 135.581632
+      type: 'test'
+      ...
+    1..2
+ok 37 - GET /knowledge/movies/search
+  ---
+  duration_ms: 137.101026
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/movies/trending
+    # Subtest: returns trending movies
+    ok 1 - returns trending movies
+      ---
+      duration_ms: 90.843284
+      type: 'test'
+      ...
+    1..1
+ok 38 - GET /knowledge/movies/trending
+  ---
+  duration_ms: 90.951948
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/movies/genres
+    # Subtest: returns movie genre list
+    ok 1 - returns movie genre list
+      ---
+      duration_ms: 89.641074
+      type: 'test'
+      ...
+    1..1
+ok 39 - GET /knowledge/movies/genres
+  ---
+  duration_ms: 89.764247
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/tv/search
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 1.56677
+      type: 'test'
+      ...
+    # Subtest: returns TV show search results
+    ok 2 - returns TV show search results
+      ---
+      duration_ms: 84.117683
+      type: 'test'
+      ...
+    1..2
+ok 40 - GET /knowledge/tv/search
+  ---
+  duration_ms: 85.852583
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/tv/trending
+    # Subtest: returns trending TV shows
+    ok 1 - returns trending TV shows
+      ---
+      duration_ms: 83.294405
+      type: 'test'
+      ...
+    1..1
+ok 41 - GET /knowledge/tv/trending
+  ---
+  duration_ms: 83.397464
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/tv/genres
+    # Subtest: returns TV genre list
+    ok 1 - returns TV genre list
+      ---
+      duration_ms: 82.618189
+      type: 'test'
+      ...
+    1..1
+ok 42 - GET /knowledge/tv/genres
+  ---
+  duration_ms: 82.742204
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/elements/search
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 1.392916
+      type: 'test'
+      ...
+    # Subtest: returns elements matching query
+    ok 2 - returns elements matching query
+      ---
+      duration_ms: 1.886024
+      type: 'test'
+      ...
+    1..2
+ok 43 - GET /knowledge/elements/search
+  ---
+  duration_ms: 3.415989
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/elements/:symbol
+    # Subtest: returns element data for H
+    ok 1 - returns element data for H
+      ---
+      duration_ms: 2.419553
+      type: 'test'
+      ...
+    # Subtest: returns 404 for nonexistent element
+    ok 2 - returns 404 for nonexistent element
+      ---
+      duration_ms: 1.10525
+      type: 'test'
+      ...
+    1..2
+ok 44 - GET /knowledge/elements/:symbol
+  ---
+  duration_ms: 3.688911
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/elements/rank
+    # Subtest: returns 400 when property is missing
+    ok 1 - returns 400 when property is missing
+      ---
+      duration_ms: 0.86295
+      type: 'test'
+      ...
+    # Subtest: ranks elements by atomic mass
+    ok 2 - ranks elements by atomic mass
+      ---
+      duration_ms: 1.219648
+      type: 'test'
+      ...
+    1..2
+ok 45 - GET /knowledge/elements/rank
+  ---
+  duration_ms: 2.171862
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/elements/categories
+    # Subtest: returns element category list
+    ok 1 - returns element category list
+      ---
+      duration_ms: 1.375962
+      type: 'test'
+      ...
+    1..1
+ok 46 - GET /knowledge/elements/categories
+  ---
+  duration_ms: 1.465546
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/indicators/country/:code
+    # Subtest: returns indicators for Canada
+    ok 1 - returns indicators for Canada
+      ---
+      duration_ms: 1.695641
+      type: 'test'
+      ...
+    # Subtest: returns 404 for nonexistent country
+    ok 2 - returns 404 for nonexistent country
+      ---
+      duration_ms: 1.124328
+      type: 'test'
+      ...
+    1..2
+ok 47 - GET /knowledge/indicators/country/:code
+  ---
+  duration_ms: 2.926678
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/indicators/rank
+    # Subtest: returns 400 when indicator is missing
+    ok 1 - returns 400 when indicator is missing
+      ---
+      duration_ms: 0.915724
+      type: 'test'
+      ...
+    # Subtest: ranks countries by an indicator
+    ok 2 - ranks countries by an indicator
+      ---
+      duration_ms: 0.990629
+      type: 'test'
+      ...
+    1..2
+ok 48 - GET /knowledge/indicators/rank
+  ---
+  duration_ms: 1.995315
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/indicators/compare
+    # Subtest: returns 400 when countries is missing
+    ok 1 - returns 400 when countries is missing
+      ---
+      duration_ms: 0.829147
+      type: 'test'
+      ...
+    # Subtest: returns 400 with only one country
+    ok 2 - returns 400 with only one country
+      ---
+      duration_ms: 1.245516
+      type: 'test'
+      ...
+    # Subtest: compares two countries
+    ok 3 - compares two countries
+      ---
+      duration_ms: 1.183639
+      type: 'test'
+      ...
+    1..3
+ok 49 - GET /knowledge/indicators/compare
+  ---
+  duration_ms: 3.368779
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/indicators/list
+    # Subtest: returns available indicators
+    ok 1 - returns available indicators
+      ---
+      duration_ms: 1.562404
+      type: 'test'
+      ...
+    1..1
+ok 50 - GET /knowledge/indicators/list
+  ---
+  duration_ms: 1.660129
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/exoplanets/search
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 2.440628
+      type: 'test'
+      ...
+    # Subtest: returns exoplanet search results
+    ok 2 - returns exoplanet search results
+      ---
+      duration_ms: 4.310506
+      type: 'test'
+      ...
+    1..2
+ok 51 - GET /knowledge/exoplanets/search
+  ---
+  duration_ms: 6.90261
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/exoplanets/rank
+    # Subtest: returns 400 when field is missing
+    ok 1 - returns 400 when field is missing
+      ---
+      duration_ms: 2.229341
+      type: 'test'
+      ...
+    1..1
+ok 52 - GET /knowledge/exoplanets/rank
+  ---
+  duration_ms: 2.341334
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/exoplanets/stats
+    # Subtest: returns discovery statistics
+    ok 1 - returns discovery statistics
+      ---
+      duration_ms: 4.481614
+      type: 'test'
+      ...
+    1..1
+ok 53 - GET /knowledge/exoplanets/stats
+  ---
+  duration_ms: 4.567217
+  type: 'suite'
+  ...
+# Subtest: GET /knowledge/exoplanets/habitable
+    # Subtest: returns habitable-zone planets
+    ok 1 - returns habitable-zone planets
+      ---
+      duration_ms: 2.771339
+      type: 'test'
+      ...
+    1..1
+ok 54 - GET /knowledge/exoplanets/habitable
+  ---
+  duration_ms: 2.881969
+  type: 'suite'
+  ...
+# Subtest: GET /market/commodities
+    # Subtest: returns all commodity quotes as an array
+    ok 1 - returns all commodity quotes as an array
+      ---
+      duration_ms: 856.763413
+      type: 'test'
+      ...
+    1..1
+ok 55 - GET /market/commodities
+  ---
+  duration_ms: 857.444594
+  type: 'suite'
+  ...
+# Subtest: GET /market/commodities/summary
+    # Subtest: returns commodity market summary
+    ok 1 - returns commodity market summary
+      ---
+      duration_ms: 81.230927
+      type: 'test'
+      ...
+    1..1
+ok 56 - GET /market/commodities/summary
+  ---
+  duration_ms: 81.359483
+  type: 'suite'
+  ...
+# Subtest: GET /market/commodities/categories
+    # Subtest: returns list of valid categories
+    ok 1 - returns list of valid categories
+      ---
+      duration_ms: 32.687225
+      type: 'test'
+      ...
+    1..1
+ok 57 - GET /market/commodities/categories
+  ---
+  duration_ms: 32.878498
+  type: 'suite'
+  ...
+# Subtest: GET /market/commodities/category/:category
+    # Subtest: returns commodities filtered by a valid category
+    ok 1 - returns commodities filtered by a valid category
+      ---
+      duration_ms: 65.364932
+      type: 'test'
+      ...
+    # Subtest: returns 400 for invalid category
+    ok 2 - returns 400 for invalid category
+      ---
+      duration_ms: 31.120926
+      type: 'test'
+      ...
+    1..2
+ok 58 - GET /market/commodities/category/:category
+  ---
+  duration_ms: 96.746143
+  type: 'suite'
+  ...
+# Subtest: GET /market/commodities/ticker/:ticker
+    # Subtest: returns a single commodity by ticker (GC=F for gold)
+    ok 1 - returns a single commodity by ticker (GC=F for gold)
+      ---
+      duration_ms: 32.222629
+      type: 'test'
+      ...
+    # Subtest: returns 404 for nonexistent ticker
+    ok 2 - returns 404 for nonexistent ticker
+      ---
+      duration_ms: 16.345002
+      type: 'test'
+      ...
+    1..2
+ok 59 - GET /market/commodities/ticker/:ticker
+  ---
+  duration_ms: 48.768252
+  type: 'suite'
+  ...
+# Subtest: GET /nutrition/search
+    # Subtest: returns results for a common food
+    ok 1 - returns results for a common food
+      ---
+      duration_ms: 820.921657
+      type: 'test'
+      ...
+    # Subtest: returns 400 when q is missing
+    ok 2 - returns 400 when q is missing
+      ---
+      duration_ms: 24.400887
+      type: 'test'
+      ...
+    # Subtest: respects limit parameter
+    ok 3 - respects limit parameter
+      ---
+      duration_ms: 30.702981
+      type: 'test'
+      ...
+    # Subtest: filters by kingdom
+    ok 4 - filters by kingdom
+      ---
+      duration_ms: 27.582884
+      type: 'test'
+      ...
+    # Subtest: filters by foodType
+    ok 5 - filters by foodType
+      ---
+      duration_ms: 17.85726
+      type: 'test'
+      ...
+    # Subtest: returns only requested nutrientTypes
+    ok 6 - returns only requested nutrientTypes
+      ---
+      duration_ms: 29.964231
+      type: 'test'
+      ...
+    # Subtest: returns empty results for nonsense query
+    ok 7 - returns empty results for nonsense query
+      ---
+      duration_ms: 33.523626
+      type: 'test'
+      ...
+    # Subtest: includes taxonomy in results
+    ok 8 - includes taxonomy in results
+      ---
+      duration_ms: 31.175862
+      type: 'test'
+      ...
+    # Subtest: field projection: foods.name,foods.description strips prefix correctly
+    ok 9 - field projection: foods.name,foods.description strips prefix correctly
+      ---
+      duration_ms: 33.779932
+      type: 'test'
+      ...
+    # Subtest: field projection: nested perHundredGrams.macros with prefix
+    ok 10 - field projection: nested perHundredGrams.macros with prefix
+      ---
+      duration_ms: 30.177175
+      type: 'test'
+      ...
+    1..10
+ok 60 - GET /nutrition/search
+  ---
+  duration_ms: 1081.65086
+  type: 'suite'
+  ...
+# Subtest: GET /nutrition/rank
+    # Subtest: ranks foods by protein in descending order
+    ok 1 - ranks foods by protein in descending order
+      ---
+      duration_ms: 16.146704
+      type: 'test'
+      ...
+    # Subtest: returns 400 when nutrient is missing
+    ok 2 - returns 400 when nutrient is missing
+      ---
+      duration_ms: 5.720923
+      type: 'test'
+      ...
+    # Subtest: returns 400 for unknown nutrient
+    ok 3 - returns 400 for unknown nutrient
+      ---
+      duration_ms: 4.672145
+      type: 'test'
+      ...
+    # Subtest: food items include name, value, kingdom, foodType
+    ok 4 - food items include name, value, kingdom, foodType
+      ---
+      duration_ms: 10.69041
+      type: 'test'
+      ...
+    # Subtest: field projection: foods.name,foods.value strips prefix correctly
+    ok 5 - field projection: foods.name,foods.value strips prefix correctly
+      ---
+      duration_ms: 46.489075
+      type: 'test'
+      ...
+    # Subtest: field projection: mixed top-level + wrapper-prefix
+    ok 6 - field projection: mixed top-level + wrapper-prefix
+      ---
+      duration_ms: 20.194421
+      type: 'test'
+      ...
+    1..6
+ok 61 - GET /nutrition/rank
+  ---
+  duration_ms: 104.237142
+  type: 'suite'
+  ...
+# Subtest: GET /nutrition/top
+    # Subtest: ranks foods by category+nutrient (macros/protein)
+    ok 1 - ranks foods by category+nutrient (macros/protein)
+      ---
+      duration_ms: 13.957743
+      type: 'test'
+      ...
+    # Subtest: returns 400 when category/nutrient missing
+    ok 2 - returns 400 when category/nutrient missing
+      ---
+      duration_ms: 5.938744
+      type: 'test'
+      ...
+    # Subtest: returns 400 for unknown category
+    ok 3 - returns 400 for unknown category
+      ---
+      duration_ms: 19.345258
+      type: 'test'
+      ...
+    # Subtest: returns 400 for unknown nutrient in valid category
+    ok 4 - returns 400 for unknown nutrient in valid category
+      ---
+      duration_ms: 132.312927
+      type: 'test'
+      ...
+    # Subtest: ranks minerals by iron
+    ok 5 - ranks minerals by iron
+      ---
+      duration_ms: 43.10922
+      type: 'test'
+      ...
+    # Subtest: ranks vitamins by ascorbic_acid
+    ok 6 - ranks vitamins by ascorbic_acid
+      ---
+      duration_ms: 17.324514
+      type: 'test'
+      ...
+    # Subtest: ranks amino_acids by leucine
+    ok 7 - ranks amino_acids by leucine
+      ---
+      duration_ms: 21.898409
+      type: 'test'
+      ...
+    # Subtest: ranks lipids by omega-3 DHA
+    ok 8 - ranks lipids by omega-3 DHA
+      ---
+      duration_ms: 24.449588
+      type: 'test'
+      ...
+    # Subtest: filters by kingdom
+    ok 9 - filters by kingdom
+      ---
+      duration_ms: 15.1051
+      type: 'test'
+      ...
+    # Subtest: field projection: foods.name,foods.value,nutrientName
+    ok 10 - field projection: foods.name,foods.value,nutrientName
+      ---
+      duration_ms: 18.156762
+      type: 'test'
+      ...
+    1..10
+ok 62 - GET /nutrition/top
+  ---
+  duration_ms: 312.134607
+  type: 'suite'
+  ...
+# Subtest: GET /nutrition/compare
+    # Subtest: compares two foods
+    ok 1 - compares two foods
+      ---
+      duration_ms: 7.03748
+      type: 'test'
+      ...
+    # Subtest: returns 400 when foods is missing
+    ok 2 - returns 400 when foods is missing
+      ---
+      duration_ms: 2.154762
+      type: 'test'
+      ...
+    # Subtest: returns 400 when only one food provided
+    ok 3 - returns 400 when only one food provided
+      ---
+      duration_ms: 3.900249
+      type: 'test'
+      ...
+    # Subtest: handles non-existent food gracefully
+    ok 4 - handles non-existent food gracefully
+      ---
+      duration_ms: 58.920859
+      type: 'test'
+      ...
+    # Subtest: filters by nutrientTypes
+    ok 5 - filters by nutrientTypes
+      ---
+      duration_ms: 10.516131
+      type: 'test'
+      ...
+    # Subtest: field projection: comparison.name,comparison.query
+    ok 6 - field projection: comparison.name,comparison.query
+      ---
+      duration_ms: 4.30017
+      type: 'test'
+      ...
+    1..6
+ok 63 - GET /nutrition/compare
+  ---
+  duration_ms: 87.108425
+  type: 'suite'
+  ...
+# Subtest: GET /nutrition/categories
+    # Subtest: returns kingdoms, foodTypes, subtypes, and parts
+    ok 1 - returns kingdoms, foodTypes, subtypes, and parts
+      ---
+      duration_ms: 8.577368
+      type: 'test'
+      ...
+    1..1
+ok 64 - GET /nutrition/categories
+  ---
+  duration_ms: 8.760738
+  type: 'suite'
+  ...
+# Subtest: GET /nutrition/nutrient-types
+    # Subtest: returns types, totals, and sources
+    ok 1 - returns types, totals, and sources
+      ---
+      duration_ms: 1.409392
+      type: 'test'
+      ...
+    1..1
+ok 65 - GET /nutrition/nutrient-types
+  ---
+  duration_ms: 1.495206
+  type: 'suite'
+  ...
+# Subtest: GET /nutrition/nutrients/:category
+    # Subtest: lists nutrients for category: macros
+    ok 1 - lists nutrients for category: macros
+      ---
+      duration_ms: 1.215691
+      type: 'test'
+      ...
+    # Subtest: lists nutrients for category: minerals
+    ok 2 - lists nutrients for category: minerals
+      ---
+      duration_ms: 0.998405
+      type: 'test'
+      ...
+    # Subtest: lists nutrients for category: vitamins
+    ok 3 - lists nutrients for category: vitamins
+      ---
+      duration_ms: 1.374464
+      type: 'test'
+      ...
+    # Subtest: lists nutrients for category: amino_acids
+    ok 4 - lists nutrients for category: amino_acids
+      ---
+      duration_ms: 2.636676
+      type: 'test'
+      ...
+    # Subtest: lists nutrients for category: lipids
+    ok 5 - lists nutrients for category: lipids
+      ---
+      duration_ms: 0.965415
+      type: 'test'
+      ...
+    # Subtest: lists nutrients for category: carbs
+    ok 6 - lists nutrients for category: carbs
+      ---
+      duration_ms: 1.739835
+      type: 'test'
+      ...
+    # Subtest: lists nutrients for category: sterols
+    ok 7 - lists nutrients for category: sterols
+      ---
+      duration_ms: 0.926322
+      type: 'test'
+      ...
+    # Subtest: returns 400 for unknown category
+    ok 8 - returns 400 for unknown category
+      ---
+      duration_ms: 0.944282
+      type: 'test'
+      ...
+    1..8
+ok 66 - GET /nutrition/nutrients/:category
+  ---
+  duration_ms: 11.092408
+  type: 'suite'
+  ...
+# Subtest: GET /nutrition/taxonomy/search
+    # Subtest: finds foods by family
+    ok 1 - finds foods by family
+      ---
+      duration_ms: 3.189597
+      type: 'test'
+      ...
+    # Subtest: returns 400 when rank/value missing
+    ok 2 - returns 400 when rank/value missing
+      ---
+      duration_ms: 0.929251
+      type: 'test'
+      ...
+    # Subtest: returns error for invalid rank
+    ok 3 - returns error for invalid rank
+      ---
+      duration_ms: 0.849032
+      type: 'test'
+      ...
+    1..3
+ok 67 - GET /nutrition/taxonomy/search
+  ---
+  duration_ms: 5.093225
+  type: 'suite'
+  ...
+# Subtest: GET /nutrition/taxonomy/tree
+    # Subtest: returns full taxonomy tree when no rank specified
+    ok 1 - returns full taxonomy tree when no rank specified
+      ---
+      duration_ms: 17.539987
+      type: 'test'
+      ...
+    # Subtest: returns values for a specific rank
+    ok 2 - returns values for a specific rank
+      ---
+      duration_ms: 4.656972
+      type: 'test'
+      ...
+    # Subtest: returns error for invalid rank
+    ok 3 - returns error for invalid rank
+      ---
+      duration_ms: 1.331859
+      type: 'test'
+      ...
+    1..3
+ok 68 - GET /nutrition/taxonomy/tree
+  ---
+  duration_ms: 23.699493
+  type: 'suite'
+  ...
+# 🥦 Nutrition DB loaded: 15465 foods (1347 USDA, 3570 Health Canada CNF, 5846 FAO/INFOODS BioFoodComp, 1334 UK CoFID, 538 India IFCT, 1072 Australia AFCD, 1758 Japan MEXT), 140 nutrients
+# Subtest: searchFoods
+    # Subtest: returns results for a common food term
+    ok 1 - returns results for a common food term
+      ---
+      duration_ms: 523.128158
+      type: 'test'
+      ...
+    # Subtest: includes macros by default in each food result
+    ok 2 - includes macros by default in each food result
+      ---
+      duration_ms: 26.792398
+      type: 'test'
+      ...
+    # Subtest: respects the limit parameter
+    ok 3 - respects the limit parameter
+      ---
+      duration_ms: 24.58111
+      type: 'test'
+      ...
+    # Subtest: filters by kingdom
+    ok 4 - filters by kingdom
+      ---
+      duration_ms: 18.70015
+      type: 'test'
+      ...
+    # Subtest: filters by foodType
+    ok 5 - filters by foodType
+      ---
+      duration_ms: 14.588542
+      type: 'test'
+      ...
+    # Subtest: returns only requested nutrient types
+    ok 6 - returns only requested nutrient types
+      ---
+      duration_ms: 27.463296
+      type: 'test'
+      ...
+    # Subtest: returns multiple nutrient types when comma-separated
+    ok 7 - returns multiple nutrient types when comma-separated
+      ---
+      duration_ms: 25.020991
+      type: 'test'
+      ...
+    # Subtest: returns empty results for nonsense query
+    ok 8 - returns empty results for nonsense query
+      ---
+      duration_ms: 23.365596
+      type: 'test'
+      ...
+    # Subtest: returns empty results for empty query
+    ok 9 - returns empty results for empty query
+      ---
+      duration_ms: 0.30254
+      type: 'test'
+      ...
+    # Subtest: includes taxonomy fields in results
+    ok 10 - includes taxonomy fields in results
+      ---
+      duration_ms: 23.563733
+      type: 'test'
+      ...
+    1..10
+ok 69 - searchFoods
+  ---
+  duration_ms: 708.72288
+  type: 'suite'
+  ...
+# Subtest: getFoodByName
+    # Subtest: returns data for an exact food name match
+    ok 1 - returns data for an exact food name match
+      ---
+      duration_ms: 0.431817
+      type: 'test'
+      ...
+    # Subtest: returns null for a food that does not exist
+    ok 2 - returns null for a food that does not exist
+      ---
+      duration_ms: 4.099044
+      type: 'test'
+      ...
+    # Subtest: is case-insensitive
+    ok 3 - is case-insensitive
+      ---
+      duration_ms: 0.235109
+      type: 'test'
+      ...
+    # Subtest: returns filtered nutrient types when specified
+    ok 4 - returns filtered nutrient types when specified
+      ---
+      duration_ms: 0.091336
+      type: 'test'
+      ...
+    # Subtest: returns all nutrient types when nutrientTypes is null
+    ok 5 - returns all nutrient types when nutrientTypes is null
+      ---
+      duration_ms: 0.159899
+      type: 'test'
+      ...
+    1..5
+ok 70 - getFoodByName
+  ---
+  duration_ms: 5.150436
+  type: 'suite'
+  ...
+# Subtest: rankByNutrient
+    # Subtest: ranks foods by protein content
+    ok 1 - ranks foods by protein content
+      ---
+      duration_ms: 11.219923
+      type: 'test'
+      ...
+    # Subtest: respects limit parameter
+    ok 2 - respects limit parameter
+      ---
+      duration_ms: 5.545323
+      type: 'test'
+      ...
+    # Subtest: filters by kingdom
+    ok 3 - filters by kingdom
+      ---
+      duration_ms: 5.572752
+      type: 'test'
+      ...
+    # Subtest: filters by foodType
+    ok 4 - filters by foodType
+      ---
+      duration_ms: 4.625981
+      type: 'test'
+      ...
+    # Subtest: returns an error for an unknown nutrient
+    ok 5 - returns an error for an unknown nutrient
+      ---
+      duration_ms: 0.127775
+      type: 'test'
+      ...
+    # Subtest: food items include expected fields
+    ok 6 - food items include expected fields
+      ---
+      duration_ms: 5.377244
+      type: 'test'
+      ...
+    1..6
+ok 71 - rankByNutrient
+  ---
+  duration_ms: 32.653274
+  type: 'suite'
+  ...
+# Subtest: compareFoods
+    # Subtest: compares two foods and returns both
+    ok 1 - compares two foods and returns both
+      ---
+      duration_ms: 0.573256
+      type: 'test'
+      ...
+    # Subtest: handles a food that does not exist gracefully
+    ok 2 - handles a food that does not exist gracefully
+      ---
+      duration_ms: 28.603033
+      type: 'test'
+      ...
+    # Subtest: returns filtered nutrient types in comparison
+    ok 3 - returns filtered nutrient types in comparison
+      ---
+      duration_ms: 0.874865
+      type: 'test'
+      ...
+    # Subtest: uses fuzzy matching for approximate names
+    ok 4 - uses fuzzy matching for approximate names
+      ---
+      duration_ms: 31.174034
+      type: 'test'
+      ...
+    # Subtest: preserves the query field on each comparison item
+    ok 5 - preserves the query field on each comparison item
+      ---
+      duration_ms: 0.513443
+      type: 'test'
+      ...
+    1..5
+ok 72 - compareFoods
+  ---
+  duration_ms: 61.934619
+  type: 'suite'
+  ...
+# Subtest: getNutrientTypes
+    # Subtest: returns available nutrient types and totals
+    ok 1 - returns available nutrient types and totals
+      ---
+      duration_ms: 0.158027
+      type: 'test'
+      ...
+    1..1
+ok 73 - getNutrientTypes
+  ---
+  duration_ms: 0.261726
+  type: 'suite'
+  ...
+# Subtest: getFoodCategories
+    # Subtest: returns kingdoms, foodTypes, subtypes, and parts
+    ok 1 - returns kingdoms, foodTypes, subtypes, and parts
+      ---
+      duration_ms: 9.633427
+      type: 'test'
+      ...
+    # Subtest: kingdoms are sorted alphabetically
+    ok 2 - kingdoms are sorted alphabetically
+      ---
+      duration_ms: 5.786324
+      type: 'test'
+      ...
+    # Subtest: contains expected kingdom values
+    ok 3 - contains expected kingdom values
+      ---
+      duration_ms: 4.338487
+      type: 'test'
+      ...
+    1..3
+ok 74 - getFoodCategories
+  ---
+  duration_ms: 19.873469
+  type: 'suite'
+  ...
+# Subtest: getTopFoodsByCategory
+    # Subtest: ranks foods by a mineral (iron)
+    ok 1 - ranks foods by a mineral (iron)
+      ---
+      duration_ms: 9.624361
+      type: 'test'
+      ...
+    # Subtest: ranks foods by a vitamin (ascorbic_acid / vitamin C)
+    ok 2 - ranks foods by a vitamin (ascorbic_acid / vitamin C)
+      ---
+      duration_ms: 5.113462
+      type: 'test'
+      ...
+    # Subtest: ranks foods by a macro (protein)
+    ok 3 - ranks foods by a macro (protein)
+      ---
+      duration_ms: 8.387326
+      type: 'test'
+      ...
+    # Subtest: ranks foods by an amino acid (leucine)
+    ok 4 - ranks foods by an amino acid (leucine)
+      ---
+      duration_ms: 3.950647
+      type: 'test'
+      ...
+    # Subtest: ranks foods by a lipid (omega-3 DHA)
+    ok 5 - ranks foods by a lipid (omega-3 DHA)
+      ---
+      duration_ms: 1.715303
+      type: 'test'
+      ...
+    # Subtest: ranks foods by a carb detail (starch)
+    ok 6 - ranks foods by a carb detail (starch)
+      ---
+      duration_ms: 1.557832
+      type: 'test'
+      ...
+    # Subtest: ranks foods by a sterol (cholesterol)
+    ok 7 - ranks foods by a sterol (cholesterol)
+      ---
+      duration_ms: 1.94931
+      type: 'test'
+      ...
+    # Subtest: respects limit parameter
+    ok 8 - respects limit parameter
+      ---
+      duration_ms: 4.681911
+      type: 'test'
+      ...
+    # Subtest: filters by kingdom
+    ok 9 - filters by kingdom
+      ---
+      duration_ms: 6.400207
+      type: 'test'
+      ...
+    # Subtest: filters by foodType
+    ok 10 - filters by foodType
+      ---
+      duration_ms: 5.957469
+      type: 'test'
+      ...
+    # Subtest: resolves human-friendly nutrient name by partial match
+    ok 11 - resolves human-friendly nutrient name by partial match
+      ---
+      duration_ms: 6.420989
+      type: 'test'
+      ...
+    # Subtest: returns error for unknown category
+    ok 12 - returns error for unknown category
+      ---
+      duration_ms: 0.117835
+      type: 'test'
+      ...
+    # Subtest: returns error for unknown nutrient in valid category
+    ok 13 - returns error for unknown nutrient in valid category
+      ---
+      duration_ms: 0.181872
+      type: 'test'
+      ...
+    # Subtest: food items include expected fields
+    ok 14 - food items include expected fields
+      ---
+      duration_ms: 7.08801
+      type: 'test'
+      ...
+    1..14
+ok 75 - getTopFoodsByCategory
+  ---
+  duration_ms: 63.626724
+  type: 'suite'
+  ...
+# Subtest: listCategoryNutrients
+    # Subtest: lists minerals with column and label
+    ok 1 - lists minerals with column and label
+      ---
+      duration_ms: 0.237471
+      type: 'test'
+      ...
+    # Subtest: lists all 7 categories without error
+    ok 2 - lists all 7 categories without error
+      ---
+      duration_ms: 0.077442
+      type: 'test'
+      ...
+    # Subtest: returns error for unknown category
+    ok 3 - returns error for unknown category
+      ---
+      duration_ms: 0.037109
+      type: 'test'
+      ...
+    # Subtest: includes description from nutrient type metadata
+    ok 4 - includes description from nutrient type metadata
+      ---
+      duration_ms: 0.034156
+      type: 'test'
+      ...
+    1..4
+ok 76 - listCategoryNutrients
+  ---
+  duration_ms: 0.458925
+  type: 'suite'
+  ...
+# Subtest: GET /product/products
+    # Subtest: returns all products with count
+    ok 1 - returns all products with count
+      ---
+      duration_ms: 847.298947
+      type: 'test'
+      ...
+    1..1
+ok 77 - GET /product/products
+  ---
+  duration_ms: 848.041168
+  type: 'suite'
+  ...
+# Subtest: GET /product/products/trending
+    # Subtest: returns trending products
+    ok 1 - returns trending products
+      ---
+      duration_ms: 66.288111
+      type: 'test'
+      ...
+    1..1
+ok 78 - GET /product/products/trending
+  ---
+  duration_ms: 66.439542
+  type: 'suite'
+  ...
+# Subtest: GET /product/products/categories
+    # Subtest: returns product categories with counts
+    ok 1 - returns product categories with counts
+      ---
+      duration_ms: 17.78909
+      type: 'test'
+      ...
+    1..1
+ok 79 - GET /product/products/categories
+  ---
+  duration_ms: 17.920969
+  type: 'suite'
+  ...
+# Subtest: GET /product/products/category/:category
+    # Subtest: returns products filtered by category
+    ok 1 - returns products filtered by category
+      ---
+      duration_ms: 32.587178
+      type: 'test'
+      ...
+    1..1
+ok 80 - GET /product/products/category/:category
+  ---
+  duration_ms: 32.743494
+  type: 'suite'
+  ...
+# Subtest: GET /product/products/source/:source
+    # Subtest: returns products filtered by source
+    ok 1 - returns products filtered by source
+      ---
+      duration_ms: 31.471897
+      type: 'test'
+      ...
+    # Subtest: returns empty for unknown source
+    ok 2 - returns empty for unknown source
+      ---
+      duration_ms: 32.829846
+      type: 'test'
+      ...
+    1..2
+ok 81 - GET /product/products/source/:source
+  ---
+  duration_ms: 64.533098
+  type: 'suite'
+  ...
+# Subtest: GET /product/products/search
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 31.030835
+      type: 'test'
+      ...
+    # Subtest: returns search results for a query
+    ok 2 - returns search results for a query
+      ---
+      duration_ms: 31.605356
+      type: 'test'
+      ...
+    1..2
+ok 82 - GET /product/products/search
+  ---
+  duration_ms: 62.790363
+  type: 'suite'
+  ...
+# Subtest: GET /product/products/availability
+    # Subtest: returns Best Buy CA availability data
+    ok 1 - returns Best Buy CA availability data
+      ---
+      duration_ms: 16.906667
+      type: 'test'
+      ...
+    1..1
+ok 83 - GET /product/products/availability
+  ---
+  duration_ms: 17.0797
+  type: 'suite'
+  ...
+# Subtest: GET /product/products/availability/in-stock
+    # Subtest: returns only in-stock items
+    ok 1 - returns only in-stock items
+      ---
+      duration_ms: 4.716748
+      type: 'test'
+      ...
+    1..1
+ok 84 - GET /product/products/availability/in-stock
+  ---
+  duration_ms: 4.816874
+  type: 'suite'
+  ...
+# Subtest: GET /product/products/availability/out-of-stock
+    # Subtest: returns only out-of-stock items
+    ok 1 - returns only out-of-stock items
+      ---
+      duration_ms: 3.341138
+      type: 'test'
+      ...
+    1..1
+ok 85 - GET /product/products/availability/out-of-stock
+  ---
+  duration_ms: 3.473177
+  type: 'suite'
+  ...
+# Subtest: GET /product/products/availability/watchlist
+    # Subtest: returns the watchlist with SKU metadata
+    ok 1 - returns the watchlist with SKU metadata
+      ---
+      duration_ms: 39.343507
+      type: 'test'
+      ...
+    1..1
+ok 86 - GET /product/products/availability/watchlist
+  ---
+  duration_ms: 39.449049
+  type: 'suite'
+  ...
+# Subtest: Static: Periodic Table
+    # Subtest: GET /knowledge/elements/search?q=hydrogen
+        # Subtest: returns elements with correct structure
+        ok 1 - returns elements with correct structure
+          ---
+          duration_ms: 832.59262
+          type: 'test'
+          ...
+        # Subtest: returns hydrogen as the first result for exact search
+        ok 2 - returns hydrogen as the first result for exact search
+          ---
+          duration_ms: 46.993922
+          type: 'test'
+          ...
+        1..2
+    ok 1 - GET /knowledge/elements/search?q=hydrogen
+      ---
+      duration_ms: 880.097857
+      type: 'suite'
+      ...
+    # Subtest: GET /knowledge/elements/:symbol
+        # Subtest: returns full element data for Fe (Iron)
+        ok 1 - returns full element data for Fe (Iron)
+          ---
+          duration_ms: 26.541993
+          type: 'test'
+          ...
+        1..1
+    ok 2 - GET /knowledge/elements/:symbol
+      ---
+      duration_ms: 26.825582
+      type: 'suite'
+      ...
+    # Subtest: GET /knowledge/elements/rank
+        # Subtest: returns ranked elements with correct structure
+        ok 1 - returns ranked elements with correct structure
+          ---
+          duration_ms: 18.01778
+          type: 'test'
+          ...
+        # Subtest: returns error with available properties for invalid property
+        ok 2 - returns error with available properties for invalid property
+          ---
+          duration_ms: 32.451656
+          type: 'test'
+          ...
+        1..2
+    ok 3 - GET /knowledge/elements/rank
+      ---
+      duration_ms: 50.695776
+      type: 'suite'
+      ...
+    # Subtest: GET /knowledge/elements/categories
+        # Subtest: returns taxonomy filters with correct structure
+        ok 1 - returns taxonomy filters with correct structure
+          ---
+          duration_ms: 30.677977
+          type: 'test'
+          ...
+        1..1
+    ok 4 - GET /knowledge/elements/categories
+      ---
+      duration_ms: 30.848447
+      type: 'suite'
+      ...
+    1..4
+ok 87 - Static: Periodic Table
+  ---
+  duration_ms: 988.97682
+  type: 'suite'
+  ...
+# Subtest: Static: World Bank Indicators
+    # Subtest: GET /knowledge/indicators/country/CAN
+        # Subtest: returns Canada indicators with correct structure
+        ok 1 - returns Canada indicators with correct structure
+          ---
+          duration_ms: 33.839517
+          type: 'test'
+          ...
+        1..1
+    ok 1 - GET /knowledge/indicators/country/CAN
+      ---
+      duration_ms: 33.94623
+      type: 'suite'
+      ...
+    # Subtest: GET /knowledge/indicators/rank
+        # Subtest: ranks countries by population with correct structure
+        ok 1 - ranks countries by population with correct structure
+          ---
+          duration_ms: 31.65322
+          type: 'test'
+          ...
+        # Subtest: returns error with available indicators for invalid indicator
+        ok 2 - returns error with available indicators for invalid indicator
+          ---
+          duration_ms: 30.366235
+          type: 'test'
+          ...
+        1..2
+    ok 2 - GET /knowledge/indicators/rank
+      ---
+      duration_ms: 62.22278
+      type: 'suite'
+      ...
+    # Subtest: GET /knowledge/indicators/compare
+        # Subtest: compares USA and CAN with correct structure
+        ok 1 - compares USA and CAN with correct structure
+          ---
+          duration_ms: 17.540697
+          type: 'test'
+          ...
+        # Subtest: compares with specific indicator filter
+        ok 2 - compares with specific indicator filter
+          ---
+          duration_ms: 4.339999
+          type: 'test'
+          ...
+        1..2
+    ok 3 - GET /knowledge/indicators/compare
+      ---
+      duration_ms: 22.046201
+      type: 'suite'
+      ...
+    # Subtest: GET /knowledge/indicators/list
+        # Subtest: returns indicator catalog with coverage stats
+        ok 1 - returns indicator catalog with coverage stats
+          ---
+          duration_ms: 4.124647
+          type: 'test'
+          ...
+        1..1
+    ok 4 - GET /knowledge/indicators/list
+      ---
+      duration_ms: 4.365081
+      type: 'suite'
+      ...
+    1..4
+ok 88 - Static: World Bank Indicators
+  ---
+  duration_ms: 122.829957
+  type: 'suite'
+  ...
+# Subtest: Static: NASA Exoplanets
+    # Subtest: GET /knowledge/exoplanets/search?q=kepler
+        # Subtest: returns exoplanets with correct structure
+        ok 1 - returns exoplanets with correct structure
+          ---
+          duration_ms: 39.030762
+          type: 'test'
+          ...
+        1..1
+    ok 1 - GET /knowledge/exoplanets/search?q=kepler
+      ---
+      duration_ms: 39.150147
+      type: 'suite'
+      ...
+    # Subtest: GET /knowledge/exoplanets/rank
+        # Subtest: ranks by planet mass with correct structure
+        ok 1 - ranks by planet mass with correct structure
+          ---
+          duration_ms: 22.722996
+          type: 'test'
+          ...
+        # Subtest: returns error body with available fields for invalid field
+        ok 2 - returns error body with available fields for invalid field
+          ---
+          duration_ms: 16.090417
+          type: 'test'
+          ...
+        1..2
+    ok 2 - GET /knowledge/exoplanets/rank
+      ---
+      duration_ms: 38.970419
+      type: 'suite'
+      ...
+    # Subtest: GET /knowledge/exoplanets/stats
+        # Subtest: returns discovery statistics with correct structure
+        ok 1 - returns discovery statistics with correct structure
+          ---
+          duration_ms: 16.216491
+          type: 'test'
+          ...
+        1..1
+    ok 3 - GET /knowledge/exoplanets/stats
+      ---
+      duration_ms: 16.312653
+      type: 'suite'
+      ...
+    # Subtest: GET /knowledge/exoplanets/habitable
+        # Subtest: returns habitable-zone candidates with correct structure
+        ok 1 - returns habitable-zone candidates with correct structure
+          ---
+          duration_ms: 19.924506
+          type: 'test'
+          ...
+        1..1
+    ok 4 - GET /knowledge/exoplanets/habitable
+      ---
+      duration_ms: 20.024452
+      type: 'suite'
+      ...
+    1..4
+ok 89 - Static: NASA Exoplanets
+  ---
+  duration_ms: 114.60835
+  type: 'suite'
+  ...
+# Subtest: Static: FDA Drug NDC
+    # Subtest: GET /health/drugs/ndc/search?q=ibuprofen
+        # Subtest: returns drugs with correct structure
+        ok 1 - returns drugs with correct structure
+          ---
+          duration_ms: 131.912673
+          type: 'test'
+          ...
+        # Subtest: contains ibuprofen in results
+        ok 2 - contains ibuprofen in results
+          ---
+          duration_ms: 33.765754
+          type: 'test'
+          ...
+        1..2
+    ok 1 - GET /health/drugs/ndc/search?q=ibuprofen
+      ---
+      duration_ms: 165.86968
+      type: 'suite'
+      ...
+    # Subtest: GET /health/drugs/ndc/dosage-forms
+        # Subtest: returns dosage form taxonomy with correct structure
+        ok 1 - returns dosage form taxonomy with correct structure
+          ---
+          duration_ms: 21.531807
+          type: 'test'
+          ...
+        1..1
+    ok 2 - GET /health/drugs/ndc/dosage-forms
+      ---
+      duration_ms: 21.637989
+      type: 'suite'
+      ...
+    # Subtest: GET /health/drugs/ndc/ingredient?q=acetaminophen
+        # Subtest: returns drugs by ingredient with correct structure
+        ok 1 - returns drugs by ingredient with correct structure
+          ---
+          duration_ms: 23.272893
+          type: 'test'
+          ...
+        1..1
+    ok 3 - GET /health/drugs/ndc/ingredient?q=acetaminophen
+      ---
+      duration_ms: 23.377603
+      type: 'suite'
+      ...
+    # Subtest: GET /health/drugs/ndc/pharm-class?q=antibacterial
+        # Subtest: returns drugs by pharmacological class
+        ok 1 - returns drugs by pharmacological class
+          ---
+          duration_ms: 25.5791
+          type: 'test'
+          ...
+        1..1
+    ok 4 - GET /health/drugs/ndc/pharm-class?q=antibacterial
+      ---
+      duration_ms: 25.681479
+      type: 'suite'
+      ...
+    1..4
+ok 90 - Static: FDA Drug NDC
+  ---
+  duration_ms: 236.69672
+  type: 'suite'
+  ...
+# Subtest: Static: Airport Database
+    # Subtest: GET /utility/airports/search?q=vancouver
+        # Subtest: returns airports with correct structure
+        ok 1 - returns airports with correct structure
+          ---
+          duration_ms: 8.357019
+          type: 'test'
+          ...
+        # Subtest: returns YVR for Vancouver search
+        ok 2 - returns YVR for Vancouver search
+          ---
+          duration_ms: 13.761204
+          type: 'test'
+          ...
+        1..2
+    ok 1 - GET /utility/airports/search?q=vancouver
+      ---
+      duration_ms: 22.253991
+      type: 'suite'
+      ...
+    # Subtest: GET /utility/airports/code/YVR
+        # Subtest: returns exact airport data for YVR
+        ok 1 - returns exact airport data for YVR
+          ---
+          duration_ms: 17.795879
+          type: 'test'
+          ...
+        1..1
+    ok 2 - GET /utility/airports/code/YVR
+      ---
+      duration_ms: 17.888229
+      type: 'suite'
+      ...
+    # Subtest: GET /utility/airports/country/CA
+        # Subtest: returns Canadian airports with correct structure
+        ok 1 - returns Canadian airports with correct structure
+          ---
+          duration_ms: 5.335065
+          type: 'test'
+          ...
+        1..1
+    ok 3 - GET /utility/airports/country/CA
+      ---
+      duration_ms: 5.433872
+      type: 'suite'
+      ...
+    # Subtest: GET /utility/airports/nearest
+        # Subtest: returns nearest airports to YVR with distances
+        ok 1 - returns nearest airports to YVR with distances
+          ---
+          duration_ms: 3.815943
+          type: 'test'
+          ...
+        1..1
+    ok 4 - GET /utility/airports/nearest
+      ---
+      duration_ms: 3.904769
+      type: 'suite'
+      ...
+    1..4
+ok 91 - Static: Airport Database
+  ---
+  duration_ms: 49.606118
+  type: 'suite'
+  ...
+# Subtest: Static: Nutrition Database (structure)
+    # Subtest: GET /health/nutrition/search?q=chicken
+        # Subtest: returns foods with full nutrient schema
+        ok 1 - returns foods with full nutrient schema
+          ---
+          duration_ms: 27.437425
+          type: 'test'
+          ...
+        1..1
+    ok 1 - GET /health/nutrition/search?q=chicken
+      ---
+      duration_ms: 27.61703
+      type: 'suite'
+      ...
+    # Subtest: GET /health/nutrition/categories
+        # Subtest: returns food category taxonomy
+        ok 1 - returns food category taxonomy
+          ---
+          duration_ms: 40.53391
+          type: 'test'
+          ...
+        1..1
+    ok 2 - GET /health/nutrition/categories
+      ---
+      duration_ms: 40.637153
+      type: 'suite'
+      ...
+    # Subtest: GET /health/nutrition/nutrient-types
+        # Subtest: returns available nutrient type categories
+        ok 1 - returns available nutrient type categories
+          ---
+          duration_ms: 4.899427
+          type: 'test'
+          ...
+        1..1
+    ok 3 - GET /health/nutrition/nutrient-types
+      ---
+      duration_ms: 4.987031
+      type: 'suite'
+      ...
+    1..3
+ok 92 - Static: Nutrition Database (structure)
+  ---
+  duration_ms: 73.344668
+  type: 'suite'
+  ...
+#   ⚠  14 TOOL_DOMAINS entries without schemas (likely API-gated): get_weather_history, get_weather_marine, get_weather_astronomy, get_weather_alerts, get_live_scores, get_upcoming_matches, get_recent_results, get_league_standings, get_match_details, get_head_to_head, search_teams, search_players, get_team_squad, get_league_top_scorers
+#   ⚠  14 TOOL_LABELS entries without schemas (likely API-gated): get_weather_history, get_weather_marine, get_weather_astronomy, get_weather_alerts, get_live_scores, get_upcoming_matches, get_recent_results, get_league_standings, get_match_details, get_head_to_head, search_teams, search_players, get_team_squad, get_league_top_scorers
+#   ⚠  1 LABELS constants not used in any TOOL_LABELS entry: LABELS.ORCHESTRATION = "orchestration"
+#   ⚠  6 DOMAINS constants not used in any TOOL_DOMAINS entry: DOMAINS.REASONING = "Reasoning", DOMAINS.COORDINATOR = "Coordinator", DOMAINS.AGENTIC_SKILLS = "Agentic: Skills", DOMAINS.AGENTIC_CONTROL = "Agentic: Control Flow", DOMAINS.AGENTIC_STRUCTURED = "Agentic: Structured Output", DOMAINS.AGENTIC_GIT_ISOLATION = "Agentic: Git Isolation"
+# Subtest: Tool Schema — structural integrity
+    # Subtest: every schema has a non-empty name
+    ok 1 - every schema has a non-empty name
+      ---
+      duration_ms: 1.360062
+      type: 'test'
+      ...
+    # Subtest: every schema has a non-empty description
+    ok 2 - every schema has a non-empty description
+      ---
+      duration_ms: 0.190675
+      type: 'test'
+      ...
+    # Subtest: every schema has a parameters object with type 'object'
+    ok 3 - every schema has a parameters object with type 'object'
+      ---
+      duration_ms: 0.360729
+      type: 'test'
+      ...
+    # Subtest: every schema has a properties object in parameters
+    ok 4 - every schema has a properties object in parameters
+      ---
+      duration_ms: 0.140193
+      type: 'test'
+      ...
+    # Subtest: schema names are unique (no duplicates)
+    ok 5 - schema names are unique (no duplicates)
+      ---
+      duration_ms: 0.26361
+      type: 'test'
+      ...
+    1..5
+ok 93 - Tool Schema — structural integrity
+  ---
+  duration_ms: 3.200024
+  type: 'suite'
+  ...
+# Subtest: Tool Taxonomy — domain coverage
+    # Subtest: every schema has a domain entry in TOOL_DOMAINS
+    ok 1 - every schema has a domain entry in TOOL_DOMAINS
+      ---
+      duration_ms: 0.198883
+      type: 'test'
+      ...
+    # Subtest: TOOL_DOMAINS has no orphan entries without a matching schema (diagnostic)
+    ok 2 - TOOL_DOMAINS has no orphan entries without a matching schema (diagnostic)
+      ---
+      duration_ms: 0.807466
+      type: 'test'
+      ...
+    # Subtest: every domain value is a non-empty string
+    ok 3 - every domain value is a non-empty string
+      ---
+      duration_ms: 0.421261
+      type: 'test'
+      ...
+    1..3
+ok 94 - Tool Taxonomy — domain coverage
+  ---
+  duration_ms: 1.670199
+  type: 'suite'
+  ...
+# Subtest: Tool Taxonomy — label coverage
+    # Subtest: every schema has a label entry in TOOL_LABELS
+    ok 1 - every schema has a label entry in TOOL_LABELS
+      ---
+      duration_ms: 0.367416
+      type: 'test'
+      ...
+    # Subtest: TOOL_LABELS has no orphan entries without a matching schema (diagnostic)
+    ok 2 - TOOL_LABELS has no orphan entries without a matching schema (diagnostic)
+      ---
+      duration_ms: 0.457689
+      type: 'test'
+      ...
+    # Subtest: every label value is a non-empty array of strings
+    ok 3 - every label value is a non-empty array of strings
+      ---
+      duration_ms: 0.450801
+      type: 'test'
+      ...
+    1..3
+ok 95 - Tool Taxonomy — label coverage
+  ---
+  duration_ms: 1.555201
+  type: 'suite'
+  ...
+# Subtest: Tool Taxonomy — bidirectional consistency
+    # Subtest: TOOL_DOMAINS and TOOL_LABELS have the same set of keys
+    ok 1 - TOOL_DOMAINS and TOOL_LABELS have the same set of keys
+      ---
+      duration_ms: 0.192988
+      type: 'test'
+      ...
+    # Subtest: every schema key exists in both TOOL_DOMAINS and TOOL_LABELS
+    ok 2 - every schema key exists in both TOOL_DOMAINS and TOOL_LABELS
+      ---
+      duration_ms: 0.106889
+      type: 'test'
+      ...
+    1..2
+ok 96 - Tool Taxonomy — bidirectional consistency
+  ---
+  duration_ms: 0.501193
+  type: 'suite'
+  ...
+# Subtest: Tool Schema — parameter validation
+    # Subtest: required array only references defined properties
+    ok 1 - required array only references defined properties
+      ---
+      duration_ms: 0.61555
+      type: 'test'
+      ...
+    # Subtest: every property has a type or enum
+    ok 2 - every property has a type or enum
+      ---
+      duration_ms: 1.41833
+      type: 'test'
+      ...
+    1..2
+ok 97 - Tool Schema — parameter validation
+  ---
+  duration_ms: 2.162112
+  type: 'suite'
+  ...
+# Subtest: ToolTaxonomyConstants — registry alignment
+    # Subtest: every LABELS constant appears in at least one TOOL_LABELS entry
+    ok 1 - every LABELS constant appears in at least one TOOL_LABELS entry
+      ---
+      duration_ms: 0.326053
+      type: 'test'
+      ...
+    # Subtest: every DOMAINS constant appears in at least one TOOL_DOMAINS entry
+    ok 2 - every DOMAINS constant appears in at least one TOOL_DOMAINS entry
+      ---
+      duration_ms: 0.161735
+      type: 'test'
+      ...
+    # Subtest: every label value used in TOOL_LABELS has a LABELS constant
+    ok 3 - every label value used in TOOL_LABELS has a LABELS constant
+      ---
+      duration_ms: 0.089211
+      type: 'test'
+      ...
+    # Subtest: every domain value used in TOOL_DOMAINS has a DOMAINS constant
+    ok 4 - every domain value used in TOOL_DOMAINS has a DOMAINS constant
+      ---
+      duration_ms: 0.105268
+      type: 'test'
+      ...
+    1..4
+ok 98 - ToolTaxonomyConstants — registry alignment
+  ---
+  duration_ms: 0.807246
+  type: 'suite'
+  ...
+# Subtest: GET /transit/nextbus/:stopNo
+    # Subtest: returns 400 for invalid stop number
+    ok 1 - returns 400 for invalid stop number
+      ---
+      duration_ms: 277.525974
+      type: 'test'
+      ...
+    # Subtest: returns next bus data for a valid stop
+    ok 2 - returns next bus data for a valid stop
+      ---
+      duration_ms: 563.733108
+      type: 'test'
+      ...
+    1..2
+ok 99 - GET /transit/nextbus/:stopNo
+  ---
+  duration_ms: 842.021836
+  type: 'suite'
+  ...
+# Subtest: GET /transit/stops/:stopNo
+    # Subtest: returns 400 for invalid stop number
+    ok 1 - returns 400 for invalid stop number
+      ---
+      duration_ms: 2.482184
+      type: 'test'
+      ...
+    1..1
+ok 100 - GET /transit/stops/:stopNo
+  ---
+  duration_ms: 2.889715
+  type: 'suite'
+  ...
+# Subtest: GET /health (unified)
+    # Subtest: returns full system health status
+    ok 1 - returns full system health status
+      ---
+      duration_ms: 33.925165
+      type: 'test'
+      ...
+    1..1
+ok 101 - GET /health (unified)
+  ---
+  duration_ms: 34.181626
+  type: 'suite'
+  ...
+# Subtest: GET /trend/trends
+    # Subtest: returns all cached trends across sources
+    ok 1 - returns all cached trends across sources
+      ---
+      duration_ms: 59.464832
+      type: 'test'
+      ...
+    1..1
+ok 102 - GET /trend/trends
+  ---
+  duration_ms: 60.20476
+  type: 'suite'
+  ...
+# Subtest: GET /trend/trends/hot
+    # Subtest: returns cross-source correlated trends
+    ok 1 - returns cross-source correlated trends
+      ---
+      duration_ms: 49.182131
+      type: 'test'
+      ...
+    1..1
+ok 103 - GET /trend/trends/hot
+  ---
+  duration_ms: 49.365159
+  type: 'suite'
+  ...
+# Subtest: GET /trend/trends/source/:source
+    # Subtest: returns trends for a specific source (reddit)
+    ok 1 - returns trends for a specific source (reddit)
+      ---
+      duration_ms: 5.762066
+      type: 'test'
+      ...
+    # Subtest: returns empty for unknown source
+    ok 2 - returns empty for unknown source
+      ---
+      duration_ms: 3.23971
+      type: 'test'
+      ...
+    1..2
+ok 104 - GET /trend/trends/source/:source
+  ---
+  duration_ms: 9.213682
+  type: 'suite'
+  ...
+# Subtest: GET /trend/trends/category/:category
+    # Subtest: returns trends filtered by category
+    ok 1 - returns trends filtered by category
+      ---
+      duration_ms: 5.478297
+      type: 'test'
+      ...
+    1..1
+ok 105 - GET /trend/trends/category/:category
+  ---
+  duration_ms: 5.839897
+  type: 'suite'
+  ...
+# Subtest: GET /trend/trends/search
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 6.982525
+      type: 'test'
+      ...
+    # Subtest: returns search results for a query
+    ok 2 - returns search results for a query
+      ---
+      duration_ms: 4.332273
+      type: 'test'
+      ...
+    1..2
+ok 106 - GET /trend/trends/search
+  ---
+  duration_ms: 11.742215
+  type: 'suite'
+  ...
+# Subtest: GET /utility/currency/convert
+    # Subtest: returns 400 when from/to are missing
+    ok 1 - returns 400 when from/to are missing
+      ---
+      duration_ms: 48.864911
+      type: 'test'
+      ...
+    # Subtest: converts USD to CAD
+    ok 2 - converts USD to CAD
+      ---
+      duration_ms: 99.905967
+      type: 'test'
+      ...
+    1..2
+ok 107 - GET /utility/currency/convert
+  ---
+  duration_ms: 149.599427
+  type: 'suite'
+  ...
+# Subtest: GET /utility/currency/list
+    # Subtest: returns available currencies
+    ok 1 - returns available currencies
+      ---
+      duration_ms: 3.832205
+      type: 'test'
+      ...
+    1..1
+ok 108 - GET /utility/currency/list
+  ---
+  duration_ms: 4.042781
+  type: 'suite'
+  ...
+# Subtest: GET /utility/timezone/:area/:location
+    # Subtest: returns time in a timezone (or 502 if upstream down)
+    ok 1 - returns time in a timezone (or 502 if upstream down)
+      ---
+      duration_ms: 660.59994
+      type: 'test'
+      ...
+    1..1
+ok 109 - GET /utility/timezone/:area/:location
+  ---
+  duration_ms: 660.759166
+  type: 'suite'
+  ...
+# Subtest: GET /utility/timezone/list
+    # Subtest: returns timezone listing (or 502 if upstream down)
+    ok 1 - returns timezone listing (or 502 if upstream down)
+      ---
+      duration_ms: 139.336772
+      type: 'test'
+      ...
+    1..1
+ok 110 - GET /utility/timezone/list
+  ---
+  duration_ms: 139.53376
+  type: 'suite'
+  ...
+# Subtest: GET /utility/ip
+    # Subtest: returns geolocation for own IP
+    ok 1 - returns geolocation for own IP
+      ---
+      duration_ms: 227.517864
+      type: 'test'
+      ...
+    1..1
+ok 111 - GET /utility/ip
+  ---
+  duration_ms: 227.6744
+  type: 'suite'
+  ...
+# Subtest: GET /utility/airports/search
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 14.072373
+      type: 'test'
+      ...
+    # Subtest: returns airport search results
+    ok 2 - returns airport search results
+      ---
+      duration_ms: 20.384063
+      type: 'test'
+      ...
+    1..2
+ok 112 - GET /utility/airports/search
+  ---
+  duration_ms: 34.618138
+  type: 'suite'
+  ...
+# Subtest: GET /utility/airports/code/:code
+    # Subtest: returns airport data for YVR
+    ok 1 - returns airport data for YVR
+      ---
+      duration_ms: 6.070717
+      type: 'test'
+      ...
+    # Subtest: returns 404 for nonexistent code
+    ok 2 - returns 404 for nonexistent code
+      ---
+      duration_ms: 132.590866
+      type: 'test'
+      ...
+    1..2
+ok 113 - GET /utility/airports/code/:code
+  ---
+  duration_ms: 138.84716
+  type: 'suite'
+  ...
+# Subtest: GET /utility/airports/country/:code
+    # Subtest: returns airports for a country
+    ok 1 - returns airports for a country
+      ---
+      duration_ms: 43.077051
+      type: 'test'
+      ...
+    1..1
+ok 114 - GET /utility/airports/country/:code
+  ---
+  duration_ms: 43.2273
+  type: 'suite'
+  ...
+# Subtest: GET /utility/airports/nearest
+    # Subtest: returns 400 when lat/lng are missing
+    ok 1 - returns 400 when lat/lng are missing
+      ---
+      duration_ms: 15.413923
+      type: 'test'
+      ...
+    # Subtest: returns nearest airports to Vancouver
+    ok 2 - returns nearest airports to Vancouver
+      ---
+      duration_ms: 25.158926
+      type: 'test'
+      ...
+    1..2
+ok 115 - GET /utility/airports/nearest
+  ---
+  duration_ms: 40.723808
+  type: 'suite'
+  ...
+# Subtest: GET /utility/places/nearby
+    # Subtest: returns 400 when type is missing
+    ok 1 - returns 400 when type is missing
+      ---
+      duration_ms: 21.220396
+      type: 'test'
+      ...
+    1..1
+ok 116 - GET /utility/places/nearby
+  ---
+  duration_ms: 21.341096
+  type: 'suite'
+  ...
+# Subtest: GET /utility/places/search
+    # Subtest: returns 400 when q is missing
+    ok 1 - returns 400 when q is missing
+      ---
+      duration_ms: 15.094894
+      type: 'test'
+      ...
+    1..1
+ok 117 - GET /utility/places/search
+  ---
+  duration_ms: 15.199698
+  type: 'suite'
+  ...
+# Subtest: GET /weather/weather
+    # Subtest: returns the full merged weather snapshot
+    ok 1 - returns the full merged weather snapshot
+      ---
+      duration_ms: 106.07958
+      type: 'test'
+      ...
+    1..1
+ok 118 - GET /weather/weather
+  ---
+  duration_ms: 106.917868
+  type: 'suite'
+  ...
+# Subtest: GET /weather/weather/current
+    # Subtest: returns current conditions without forecast arrays
+    ok 1 - returns current conditions without forecast arrays
+      ---
+      duration_ms: 20.532958
+      type: 'test'
+      ...
+    1..1
+ok 119 - GET /weather/weather/current
+  ---
+  duration_ms: 20.668828
+  type: 'suite'
+  ...
+# Subtest: GET /weather/weather/forecast
+    # Subtest: returns forecast arrays
+    ok 1 - returns forecast arrays
+      ---
+      duration_ms: 4.263687
+      type: 'test'
+      ...
+    1..1
+ok 120 - GET /weather/weather/forecast
+  ---
+  duration_ms: 4.614777
+  type: 'suite'
+  ...
+# Subtest: GET /weather/weather/air
+    # Subtest: returns air quality data
+    ok 1 - returns air quality data
+      ---
+      duration_ms: 3.4206
+      type: 'test'
+      ...
+    1..1
+ok 121 - GET /weather/weather/air
+  ---
+  duration_ms: 3.564107
+  type: 'suite'
+  ...
+# Subtest: GET /weather/weather/daylight
+    # Subtest: returns daylight data
+    ok 1 - returns daylight data
+      ---
+      duration_ms: 4.426055
+      type: 'test'
+      ...
+    1..1
+ok 122 - GET /weather/weather/daylight
+  ---
+  duration_ms: 4.787525
+  type: 'suite'
+  ...
+# Subtest: GET /weather/earthquakes
+    # Subtest: returns an array of earthquake events
+    ok 1 - returns an array of earthquake events
+      ---
+      duration_ms: 5.668606
+      type: 'test'
+      ...
+    1..1
+ok 123 - GET /weather/earthquakes
+  ---
+  duration_ms: 5.870142
+  type: 'suite'
+  ...
+# Subtest: GET /weather/earthquakes/summary
+    # Subtest: returns earthquake summary with counts
+    ok 1 - returns earthquake summary with counts
+      ---
+      duration_ms: 2.944813
+      type: 'test'
+      ...
+    1..1
+ok 124 - GET /weather/earthquakes/summary
+  ---
+  duration_ms: 3.104898
+  type: 'suite'
+  ...
+# Subtest: GET /weather/neo
+    # Subtest: returns an array of near-Earth objects
+    ok 1 - returns an array of near-Earth objects
+      ---
+      duration_ms: 8.270189
+      type: 'test'
+      ...
+    1..1
+ok 125 - GET /weather/neo
+  ---
+  duration_ms: 8.414537
+  type: 'suite'
+  ...
+# Subtest: GET /weather/neo/summary
+    # Subtest: returns NEO summary with hazardous count
+    ok 1 - returns NEO summary with hazardous count
+      ---
+      duration_ms: 3.713245
+      type: 'test'
+      ...
+    1..1
+ok 126 - GET /weather/neo/summary
+  ---
+  duration_ms: 3.91342
+  type: 'suite'
+  ...
+# Subtest: GET /weather/space-weather
+    # Subtest: returns combined space weather data
+    ok 1 - returns combined space weather data
+      ---
+      duration_ms: 2.337963
+      type: 'test'
+      ...
+    1..1
+ok 127 - GET /weather/space-weather
+  ---
+  duration_ms: 2.434541
+  type: 'suite'
+  ...
+# Subtest: GET /weather/space-weather/flares
+    # Subtest: returns an array of solar flares
+    ok 1 - returns an array of solar flares
+      ---
+      duration_ms: 3.293746
+      type: 'test'
+      ...
+    1..1
+ok 128 - GET /weather/space-weather/flares
+  ---
+  duration_ms: 3.448494
+  type: 'suite'
+  ...
+# Subtest: GET /weather/space-weather/cmes
+    # Subtest: returns an array of CMEs
+    ok 1 - returns an array of CMEs
+      ---
+      duration_ms: 10.370652
+      type: 'test'
+      ...
+    1..1
+ok 129 - GET /weather/space-weather/cmes
+  ---
+  duration_ms: 10.513999
+  type: 'suite'
+  ...
+# Subtest: GET /weather/space-weather/storms
+    # Subtest: returns an array of geomagnetic storms
+    ok 1 - returns an array of geomagnetic storms
+      ---
+      duration_ms: 8.084544
+      type: 'test'
+      ...
+    1..1
+ok 130 - GET /weather/space-weather/storms
+  ---
+  duration_ms: 8.211353
+  type: 'suite'
+  ...
+# Subtest: GET /weather/space-weather/summary
+    # Subtest: returns space weather summary with counts
+    ok 1 - returns space weather summary with counts
+      ---
+      duration_ms: 74.910917
+      type: 'test'
+      ...
+    1..1
+ok 131 - GET /weather/space-weather/summary
+  ---
+  duration_ms: 75.038818
+  type: 'suite'
+  ...
+# Subtest: GET /weather/iss
+    # Subtest: returns ISS position and astronaut data
+    ok 1 - returns ISS position and astronaut data
+      ---
+      duration_ms: 2.161528
+      type: 'test'
+      ...
+    1..1
+ok 132 - GET /weather/iss
+  ---
+  duration_ms: 2.269988
+  type: 'suite'
+  ...
+# Subtest: GET /weather/iss/trajectory
+    # Subtest: returns an array of trajectory points
+    ok 1 - returns an array of trajectory points
+      ---
+      duration_ms: 1.713938
+      type: 'test'
+      ...
+    1..1
+ok 133 - GET /weather/iss/trajectory
+  ---
+  duration_ms: 1.834432
+  type: 'suite'
+  ...
+# Subtest: GET /weather/kp
+    # Subtest: returns Kp index history
+    ok 1 - returns Kp index history
+      ---
+      duration_ms: 543.52018
+      type: 'test'
+      ...
+    1..1
+ok 134 - GET /weather/kp
+  ---
+  duration_ms: 543.618723
+  type: 'suite'
+  ...
+# Subtest: GET /weather/kp/current
+    # Subtest: returns current Kp with classification
+    ok 1 - returns current Kp with classification
+      ---
+      duration_ms: 9.060215
+      type: 'test'
+      ...
+    1..1
+ok 135 - GET /weather/kp/current
+  ---
+  duration_ms: 9.163345
+  type: 'suite'
+  ...
+# Subtest: GET /weather/wildfires
+    # Subtest: returns wildfire events
+    ok 1 - returns wildfire events
+      ---
+      duration_ms: 4.148315
+      type: 'test'
+      ...
+    1..1
+ok 136 - GET /weather/wildfires
+  ---
+  duration_ms: 4.23831
+  type: 'suite'
+  ...
+# Subtest: GET /weather/wildfires/summary
+    # Subtest: returns wildfire summary
+    ok 1 - returns wildfire summary
+      ---
+      duration_ms: 4.123581
+      type: 'test'
+      ...
+    1..1
+ok 137 - GET /weather/wildfires/summary
+  ---
+  duration_ms: 4.251266
+  type: 'suite'
+  ...
+# Subtest: GET /weather/tides
+    # Subtest: returns tide predictions
+    ok 1 - returns tide predictions
+      ---
+      duration_ms: 3.265101
+      type: 'test'
+      ...
+    1..1
+ok 138 - GET /weather/tides
+  ---
+  duration_ms: 3.361263
+  type: 'suite'
+  ...
+# Subtest: GET /weather/tides/next
+    # Subtest: returns next tide prediction
+    ok 1 - returns next tide prediction
+      ---
+      duration_ms: 2.406614
+      type: 'test'
+      ...
+    1..1
+ok 139 - GET /weather/tides/next
+  ---
+  duration_ms: 2.487801
+  type: 'suite'
+  ...
+# Subtest: GET /weather/solar-wind
+    # Subtest: returns solar wind data
+    ok 1 - returns solar wind data
+      ---
+      duration_ms: 2.765436
+      type: 'test'
+      ...
+    1..1
+ok 140 - GET /weather/solar-wind
+  ---
+  duration_ms: 2.842727
+  type: 'suite'
+  ...
+# Subtest: GET /weather/solar-wind/latest
+    # Subtest: returns latest solar wind reading
+    ok 1 - returns latest solar wind reading
+      ---
+      duration_ms: 33.274133
+      type: 'test'
+      ...
+    1..1
+ok 141 - GET /weather/solar-wind/latest
+  ---
+  duration_ms: 33.361786
+  type: 'suite'
+  ...
+# Subtest: GET /weather/airquality/google
+    # Subtest: returns Google air quality data or no_data status
+    ok 1 - returns Google air quality data or no_data status
+      ---
+      duration_ms: 24.497487
+      type: 'test'
+      ...
+    1..1
+ok 142 - GET /weather/airquality/google
+  ---
+  duration_ms: 24.585971
+  type: 'suite'
+  ...
+# Subtest: GET /weather/pollen
+    # Subtest: returns pollen forecast data or no_data status
+    ok 1 - returns pollen forecast data or no_data status
+      ---
+      duration_ms: 18.415565
+      type: 'test'
+      ...
+    1..1
+ok 143 - GET /weather/pollen
+  ---
+  duration_ms: 18.64723
+  type: 'suite'
+  ...
+# Subtest: GET /weather/pollen/today
+    # Subtest: returns today's pollen or no_data
+    ok 1 - returns today's pollen or no_data
+      ---
+      duration_ms: 32.637808
+      type: 'test'
+      ...
+    1..1
+ok 144 - GET /weather/pollen/today
+  ---
+  duration_ms: 32.798379
+  type: 'suite'
+  ...
+# Subtest: GET /weather/apod
+    # Subtest: returns APOD data or no_data status
+    ok 1 - returns APOD data or no_data status
+      ---
+      duration_ms: 30.318677
+      type: 'test'
+      ...
+    1..1
+ok 145 - GET /weather/apod
+  ---
+  duration_ms: 30.426611
+  type: 'suite'
+  ...
+# Subtest: GET /weather/launches
+    # Subtest: returns upcoming launches
+    ok 1 - returns upcoming launches
+      ---
+      duration_ms: 33.967829
+      type: 'test'
+      ...
+    1..1
+ok 146 - GET /weather/launches
+  ---
+  duration_ms: 34.071358
+  type: 'suite'
+  ...
+# Subtest: GET /weather/launches/next
+    # Subtest: returns the next upcoming launch
+    ok 1 - returns the next upcoming launch
+      ---
+      duration_ms: 31.516889
+      type: 'test'
+      ...
+    1..1
+ok 147 - GET /weather/launches/next
+  ---
+  duration_ms: 31.615574
+  type: 'suite'
+  ...
+# Subtest: GET /weather/launches/summary
+    # Subtest: returns launch summary
+    ok 1 - returns launch summary
+      ---
+      duration_ms: 30.072114
+      type: 'test'
+      ...
+    1..1
+ok 148 - GET /weather/launches/summary
+  ---
+  duration_ms: 30.187196
+  type: 'suite'
+  ...
+# Subtest: GET /weather/twilight
+    # Subtest: returns twilight data or no_data status
+    ok 1 - returns twilight data or no_data status
+      ---
+      duration_ms: 17.634016
+      type: 'test'
+      ...
+    1..1
+ok 149 - GET /weather/twilight
+  ---
+  duration_ms: 17.778929
+  type: 'suite'
+  ...
+# Subtest: GET /weather/warnings
+    # Subtest: returns environment Canada warnings
+    ok 1 - returns environment Canada warnings
+      ---
+      duration_ms: 5.204313
+      type: 'test'
+      ...
+    1..1
+ok 150 - GET /weather/warnings
+  ---
+  duration_ms: 5.293607
+  type: 'suite'
+  ...
+# Subtest: GET /weather/warnings/count
+    # Subtest: returns warning counts by type
+    ok 1 - returns warning counts by type
+      ---
+      duration_ms: 4.207349
+      type: 'test'
+      ...
+    1..1
+ok 151 - GET /weather/warnings/count
+  ---
+  duration_ms: 4.31245
+  type: 'suite'
+  ...
+# Subtest: GET /weather/avalanche
+    # Subtest: returns avalanche forecasts
+    ok 1 - returns avalanche forecasts
+      ---
+      duration_ms: 39.109726
+      type: 'test'
+      ...
+    1..1
+ok 152 - GET /weather/avalanche
+  ---
+  duration_ms: 39.2358
+  type: 'suite'
+  ...
+# Subtest: GET /youtube/video
+    # Subtest: returns metadata for a YouTube URL
+    ok 1 - returns metadata for a YouTube URL
+      ---
+      duration_ms: 1643.805564
+      type: 'test'
+      ...
+    # Subtest: accepts bare video ID
+    ok 2 - accepts bare video ID
+      ---
+      duration_ms: 969.835962
+      type: 'test'
+      ...
+    # Subtest: returns 400 when url is missing
+    ok 3 - returns 400 when url is missing
+      ---
+      duration_ms: 2.235198
+      type: 'test'
+      ...
+    # Subtest: includes transcript when requested
+    ok 4 - includes transcript when requested
+      ---
+      duration_ms: 958.697829
+      type: 'test'
+      ...
+    1..4
+ok 153 - GET /youtube/video
+  ---
+  duration_ms: 3575.414088
+  type: 'suite'
+  ...
+# Subtest: GET /github/repo
+    # Subtest: returns metadata for owner/repo shorthand
+    ok 1 - returns metadata for owner/repo shorthand
+      ---
+      duration_ms: 348.10607
+      type: 'test'
+      ...
+    # Subtest: returns README when requested
+    ok 2 - returns README when requested
+      ---
+      duration_ms: 287.430854
+      type: 'test'
+      ...
+    # Subtest: returns language breakdown when requested
+    ok 3 - returns language breakdown when requested
+      ---
+      duration_ms: 135.450124
+      type: 'test'
+      ...
+    # Subtest: returns topics array
+    ok 4 - returns topics array
+      ---
+      duration_ms: 67.36588
+      type: 'test'
+      ...
+    # Subtest: returns 400 when url is missing
+    ok 5 - returns 400 when url is missing
+      ---
+      duration_ms: 2.14331
+      type: 'test'
+      ...
+    # Subtest: handles full GitHub URL
+    ok 6 - handles full GitHub URL
+      ---
+      duration_ms: 196.887476
+      type: 'test'
+      ...
+    1..6
+ok 154 - GET /github/repo
+  ---
+  duration_ms: 1037.838094
+  type: 'suite'
+  ...
+# Subtest: GET /reddit/thread
+    # Subtest: returns thread with title, author, and comments
+    ok 1 - returns thread with title, author, and comments
+      ---
+      duration_ms: 1506.269284
+      type: 'test'
+      ...
+    # Subtest: comment has expected shape
+    ok 2 - comment has expected shape
+      ---
+      duration_ms: 1468.122522
+      type: 'test'
+      ...
+    # Subtest: returns 400 when url is missing
+    ok 3 - returns 400 when url is missing
+      ---
+      duration_ms: 1.558684
+      type: 'test'
+      ...
+    1..3
+ok 155 - GET /reddit/thread
+  ---
+  duration_ms: 2976.127157
+  type: 'suite'
+  ...
+# Subtest: GET /npm/package
+    # Subtest: returns metadata for a popular package
+    ok 1 - returns metadata for a popular package
+      ---
+      duration_ms: 151.797747
+      type: 'test'
+      ...
+    # Subtest: includes README when not disabled
+    ok 2 - includes README when not disabled
+      ---
+      duration_ms: 55.509085
+      type: 'test'
+      ...
+    # Subtest: returns 400 when name is missing
+    ok 3 - returns 400 when name is missing
+      ---
+      duration_ms: 1.588472
+      type: 'test'
+      ...
+    # Subtest: handles scoped package names
+    ok 4 - handles scoped package names
+      ---
+      duration_ms: 239.204909
+      type: 'test'
+      ...
+    1..4
+ok 156 - GET /npm/package
+  ---
+  duration_ms: 448.337057
+  type: 'suite'
+  ...
+# Subtest: GET /pypi/package
+    # Subtest: returns metadata for a Python package
+    ok 1 - returns metadata for a Python package
+      ---
+      duration_ms: 27.942444
+      type: 'test'
+      ...
+    # Subtest: includes dependency info
+    ok 2 - includes dependency info
+      ---
+      duration_ms: 10.06769
+      type: 'test'
+      ...
+    # Subtest: returns error when name is missing
+    ok 3 - returns error when name is missing
+      ---
+      duration_ms: 1.358137
+      type: 'test'
+      ...
+    1..3
+ok 157 - GET /pypi/package
+  ---
+  duration_ms: 39.58791
+  type: 'suite'
+  ...
+# Subtest: GET /pdf/read
+    # Subtest: extracts text from a PDF URL
+    ok 1 - extracts text from a PDF URL
+      ---
+      duration_ms: 287.579823
+      type: 'test'
+      ...
+    # Subtest: returns info metadata
+    ok 2 - returns info metadata
+      ---
+      duration_ms: 76.273269
+      type: 'test'
+      ...
+    # Subtest: returns 400 when url is missing
+    ok 3 - returns 400 when url is missing
+      ---
+      duration_ms: 1.671451
+      type: 'test'
+      ...
+    1..3
+ok 158 - GET /pdf/read
+  ---
+  duration_ms: 365.712423
+  type: 'suite'
+  ...
+# Subtest: GET /rss/feed
+    # Subtest: parses an RSS feed
+    not ok 1 - parses an RSS feed
+      ---
+      duration_ms: 10404.980601
+      type: 'test'
+      location: '/home/rodrigo/development/sun/tools-api/tests/WebExtractionEndpoints.test.js:247:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        Expected values to be strictly equal:
+        
+        400 !== 200
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: 200
+      actual: 400
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/rodrigo/development/sun/tools-api/tests/WebExtractionEndpoints.test.js:251:12)
+        process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Promise.all (index 0)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: feed items have expected shape
+    ok 2 - feed items have expected shape
+      ---
+      duration_ms: 326.003709
+      type: 'test'
+      ...
+    # Subtest: returns 400 when url is missing
+    ok 3 - returns 400 when url is missing
+      ---
+      duration_ms: 1.306762
+      type: 'test'
+      ...
+    1..3
+not ok 159 - GET /rss/feed
+  ---
+  duration_ms: 10732.511938
+  type: 'suite'
+  location: '/home/rodrigo/development/sun/tools-api/tests/WebExtractionEndpoints.test.js:246:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: GET /twitter/post
+    # Subtest: returns 400 when url is missing
+    ok 1 - returns 400 when url is missing
+      ---
+      duration_ms: 1.487894
+      type: 'test'
+      ...
+    # Subtest: returns structured error for non-existent tweet
+    ok 2 - returns structured error for non-existent tweet
+      ---
+      duration_ms: 66.939914
+      type: 'test'
+      ...
+    1..2
+ok 160 - GET /twitter/post
+  ---
+  duration_ms: 68.558239
+  type: 'suite'
+  ...
+# Subtest: GET /hackernews/thread
+    # Subtest: returns the original HN post (item 1)
+    ok 1 - returns the original HN post (item 1)
+      ---
+      duration_ms: 382.156079
+      type: 'test'
+      ...
+    # Subtest: returns 400 when url is missing
+    ok 2 - returns 400 when url is missing
+      ---
+      duration_ms: 1.418826
+      type: 'test'
+      ...
+    1..2
+ok 161 - GET /hackernews/thread
+  ---
+  duration_ms: 383.828333
+  type: 'suite'
+  ...
+# Subtest: GET /stackoverflow/question
+    # Subtest: returns question data for a popular question
+    ok 1 - returns question data for a popular question
+      ---
+      duration_ms: 118.698757
+      type: 'test'
+      ...
+    # Subtest: answer has expected shape
+    ok 2 - answer has expected shape
+      ---
+      duration_ms: 74.415084
+      type: 'test'
+      ...
+    # Subtest: returns 400 when url is missing
+    ok 3 - returns 400 when url is missing
+      ---
+      duration_ms: 1.456115
+      type: 'test'
+      ...
+    1..3
+ok 162 - GET /stackoverflow/question
+  ---
+  duration_ms: 194.761527
+  type: 'suite'
+  ...
+# Subtest: GET /web/content (unified)
+    # Subtest: auto-detects GitHub from URL
+    ok 1 - auto-detects GitHub from URL
+      ---
+      duration_ms: 196.9142
+      type: 'test'
+      ...
+    # Subtest: auto-detects GitHub from full URL
+    ok 2 - auto-detects GitHub from full URL
+      ---
+      duration_ms: 66.964823
+      type: 'test'
+      ...
+    # Subtest: auto-detects Reddit from URL
+    ok 3 - auto-detects Reddit from URL
+      ---
+      duration_ms: 1515.891668
+      type: 'test'
+      ...
+    # Subtest: auto-detects Hacker News from URL
+    ok 4 - auto-detects Hacker News from URL
+      ---
+      duration_ms: 130.058128
+      type: 'test'
+      ...
+    # Subtest: auto-detects Stack Overflow from URL
+    ok 5 - auto-detects Stack Overflow from URL
+      ---
+      duration_ms: 69.484332
+      type: 'test'
+      ...
+    # Subtest: auto-detects Twitter from x.com URL
+    ok 6 - auto-detects Twitter from x.com URL
+      ---
+      duration_ms: 130.125003
+      type: 'test'
+      ...
+    # Subtest: returns error for unknown platform
+    not ok 7 - returns error for unknown platform
+      ---
+      duration_ms: 22.279786
+      type: 'test'
+      location: '/home/rodrigo/development/sun/tools-api/tests/WebExtractionEndpoints.test.js:422:3'
+      failureType: 'testCodeFailure'
+      error: 'error should mention detection failure'
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected: true
+      actual: false
+      operator: '=='
+      stack: |-
+        TestContext.<anonymous> (file:///home/rodrigo/development/sun/tools-api/tests/WebExtractionEndpoints.test.js:428:12)
+        process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+        async Test.run (node:internal/test_runner/test:1054:7)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: returns 400 when url is missing
+    ok 8 - returns 400 when url is missing
+      ---
+      duration_ms: 1.22724
+      type: 'test'
+      ...
+    # Subtest: passes commentLimit to Reddit
+    ok 9 - passes commentLimit to Reddit
+      ---
+      duration_ms: 1816.150621
+      type: 'test'
+      ...
+    # Subtest: passes readme option to GitHub
+    ok 10 - passes readme option to GitHub
+      ---
+      duration_ms: 313.959182
+      type: 'test'
+      ...
+    1..10
+not ok 163 - GET /web/content (unified)
+  ---
+  duration_ms: 4263.562771
+  type: 'suite'
+  location: '/home/rodrigo/development/sun/tools-api/tests/WebExtractionEndpoints.test.js:364:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+# Subtest: GET /package/info (unified)
+    # Subtest: returns NPM package info
+    ok 1 - returns NPM package info
+      ---
+      duration_ms: 55.921377
+      type: 'test'
+      ...
+    # Subtest: returns PyPI package info
+    ok 2 - returns PyPI package info
+      ---
+      duration_ms: 30.192292
+      type: 'test'
+      ...
+    # Subtest: accepts 'pip' as registry alias
+    ok 3 - accepts 'pip' as registry alias
+      ---
+      duration_ms: 10.250248
+      type: 'test'
+      ...
+    # Subtest: returns 400 when name is missing
+    ok 4 - returns 400 when name is missing
+      ---
+      duration_ms: 1.188842
+      type: 'test'
+      ...
+    # Subtest: returns 400 when registry is missing
+    ok 5 - returns 400 when registry is missing
+      ---
+      duration_ms: 1.226245
+      type: 'test'
+      ...
+    # Subtest: returns 400 for unknown registry
+    ok 6 - returns 400 for unknown registry
+      ---
+      duration_ms: 0.908249
+      type: 'test'
+      ...
+    # Subtest: handles scoped NPM packages
+    ok 7 - handles scoped NPM packages
+      ---
+      duration_ms: 285.306918
+      type: 'test'
+      ...
+    1..7
+ok 164 - GET /package/info (unified)
+  ---
+  duration_ms: 385.291203
+  type: 'suite'
+  ...
+# Subtest: ToolSchemaService
+    # Subtest: loads tool schemas
+    ok 1 - loads tool schemas
+      ---
+      duration_ms: 8.591906
+      type: 'test'
+      ...
+    # Subtest: every tool has required fields
+    ok 2 - every tool has required fields
+      ---
+      duration_ms: 1.491467
+      type: 'test'
+      ...
+    # Subtest: no duplicate tool names
+    ok 3 - no duplicate tool names
+      ---
+      duration_ms: 0.624444
+      type: 'test'
+      ...
+    # Subtest: all tools have at least one label
+    ok 4 - all tools have at least one label
+      ---
+      duration_ms: 0.192481
+      type: 'test'
+      ...
+    # Subtest: unified tools exist with correct schemas
+    not ok 5 - unified tools exist with correct schemas
+      ---
+      duration_ms: 1.537003
+      type: 'test'
+      location: '/home/rodrigo/development/sun/tools-api/tests/WebExtractionEndpoints.test.js:564:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        get_pypi_package should be removed from schemas
+        + actual - expected
+        
+        + {
+        +   dataSource: {
+        +     provider: 'PyPI JSON API',
+        +     type: 'onDemand'
+        +   },
+        +   description: 'Look up a Python package on PyPI. Returns the package name, version, summary, author, license, homepage, repository URL, Python version requirements, and dependencies. Similar to get_package_info but specifically for the PyPI registry.',
+        +   domain: 'Knowledge',
+        +   endpoint: {
+        +     path: '/knowledge/pypi/package',
+        +     queryParams: [
+        +       'name'
+        +     ]
+        +   },
+        +   labels: [
+        +     'coding',
+        +     'reference'
+        +   ],
+        +   name: 'get_pypi_package',
+        +   parameters: {
+        +     properties: {
+        +       name: {
+        +         description: "PyPI package name (e.g. 'numpy', 'requests', 'fastapi')",
+        +         type: 'string'
+        +       }
+        +     },
+        +     required: [
+        +       'name'
+        +     ],
+        +     type: 'object'
+        +   }
+        + }
+        - undefined
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      actual:
+        name: 'get_pypi_package'
+        dataSource:
+          type: 'onDemand'
+          provider: 'PyPI JSON API'
+        description: 'Look up a Python package on PyPI. Returns the package name, version, summary, author, license, homepage, repository URL, Python version requirements, and dependencies. Similar to get_package_info but specifically for the PyPI registry.'
+        endpoint:
+          path: '/knowledge/pypi/package'
+          queryParams:
+            0: 'name'
+        parameters:
+          type: 'object'
+          properties:
+            name:
+              type: 'string'
+              description: "PyPI package name (e.g. 'numpy', 'requests', 'fastapi')"
+          required:
+            0: 'name'
+        domain: 'Knowledge'
+        labels:
+          0: 'coding'
+          1: 'reference'
+      operator: 'strictEqual'
+      stack: |-
+        TestContext.<anonymous> (file:///home/rodrigo/development/sun/tools-api/tests/WebExtractionEndpoints.test.js:587:14)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    1..5
+not ok 165 - ToolSchemaService
+  ---
+  duration_ms: 12.642104
+  type: 'suite'
+  location: '/home/rodrigo/development/sun/tools-api/tests/WebExtractionEndpoints.test.js:522:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..165
+# tests 375
+# suites 188
+# pass 370
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 26081.438332

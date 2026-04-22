@@ -7,64 +7,53 @@ import {
   getContentByUser,
 } from "../models/NewgroundsProfile.js";
 import { getClockCrewDB } from "../models/ClockCrewPost.js";
+import { asyncHandler, parseIntParam, HealthTracker } from "../utilities.js";
 
 const router = Router();
 
 // ─── Health ─────────────────────────────────────────────────────
 
-const state = { lastChecked: null, error: null };
+const health = new HealthTracker();
 
 export function getNewgroundsHealth() {
-  return { lastChecked: state.lastChecked, error: state.error };
+  return health.getHealth();
 }
+
+const opts = { errorStatus: 500, health };
 
 // ─── GET /stats ─────────────────────────────────────────────────
 // Returns scrape progress stats.
 
-router.get("/stats", async (_req, res) => {
-  try {
-    const stats = await getNewgroundsScrapeStats();
-    state.lastChecked = new Date();
-    res.json(stats);
-  } catch (error) {
-    state.error = error.message;
-    res.status(500).json({ error: error.message });
-  }
-});
+router.get(
+  "/stats",
+  asyncHandler(() => getNewgroundsScrapeStats(), "Newgrounds stats", opts),
+);
 
 // ─── GET /profiles ──────────────────────────────────────────────
 // List all scraped profiles.
 // Query: ?q=clock&limit=50
 
-router.get("/profiles", async (req, res) => {
-  try {
+router.get(
+  "/profiles",
+  asyncHandler(async (req) => {
     const q = req.query.q;
-    const limit = Math.min(parseInt(req.query.limit) || 50, 500);
+    const limit = parseIntParam(req.query.limit, 50, 500);
 
-    let profiles;
-    if (q) {
-      profiles = await searchProfiles({ q, limit });
-    } else {
-      profiles = await getAllProfiles(limit);
-    }
+    const profiles = q
+      ? await searchProfiles({ q, limit })
+      : await getAllProfiles(limit);
 
-    res.json({ count: profiles.length, profiles });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+    return { count: profiles.length, profiles };
+  }, "Profile listing", 500),
+);
 
 // ─── GET /profiles/:username ────────────────────────────────────
 // Get a specific profile by username.
 
 router.get("/profiles/:username", async (req, res) => {
-  try {
-    const profile = await getProfile(req.params.username);
-    if (!profile) return res.status(404).json({ error: "Profile not found" });
-    res.json(profile);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  const profile = await getProfile(req.params.username);
+  if (!profile) return res.status(404).json({ error: "Profile not found" });
+  res.json(profile);
 });
 
 // ─── Content Endpoints ──────────────────────────────────────────
@@ -84,29 +73,29 @@ const CONTENT_COLLECTIONS = [
 
 for (const { path, collection } of CONTENT_COLLECTIONS) {
   // GET /fans/:username, /news/:username, etc.
-  router.get(`/${path}/:username`, async (req, res) => {
-    try {
-      const limit = Math.min(parseInt(req.query.limit) || 200, 2000);
+  router.get(
+    `/${path}/:username`,
+    asyncHandler(async (req) => {
+      const limit = parseIntParam(req.query.limit, 200, 2000);
       const items = await getContentByUser(
         collection,
         req.params.username.toLowerCase(),
         limit,
       );
-      res.json({ count: items.length, [path]: items });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+      return { count: items.length, [path]: items };
+    }, `Newgrounds ${path}`, 500),
+  );
 }
 
 // ─── GET /top ───────────────────────────────────────────────────
 // Top users by a given metric.
 // Query: ?sort=fans.count|movies.count|level&limit=50
 
-router.get("/top", async (req, res) => {
-  try {
+router.get(
+  "/top",
+  asyncHandler(async (req) => {
     const sortField = req.query.sort || "fans.count";
-    const limit = Math.min(parseInt(req.query.limit) || 50, 500);
+    const limit = parseIntParam(req.query.limit, 50, 500);
 
     const db = getClockCrewDB();
     const profiles = await db
@@ -116,14 +105,12 @@ router.get("/top", async (req, res) => {
       .limit(limit)
       .toArray();
 
-    res.json({
+    return {
       count: profiles.length,
       sortedBy: sortField,
       profiles,
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+    };
+  }, "Top users", 500),
+);
 
 export default router;

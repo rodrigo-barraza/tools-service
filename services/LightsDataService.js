@@ -96,6 +96,40 @@ const LightsDataService = {
   },
 
   /**
+   * Set state delta — relative adjustments to current light state.
+   * @param {object} opts
+   * @param {string} [opts.selector="all"]
+   * @param {number} [opts.hue] - Hue adjustment (-360 to 360)
+   * @param {number} [opts.saturation] - Saturation adjustment (-1.0 to 1.0)
+   * @param {number} [opts.brightness] - Brightness adjustment (-1.0 to 1.0)
+   * @param {number} [opts.kelvin] - Kelvin adjustment (-9000 to 9000)
+   * @param {number} [opts.duration] - Transition seconds
+   * @returns {Promise<object>}
+   */
+  async setStateDelta({ selector = "all", hue, saturation, brightness, kelvin, duration }) {
+    const body = {};
+    if (hue !== undefined) body.hue = hue;
+    if (saturation !== undefined) body.saturation = saturation;
+    if (brightness !== undefined) body.brightness = brightness;
+    if (kelvin !== undefined) body.kelvin = kelvin;
+    if (duration !== undefined) body.duration = duration;
+
+    return lightsApiFetch("POST", `/lights/${encodeURIComponent(selector)}/state/delta`, body);
+  },
+
+  /**
+   * Set different states on multiple selectors in a single request.
+   * @param {Array<object>} states - Up to 50 state entries
+   * @param {object} [defaults] - Default values applied to all
+   * @returns {Promise<object>}
+   */
+  async setStates(states, defaults = null) {
+    const body = { states };
+    if (defaults) body.defaults = defaults;
+    return lightsApiFetch("PUT", "/lights/states", body);
+  },
+
+  /**
    * Toggle power on/off.
    * @param {string} [selector="all"] - LIFX selector
    * @param {number} [duration=1] - Transition seconds
@@ -156,6 +190,64 @@ const LightsDataService = {
   },
 
   /**
+   * Move effect — flowing color animation for strip products (LIFX Z, Beam).
+   * @param {object} opts
+   * @param {string} [opts.selector="all"]
+   * @param {string} [opts.direction="forward"] - "forward" or "backward"
+   * @param {number} [opts.period=1] - Seconds per cycle
+   * @param {number} [opts.cycles] - Number of cycles (null = infinite)
+   * @param {boolean} [opts.powerOn=true]
+   * @returns {Promise<object>}
+   */
+  async moveEffect({ selector = "all", direction, period, cycles, powerOn }) {
+    const body = {};
+    if (direction !== undefined) body.direction = direction;
+    if (period !== undefined) body.period = period;
+    if (cycles !== undefined) body.cycles = cycles;
+    if (powerOn !== undefined) body.powerOn = powerOn;
+
+    return lightsApiFetch("POST", `/lights/${encodeURIComponent(selector)}/effects/move`, body);
+  },
+
+  /**
+   * Flame effect — flickering fire animation for matrix devices.
+   * @param {object} opts
+   * @param {string} [opts.selector="all"]
+   * @param {number} [opts.period=5] - Speed of the flame
+   * @param {number} [opts.duration] - How long to run (null = indefinite)
+   * @param {boolean} [opts.powerOn=true]
+   * @returns {Promise<object>}
+   */
+  async flameEffect({ selector = "all", period, duration, powerOn }) {
+    const body = {};
+    if (period !== undefined) body.period = period;
+    if (duration !== undefined) body.duration = duration;
+    if (powerOn !== undefined) body.powerOn = powerOn;
+
+    return lightsApiFetch("POST", `/lights/${encodeURIComponent(selector)}/effects/flame`, body);
+  },
+
+  /**
+   * Morph effect — continuous color-blending for matrix devices.
+   * @param {object} opts
+   * @param {string} [opts.selector="all"]
+   * @param {string[]} [opts.palette] - Array of color strings to blend
+   * @param {number} [opts.period=5] - Seconds per blend cycle
+   * @param {number} [opts.duration] - How long to run (null = indefinite)
+   * @param {boolean} [opts.powerOn=true]
+   * @returns {Promise<object>}
+   */
+  async morphEffect({ selector = "all", palette, period, duration, powerOn }) {
+    const body = {};
+    if (palette !== undefined) body.palette = palette;
+    if (period !== undefined) body.period = period;
+    if (duration !== undefined) body.duration = duration;
+    if (powerOn !== undefined) body.powerOn = powerOn;
+
+    return lightsApiFetch("POST", `/lights/${encodeURIComponent(selector)}/effects/morph`, body);
+  },
+
+  /**
    * Stop all running effects.
    * @param {string} [selector="all"]
    * @param {boolean} [powerOff=false] - Also power off
@@ -203,10 +295,36 @@ const LightsDataService = {
 
   /**
    * Get night lock status.
-   * @returns {Promise<object>} { locked, lockedAt, unlockedAt }
+   * @returns {Promise<object>} { locked, lockedAt, unlockedAt, lockCount, unlockCount }
    */
   async getNightLockStatus() {
     return lightsApiFetch("GET", "/nightlock");
+  },
+
+  /**
+   * Toggle night lock on/off.
+   * @returns {Promise<object>} Updated night lock status
+   */
+  async toggleNightLock() {
+    return lightsApiFetch("POST", "/nightlock/toggle");
+  },
+
+  /**
+   * Explicitly set night lock state.
+   * @param {boolean} locked - true to lock, false to unlock
+   * @returns {Promise<object>}
+   */
+  async setNightLock(locked) {
+    const path = locked ? "/nightlock/lock" : "/nightlock/unlock";
+    return lightsApiFetch("POST", path);
+  },
+
+  /**
+   * Get service health and diagnostics.
+   * @returns {Promise<object>} Health data including uptime, automation phase, rate limits
+   */
+  async getHealth() {
+    return lightsApiFetch("GET", "/health");
   },
 };
 

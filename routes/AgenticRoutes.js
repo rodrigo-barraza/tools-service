@@ -10,7 +10,7 @@
 
 import { Router } from "express";
 import CONFIG from "../config.js";
-import { agenticHandler } from "../utilities.js";
+import { agenticHandler, asyncHandler, parseIntParam } from "../utilities.js";
 import {
   agenticReadFile,
   agenticWriteFile,
@@ -204,39 +204,29 @@ router.post("/search/glob", agenticHandler(async (req) => {
 
 // ── Fetch URL ─────────────────────────────────────────────────
 
-router.post("/web/fetch", async (req, res) => {
+router.post("/web/fetch", agenticHandler(async (req) => {
   const { url, selector } = req.body;
   if (!url || typeof url !== "string") {
-    return res.status(400).json({ error: "Request body must include 'url' (string)" });
+    return { error: "Request body must include 'url' (string)" };
   }
 
-  const result = await agenticFetchUrl(url, { selector });
-
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+  return agenticFetchUrl(url, { selector });
+}));
 
 // ── Web Search ────────────────────────────────────────────────
 
-router.post("/web/search", async (req, res) => {
+router.post("/web/search", agenticHandler(async (req) => {
   const { query, limit, dateRestrict, siteSearch } = req.body;
   if (!query || typeof query !== "string") {
-    return res.status(400).json({ error: "Request body must include 'query' (string)" });
+    return { error: "Request body must include 'query' (string)" };
   }
 
-  const result = await agenticWebSearch(query, {
-    limit: limit ? Math.min(parseInt(limit, 10), 10) : 5,
+  return agenticWebSearch(query, {
+    limit: parseIntParam(limit, 5, 10),
     dateRestrict,
     siteSearch,
   });
-
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+}));
 
 // ═══════════════════════════════════════════════════════════════
 // 5. Extended File Operations
@@ -386,179 +376,133 @@ router.post("/command/kill", async (req, res) => {
 // 7. Git Operations
 // ═══════════════════════════════════════════════════════════════
 
-router.post("/git/status", async (req, res) => {
+router.post("/git/status", agenticHandler(async (req) => {
   const { path } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string) — path to a directory inside a git repo" });
+    return { error: "Request body must include 'path' (string) — path to a directory inside a git repo" };
   }
 
-  const result = await agenticGitStatus(path);
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+  return agenticGitStatus(path);
+}));
 
-router.post("/git/diff", async (req, res) => {
+router.post("/git/diff", agenticHandler(async (req) => {
   const { path, staged, file, ref } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string)" });
+    return { error: "Request body must include 'path' (string)" };
   }
 
-  const result = await agenticGitDiff(path, { staged, path: file, ref });
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+  return agenticGitDiff(path, { staged, path: file, ref });
+}));
 
-router.post("/git/log", async (req, res) => {
+router.post("/git/log", agenticHandler(async (req) => {
   const { path, limit, author, since, file } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string)" });
+    return { error: "Request body must include 'path' (string)" };
   }
 
-  const result = await agenticGitLog(path, { limit, author, since, path: file });
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+  return agenticGitLog(path, { limit, author, since, path: file });
+}));
 
 // ── Git Worktree (Coordinator Mode) ───────────────────────────
 
-router.post("/git/worktree/create", async (req, res) => {
+router.post("/git/worktree/create", agenticHandler(async (req) => {
   const { path, branch } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string) — path to the main git repo" });
+    return { error: "Request body must include 'path' (string) — path to the main git repo" };
   }
   if (!branch || typeof branch !== "string") {
-    return res.status(400).json({ error: "Request body must include 'branch' (string) — name for the new worktree branch" });
+    return { error: "Request body must include 'branch' (string) — name for the new worktree branch" };
   }
 
-  const result = await agenticGitWorktreeCreate(path, branch);
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+  return agenticGitWorktreeCreate(path, branch);
+}));
 
-router.post("/git/worktree/remove", async (req, res) => {
+router.post("/git/worktree/remove", agenticHandler(async (req) => {
   const { path, worktreePath, deleteBranch } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string) — path to the main git repo" });
+    return { error: "Request body must include 'path' (string) — path to the main git repo" };
   }
   if (!worktreePath || typeof worktreePath !== "string") {
-    return res.status(400).json({ error: "Request body must include 'worktreePath' (string) — path to the worktree to remove" });
+    return { error: "Request body must include 'worktreePath' (string) — path to the worktree to remove" };
   }
 
-  const result = await agenticGitWorktreeRemove(path, worktreePath, { deleteBranch: deleteBranch !== false });
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+  return agenticGitWorktreeRemove(path, worktreePath, { deleteBranch: deleteBranch !== false });
+}));
 
-router.post("/git/worktree/merge", async (req, res) => {
+router.post("/git/worktree/merge", agenticHandler(async (req) => {
   const { path, branch, message } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string) — path to the main git repo" });
+    return { error: "Request body must include 'path' (string) — path to the main git repo" };
   }
   if (!branch || typeof branch !== "string") {
-    return res.status(400).json({ error: "Request body must include 'branch' (string) — branch to merge" });
+    return { error: "Request body must include 'branch' (string) — branch to merge" };
   }
 
-  const result = await agenticGitWorktreeMerge(path, branch, { message });
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+  return agenticGitWorktreeMerge(path, branch, { message });
+}));
 
-router.post("/git/worktree/diff", async (req, res) => {
+router.post("/git/worktree/diff", agenticHandler(async (req) => {
   const { path, branch } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string) — path to the main git repo" });
+    return { error: "Request body must include 'path' (string) — path to the main git repo" };
   }
   if (!branch || typeof branch !== "string") {
-    return res.status(400).json({ error: "Request body must include 'branch' (string) — branch to diff against" });
+    return { error: "Request body must include 'branch' (string) — branch to diff against" };
   }
 
-  const result = await agenticGitWorktreeDiff(path, branch);
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+  return agenticGitWorktreeDiff(path, branch);
+}));
 
-router.post("/git/worktree/cleanup", async (req, res) => {
+router.post("/git/worktree/cleanup", agenticHandler(async (req) => {
   const { path } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string) — path to the main git repo" });
+    return { error: "Request body must include 'path' (string) — path to the main git repo" };
   }
 
-  const result = await agenticGitWorktreeCleanup(path);
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+  return agenticGitWorktreeCleanup(path);
+}));
 
 // ═══════════════════════════════════════════════════════════════
 // 8. Project Intelligence
 // ═══════════════════════════════════════════════════════════════
 
-router.post("/project/summary", async (req, res) => {
+router.post("/project/summary", agenticHandler(async (req) => {
   const { path } = req.body;
   if (!path || typeof path !== "string") {
-    return res.status(400).json({ error: "Request body must include 'path' (string) — the project root directory" });
+    return { error: "Request body must include 'path' (string) — the project root directory" };
   }
 
-  const result = await agenticProjectSummary(path);
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+  return agenticProjectSummary(path);
+}));
 
 // ═══════════════════════════════════════════════════════════════
 // 9. Browser Automation
 // ═══════════════════════════════════════════════════════════════
 
-router.post("/browser/action", async (req, res) => {
+router.post("/browser/action", agenticHandler(async (req) => {
   const { action } = req.body;
   if (!action || typeof action !== "string") {
-    return res.status(400).json({ error: "Request body must include 'action' (string)" });
+    return { error: "Request body must include 'action' (string)" };
   }
 
-  const result = await agenticBrowserAction(req.body);
-
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+  return agenticBrowserAction(req.body);
+}));
 
 // ── Browser Script Execution ──────────────────────────────────
 
-router.post("/browser/script", async (req, res) => {
+router.post("/browser/script", agenticHandler(async (req) => {
   const { script, sessionId, timeout } = req.body;
   if (!script || typeof script !== "string") {
-    return res.status(400).json({ error: "Request body must include 'script' (string)" });
+    return { error: "Request body must include 'script' (string)" };
   }
 
-  const result = await agenticBrowserAction({
+  return agenticBrowserAction({
     action: "run_script",
     sessionId,
     script,
     timeout,
   });
-
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+}));
 
 // ═══════════════════════════════════════════════════════════════
 // 10. LSP Code Intelligence
@@ -566,28 +510,23 @@ router.post("/browser/script", async (req, res) => {
 
 // ── LSP Action ────────────────────────────────────────────────
 
-router.post("/lsp/action", async (req, res) => {
+router.post("/lsp/action", agenticHandler(async (req) => {
   const { operation, filePath, line, character, workspacePath } = req.body;
   if (!operation || typeof operation !== "string") {
-    return res.status(400).json({ error: "Request body must include 'operation' (string)" });
+    return { error: "Request body must include 'operation' (string)" };
   }
   if (!filePath || typeof filePath !== "string") {
-    return res.status(400).json({ error: "Request body must include 'filePath' (string)" });
+    return { error: "Request body must include 'filePath' (string)" };
   }
 
-  const result = await agenticLspAction({
+  return agenticLspAction({
     operation,
     filePath,
     line: line != null ? parseInt(line, 10) : undefined,
     character: character != null ? parseInt(character, 10) : undefined,
     workspacePath,
   });
-
-  if (result.error) {
-    return res.status(400).json(result);
-  }
-  res.json(result);
-});
+}));
 
 // ── LSP Health ────────────────────────────────────────────────
 
@@ -692,81 +631,71 @@ router.post("/task/create", async (req, res) => {
 
 // ── List Tasks ────────────────────────────────────────────────
 
-router.post("/task/list", async (req, res) => {
+router.post("/task/list", agenticHandler(async (req) => {
   const { project, status, limit } = req.body;
   if (!project || typeof project !== "string") {
-    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+    return { error: "Request body must include 'project' (string)" };
   }
 
-  const result = await agenticTaskList(project, {
+  return agenticTaskList(project, {
     status: status || undefined,
     limit: limit ? parseInt(limit, 10) : undefined,
   });
-  if (result.error) return res.status(400).json(result);
-  res.json(result);
-});
+}));
 
-// ── List All Tasks (admin — cross-project) ────────────────────
-
-router.get("/task/list-all", async (req, res) => {
+router.get("/task/list-all", asyncHandler(async (req) => {
   const { status, limit, agentSessionId } = req.query;
-  try {
-    const db = (await import("../db.js")).getDB();
-    const col = db.collection("agent_tasks");
+  const db = (await import("../db.js")).getDB();
+  const col = db.collection("agent_tasks");
 
-    const filter = {};
-    if (status) filter.status = status;
-    if (agentSessionId) filter.agentSessionId = agentSessionId;
+  const filter = {};
+  if (status) filter.status = status;
+  if (agentSessionId) filter.agentSessionId = agentSessionId;
 
-    const tasks = await col
-      .find(filter)
-      .sort({ taskId: 1 })
-      .limit(Math.min(parseInt(limit, 10) || 100, 500))
-      .toArray();
+  const tasks = await col
+    .find(filter)
+    .sort({ taskId: 1 })
+    .limit(parseIntParam(limit, 100, 500))
+    .toArray();
 
-    // Summary counts (scoped to same filter base)
-    const summaryFilter = agentSessionId ? { agentSessionId } : {};
-    const allTasks = await col.find(summaryFilter).toArray();
-    const summary = {
-      total: allTasks.length,
-      pending: allTasks.filter((t) => t.status === "pending").length,
-      in_progress: allTasks.filter((t) => t.status === "in_progress").length,
-      completed: allTasks.filter((t) => t.status === "completed").length,
-    };
+  // Summary counts (scoped to same filter base)
+  const summaryFilter = agentSessionId ? { agentSessionId } : {};
+  const allTasks = await col.find(summaryFilter).toArray();
+  const summary = {
+    total: allTasks.length,
+    pending: allTasks.filter((t) => t.status === "pending").length,
+    in_progress: allTasks.filter((t) => t.status === "in_progress").length,
+    completed: allTasks.filter((t) => t.status === "completed").length,
+  };
 
-    // Sanitize _id
-    const sanitized = tasks.map(({ _id, ...rest }) => rest);
-    res.json({ tasks: sanitized, summary });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  // Sanitize _id
+  const sanitized = tasks.map(({ _id, ...rest }) => rest);
+  return { tasks: sanitized, summary };
+}, "Task list-all", 500));
 
 // ── Get Task ──────────────────────────────────────────────────
 
-router.post("/task/get", async (req, res) => {
+router.post("/task/get", agenticHandler(async (req) => {
   const { project, taskId } = req.body;
   if (!project || typeof project !== "string") {
-    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+    return { error: "Request body must include 'project' (string)" };
   }
   if (taskId == null) {
-    return res.status(400).json({ error: "Request body must include 'taskId' (number)" });
+    return { error: "Request body must include 'taskId' (number)" };
   }
 
-  const result = await agenticTaskGet(project, taskId);
-  if (result.error) return res.status(400).json(result);
-  res.json(result);
-});
+  return agenticTaskGet(project, taskId);
+}));
 
 // ── Update Task ───────────────────────────────────────────────
 
-router.post("/task/update", async (req, res) => {
+router.post("/task/update", agenticHandler(async (req) => {
   const { project, taskId, status, subject, description, activeForm, metadata } = req.body;
   if (!project || typeof project !== "string") {
-    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+    return { error: "Request body must include 'project' (string)" };
   }
   if (taskId == null) {
-    return res.status(400).json({ error: "Request body must include 'taskId' (number)" });
+    return { error: "Request body must include 'taskId' (number)" };
   }
 
   const updates = {};
@@ -779,26 +708,22 @@ router.post("/task/update", async (req, res) => {
   const agentSessionId = req.headers["x-agent-session-id"];
   if (agentSessionId) updates.agentSessionId = agentSessionId;
 
-  const result = await agenticTaskUpdate(project, taskId, updates);
-  if (result.error) return res.status(400).json(result);
-  res.json(result);
-});
+  return agenticTaskUpdate(project, taskId, updates);
+}));
 
 // ── Delete Task ───────────────────────────────────────────────
 
-router.post("/task/delete", async (req, res) => {
+router.post("/task/delete", agenticHandler(async (req) => {
   const { project, taskId } = req.body;
   if (!project || typeof project !== "string") {
-    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+    return { error: "Request body must include 'project' (string)" };
   }
   if (taskId == null) {
-    return res.status(400).json({ error: "Request body must include 'taskId' (number)" });
+    return { error: "Request body must include 'taskId' (number)" };
   }
 
-  const result = await agenticTaskDelete(project, taskId);
-  if (result.error) return res.status(400).json(result);
-  res.json(result);
-});
+  return agenticTaskDelete(project, taskId);
+}));
 
 // ═══════════════════════════════════════════════════════════════
 // 13. Tool Smoke Tests
@@ -979,70 +904,62 @@ router.post("/tool/search", agenticHandler(async (req) => {
 
 // ── Create Schedule ───────────────────────────────────────────
 
-router.post("/schedule/create", async (req, res) => {
+router.post("/schedule/create", agenticHandler(async (req) => {
   const { project, name, schedule, prompt, type, agent, model } = req.body;
   if (!project || typeof project !== "string") {
-    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+    return { error: "Request body must include 'project' (string)" };
   }
   if (!name || typeof name !== "string") {
-    return res.status(400).json({ error: "Request body must include 'name' (string)" });
+    return { error: "Request body must include 'name' (string)" };
   }
   if (!prompt || typeof prompt !== "string") {
-    return res.status(400).json({ error: "Request body must include 'prompt' (string)" });
+    return { error: "Request body must include 'prompt' (string)" };
   }
 
-  const result = await agenticScheduleCreate({ project, name, schedule, prompt, type, agent, model });
-  if (result.error) return res.status(400).json(result);
-  res.json(result);
-});
+  return agenticScheduleCreate({ project, name, schedule, prompt, type, agent, model });
+}));
 
 // ── List Schedules ────────────────────────────────────────────
 
-router.post("/schedule/list", async (req, res) => {
+router.post("/schedule/list", agenticHandler(async (req) => {
   const { project, type, limit } = req.body;
   if (!project || typeof project !== "string") {
-    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+    return { error: "Request body must include 'project' (string)" };
   }
 
-  const result = await agenticScheduleList(project, {
+  return agenticScheduleList(project, {
     type: type || undefined,
     limit: limit ? parseInt(limit, 10) : undefined,
   });
-  if (result.error) return res.status(400).json(result);
-  res.json(result);
-});
+}));
 
 // ── Delete Schedule ───────────────────────────────────────────
 
-router.post("/schedule/delete", async (req, res) => {
+router.post("/schedule/delete", agenticHandler(async (req) => {
   const { project, scheduleId } = req.body;
   if (!project || typeof project !== "string") {
-    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+    return { error: "Request body must include 'project' (string)" };
   }
   if (scheduleId == null) {
-    return res.status(400).json({ error: "Request body must include 'scheduleId' (number)" });
+    return { error: "Request body must include 'scheduleId' (number)" };
   }
 
-  const result = await agenticScheduleDelete(project, scheduleId);
-  if (result.error) return res.status(400).json(result);
-  res.json(result);
-});
+  return agenticScheduleDelete(project, scheduleId);
+}));
 
 // ── Fire Remote Trigger ───────────────────────────────────────
 
-router.post("/trigger/fire", async (req, res) => {
+router.post("/trigger/fire", agenticHandler(async (req) => {
   const { project, triggerName, payload } = req.body;
   if (!project || typeof project !== "string") {
-    return res.status(400).json({ error: "Request body must include 'project' (string)" });
+    return { error: "Request body must include 'project' (string)" };
   }
   if (!triggerName || typeof triggerName !== "string") {
-    return res.status(400).json({ error: "Request body must include 'triggerName' (string)" });
+    return { error: "Request body must include 'triggerName' (string)" };
   }
 
-  const result = await agenticTriggerFire(project, triggerName, payload || {});
-  if (result.error) return res.status(400).json(result);
-  res.json(result);
-});
+  return agenticTriggerFire(project, triggerName, payload || {});
+}));
 
 // ═══════════════════════════════════════════════════════════════
 // 18. Notebook Editing

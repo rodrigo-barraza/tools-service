@@ -31,41 +31,35 @@ const router = Router();
 
 // ─── Stock Quote (on-demand with 1-min TTL cache) ──────────────────
 
-router.get("/quote/:symbol", async (req, res) => {
+router.get("/quote/:symbol", asyncHandler(async (req, res) => {
   const symbol = req.params.symbol.toUpperCase();
 
   const cached = getCachedQuote(symbol);
   if (cached) {
-    return res.json({ symbol, ...cached, cached: true });
+    res.json({ symbol, ...cached, cached: true });
+    return;
   }
 
-  try {
-    const quote = await fetchStockQuote(symbol);
-    cacheQuote(symbol, quote);
-    res.json({ symbol, ...quote, cached: false });
-  } catch (err) {
-    res.status(502).json({ error: `Failed to fetch quote: ${err.message}` });
-  }
-});
+  const quote = await fetchStockQuote(symbol);
+  cacheQuote(symbol, quote);
+  return { symbol, ...quote, cached: false };
+}, "Stock quote"));
 
 // ─── Company Profile (on-demand with 24h TTL cache) ────────────────
 
-router.get("/profile/:symbol", async (req, res) => {
+router.get("/profile/:symbol", asyncHandler(async (req, res) => {
   const symbol = req.params.symbol.toUpperCase();
 
   const cached = getCachedProfile(symbol);
   if (cached) {
-    return res.json(cached);
+    res.json(cached);
+    return;
   }
 
-  try {
-    const profile = await fetchCompanyProfile(symbol);
-    cacheProfile(symbol, profile);
-    res.json(profile);
-  } catch (err) {
-    res.status(502).json({ error: `Failed to fetch profile: ${err.message}` });
-  }
-});
+  const profile = await fetchCompanyProfile(symbol);
+  cacheProfile(symbol, profile);
+  return profile;
+}, "Company profile"));
 
 // ─── News (general = cached poll, company-specific = on-demand) ────
 
@@ -103,45 +97,35 @@ router.get("/earnings", (_req, res) => {
 
 // ─── Analyst Recommendations (on-demand with 1h TTL cache) ─────────
 
-router.get("/recommendation/:symbol", async (req, res) => {
+router.get("/recommendation/:symbol", asyncHandler(async (req, res) => {
   const symbol = req.params.symbol.toUpperCase();
 
   const cached = getCachedRecommendation(symbol);
   if (cached) {
-    return res.json(cached);
+    res.json(cached);
+    return;
   }
 
-  try {
-    const data = await fetchRecommendationTrends(symbol);
-    cacheRecommendation(symbol, data);
-    res.json(data);
-  } catch (err) {
-    res
-      .status(502)
-      .json({ error: `Failed to fetch recommendations: ${err.message}` });
-  }
-});
+  const data = await fetchRecommendationTrends(symbol);
+  cacheRecommendation(symbol, data);
+  return data;
+}, "Analyst recommendations"));
 
 // ─── Basic Financials (on-demand with 1h TTL cache) ────────────────
 
-router.get("/financials/:symbol", async (req, res) => {
+router.get("/financials/:symbol", asyncHandler(async (req, res) => {
   const symbol = req.params.symbol.toUpperCase();
 
   const cached = getCachedFinancials(symbol);
   if (cached) {
-    return res.json(cached);
+    res.json(cached);
+    return;
   }
 
-  try {
-    const data = await fetchBasicFinancials(symbol);
-    cacheFinancials(symbol, data);
-    res.json(data);
-  } catch (err) {
-    res
-      .status(502)
-      .json({ error: `Failed to fetch financials: ${err.message}` });
-  }
-});
+  const data = await fetchBasicFinancials(symbol);
+  cacheFinancials(symbol, data);
+  return data;
+}, "Basic financials"));
 
 // ─── Macroeconomics (FRED) ─────────────────────────────────────────
 
