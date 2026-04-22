@@ -4149,6 +4149,86 @@ const TOOL_DEFINITIONS = [
       required: ["color"],
     },
   },
+
+  // ── LOGO Turtle Graphics ───────────────────────────────────
+  {
+    name: "turtle_draw",
+    dataSource: compute("internal"),
+    description:
+      "Draw graphics using LOGO Turtle commands on an HTML5 canvas. The turtle starts at center facing north. " +
+      "Send an array of step-by-step commands to draw shapes, patterns, fractals, or art. " +
+      "Supports incremental drawing: omit sessionId for a new drawing, or pass the returned sessionId " +
+      "to append commands to an existing drawing across multiple tool calls. " +
+      "The response contains a turtleEmbedUrl — you MUST render it in your response using " +
+      "![Turtle Drawing](turtleEmbedUrl) markdown syntax so the user sees the animated drawing inline. " +
+      "Available commands: forward/fd (distance), backward/bk (distance), right/rt (angle°), left/lt (angle°), " +
+      "penup/pu, pendown/pd, color (CSS color), width (pixels), goto (x,y from center), setheading/seth (angle°), " +
+      "circle (radius), arc (radius, extent°), dot/stamp (size), label/write (text), " +
+      "begin_fill, end_fill, fillcolor, speed (1-10), hideturtle/ht, showturtle/st, home, reset, clear. " +
+      "Each command is an object with 'action' and relevant value fields.",
+    endpoint: {
+      method: "POST",
+      path: "/compute/turtle",
+      bodyParams: ["commands", "options", "sessionId"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        sessionId: {
+          type: "string",
+          description:
+            "Optional session ID returned from a previous turtle_draw call. " +
+            "Pass this to append new commands to an existing drawing. " +
+            "Omit to start a new drawing session.",
+        },
+        commands: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              action: {
+                type: "string",
+                description:
+                  "Turtle command: forward, fd, backward, bk, right, rt, left, lt, " +
+                  "penup, pu, pendown, pd, color, width, goto, setheading, seth, " +
+                  "circle, arc, dot, stamp, label, write, begin_fill, end_fill, fillcolor, " +
+                  "speed, hideturtle, ht, showturtle, st, home, reset, clear",
+              },
+              value: {
+                description: "Primary value: distance (forward/backward), angle (right/left/setheading), " +
+                  "radius (circle/arc), size (dot), speed (1-10), or CSS color string (color/fillcolor)",
+              },
+              value2: {
+                description: "Secondary value: arc extent in degrees, or y-coordinate for goto",
+              },
+              x: { type: "number", description: "X coordinate for goto (relative to center, positive = right)" },
+              y: { type: "number", description: "Y coordinate for goto (relative to center, positive = up)" },
+              color: { type: "string", description: "CSS color for color/fillcolor commands (e.g. '#ff6347', 'red', 'hsl(120,100%,50%)')" },
+              text: { type: "string", description: "Text string for label/write commands" },
+              fontSize: { type: "number", description: "Font size in pixels for label/write (default: 14)" },
+            },
+            required: ["action"],
+          },
+          description:
+            "Array of turtle commands to execute sequentially. " +
+            "Example: [{\"action\":\"forward\",\"value\":100},{\"action\":\"right\",\"value\":90}]",
+        },
+        options: {
+          type: "object",
+          properties: {
+            canvasWidth: { type: "number", description: "Canvas width in pixels (default: 800, max: 1920)" },
+            canvasHeight: { type: "number", description: "Canvas height in pixels (default: 600, max: 1080)" },
+            background: { type: "string", description: "Canvas background color (default: '#0f172a')" },
+            animated: { type: "boolean", description: "Animate step-by-step (default: true). Set false for instant render." },
+            stepDelay: { type: "number", description: "Milliseconds between animated steps (default: 40, range: 5-500)" },
+            title: { type: "string", description: "Optional title displayed above the canvas" },
+          },
+          description: "Optional canvas configuration",
+        },
+      },
+      required: ["commands"],
+    },
+  },
   {
     name: "convert_currency",
     dataSource: onDemand("Exchange Rate API"),
@@ -6769,6 +6849,7 @@ const TOOL_DOMAINS = {
   regex_tester: "Compute",
   encode_decode: "Compute",
   convert_color: "Compute",
+  turtle_draw: "Compute",
 
   // Maritime
   get_tracked_vessels: "Maritime",
@@ -7127,6 +7208,7 @@ const TOOL_LABELS = {
   regex_tester: ["coding"],
   encode_decode: ["coding", "data"],
   convert_color: ["data"],
+  turtle_draw: ["coding", "creative", "data"],
 
   // ── Maritime ─────────────────────────────────────────────
   get_tracked_vessels: ["maritime"],

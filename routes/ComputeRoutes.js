@@ -19,6 +19,7 @@ import {
   getAllowedBinaries,
 } from "../services/ShellExecutorService.js";
 import { MAX_CODE_LENGTH, MAX_COMMAND_LENGTH } from "../constants.js";
+import crypto from "node:crypto";
 import { setupStreamingSSE, EphemeralStore, buildLocalUrl, validateMaxLength, buildEmbedHtml } from "../utilities.js";
 
 // ─── Lazy-loaded dependencies ──────────────────────────────────────
@@ -1322,6 +1323,496 @@ router.get("/color/convert", (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// 15. LOGO Turtle Graphics
+// ═══════════════════════════════════════════════════════════════
+
+const turtleStore = new EphemeralStore();
+
+const VALID_TURTLE_COMMANDS = new Set([
+  "forward", "fd", "backward", "bk", "back",
+  "right", "rt", "left", "lt",
+  "penup", "pu", "pendown", "pd",
+  "color", "pencolor",
+  "width", "pensize",
+  "goto", "setposition", "setpos",
+  "setheading", "seth",
+  "circle", "arc",
+  "dot", "stamp",
+  "label", "write",
+  "begin_fill", "end_fill", "fillcolor",
+  "reset", "clear",
+  "speed",
+  "hideturtle", "ht", "showturtle", "st",
+  "home",
+]);
+
+function buildTurtleEmbedHtml(commands, options = {}) {
+  const {
+    canvasWidth = 800,
+    canvasHeight = 600,
+    background = "#0f172a",
+    animated = true,
+    stepDelay = 40,
+    title = "",
+  } = options;
+
+  const commandsJson = JSON.stringify(commands);
+
+  return buildEmbedHtml({
+    styles: `
+  canvas {
+    border-radius: 12px;
+    box-shadow: 0 0 40px rgba(56, 189, 248, 0.08);
+  }
+  #container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    max-width: 100%;
+  }
+  #title {
+    color: #94a3b8;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  #status {
+    color: #64748b;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    height: 16px;
+    transition: color 0.3s;
+  }
+  #status.active { color: #38bdf8; }
+  #status.done { color: #4ade80; }`,
+    bodyContent: `<div id="container">
+  ${title ? `<div id="title">${title}</div>` : ""}
+  <canvas id="turtle" width="${canvasWidth}" height="${canvasHeight}"></canvas>
+  <div id="status">initializing…</div>
+</div>`,
+    scripts: `<script>
+(function() {
+  const canvas = document.getElementById("turtle");
+  const ctx = canvas.getContext("2d");
+  const status = document.getElementById("status");
+  const COMMANDS = ${commandsJson};
+  const ANIMATED = ${animated};
+  const STEP_DELAY = ${stepDelay};
+  const BG = "${background}";
+
+  // ── Turtle State ──
+  let x = canvas.width / 2;
+  let y = canvas.height / 2;
+  let angle = -90; // 0 = east, -90 = north (LOGO default: heading north)
+  let penDown = true;
+  let penColor = "#38bdf8";
+  let penWidth = 2;
+  let fillColor = "#38bdf8";
+  let filling = false;
+  let fillPath = [];
+  let turtleSpeed = 5;
+  let showTurtle = true;
+
+  // ── Drawing Layer (persistent) ──
+  const drawCanvas = document.createElement("canvas");
+  drawCanvas.width = canvas.width;
+  drawCanvas.height = canvas.height;
+  const drawCtx = drawCanvas.getContext("2d");
+  drawCtx.lineCap = "round";
+  drawCtx.lineJoin = "round";
+
+  function clearCanvas() {
+    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+  }
+
+  function deg2rad(d) { return d * Math.PI / 180; }
+
+  function drawTurtle() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw the persistent drawing layer
+    ctx.drawImage(drawCanvas, 0, 0);
+
+    if (!showTurtle) return;
+
+    // Turtle cursor — a triangle pointing in the heading direction
+    const size = 12;
+    const rad = deg2rad(angle);
+    const tipX = x + Math.cos(rad) * size * 1.5;
+    const tipY = y + Math.sin(rad) * size * 1.5;
+    const leftX = x + Math.cos(rad + 2.4) * size;
+    const leftY = y + Math.sin(rad + 2.4) * size;
+    const rightX = x + Math.cos(rad - 2.4) * size;
+    const rightY = y + Math.sin(rad - 2.4) * size;
+
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(leftX, leftY);
+    ctx.lineTo(rightX, rightY);
+    ctx.closePath();
+    ctx.fillStyle = penColor;
+    ctx.globalAlpha = 0.85;
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Execute a single command ──
+  function executeCommand(cmd) {
+    const action = cmd.action || cmd.command || cmd.cmd;
+    const val = cmd.value !== undefined ? cmd.value : cmd.distance || cmd.angle || cmd.amount || 0;
+    const val2 = cmd.value2 !== undefined ? cmd.value2 : cmd.extent || 0;
+
+    switch (action) {
+      case "forward": case "fd": {
+        const d = Number(val);
+        const rad = deg2rad(angle);
+        const nx = x + Math.cos(rad) * d;
+        const ny = y + Math.sin(rad) * d;
+        if (penDown) {
+          drawCtx.beginPath();
+          drawCtx.moveTo(x, y);
+          drawCtx.lineTo(nx, ny);
+          drawCtx.strokeStyle = penColor;
+          drawCtx.lineWidth = penWidth;
+          drawCtx.stroke();
+        }
+        if (filling) fillPath.push({ x: nx, y: ny });
+        x = nx; y = ny;
+        break;
+      }
+      case "backward": case "bk": case "back": {
+        const d = -Number(val);
+        const rad = deg2rad(angle);
+        const nx = x + Math.cos(rad) * d;
+        const ny = y + Math.sin(rad) * d;
+        if (penDown) {
+          drawCtx.beginPath();
+          drawCtx.moveTo(x, y);
+          drawCtx.lineTo(nx, ny);
+          drawCtx.strokeStyle = penColor;
+          drawCtx.lineWidth = penWidth;
+          drawCtx.stroke();
+        }
+        if (filling) fillPath.push({ x: nx, y: ny });
+        x = nx; y = ny;
+        break;
+      }
+      case "right": case "rt":
+        angle += Number(val);
+        break;
+      case "left": case "lt":
+        angle -= Number(val);
+        break;
+      case "penup": case "pu":
+        penDown = false;
+        break;
+      case "pendown": case "pd":
+        penDown = true;
+        break;
+      case "color": case "pencolor":
+        penColor = cmd.color || cmd.value || "#38bdf8";
+        break;
+      case "width": case "pensize":
+        penWidth = Number(val) || 2;
+        break;
+      case "goto": case "setposition": case "setpos": {
+        const gx = canvas.width / 2 + Number(cmd.x !== undefined ? cmd.x : val);
+        const gy = canvas.height / 2 - Number(cmd.y !== undefined ? cmd.y : val2);
+        if (penDown) {
+          drawCtx.beginPath();
+          drawCtx.moveTo(x, y);
+          drawCtx.lineTo(gx, gy);
+          drawCtx.strokeStyle = penColor;
+          drawCtx.lineWidth = penWidth;
+          drawCtx.stroke();
+        }
+        if (filling) fillPath.push({ x: gx, y: gy });
+        x = gx; y = gy;
+        break;
+      }
+      case "setheading": case "seth":
+        angle = Number(val) - 90;
+        break;
+      case "home":
+        x = canvas.width / 2;
+        y = canvas.height / 2;
+        angle = -90;
+        break;
+      case "circle": {
+        const r = Number(val);
+        if (penDown) {
+          drawCtx.beginPath();
+          drawCtx.arc(x, y - r, Math.abs(r), 0, Math.PI * 2);
+          drawCtx.strokeStyle = penColor;
+          drawCtx.lineWidth = penWidth;
+          drawCtx.stroke();
+        }
+        break;
+      }
+      case "arc": {
+        const arcR = Number(val);
+        const extent = Number(val2) || 360;
+        if (penDown) {
+          const startRad = deg2rad(angle - 90);
+          const endRad = startRad + deg2rad(extent);
+          const cx = x - Math.sin(deg2rad(angle)) * arcR;
+          const cy = y + Math.cos(deg2rad(angle)) * arcR;
+          drawCtx.beginPath();
+          drawCtx.arc(cx, cy, Math.abs(arcR), startRad, endRad, arcR < 0);
+          drawCtx.strokeStyle = penColor;
+          drawCtx.lineWidth = penWidth;
+          drawCtx.stroke();
+        }
+        break;
+      }
+      case "dot": case "stamp": {
+        const dotSize = Number(val) || 5;
+        drawCtx.beginPath();
+        drawCtx.arc(x, y, dotSize, 0, Math.PI * 2);
+        drawCtx.fillStyle = penColor;
+        drawCtx.fill();
+        break;
+      }
+      case "label": case "write": {
+        const text = cmd.text || cmd.value || "";
+        drawCtx.font = (cmd.fontSize || 14) + "px system-ui, sans-serif";
+        drawCtx.fillStyle = penColor;
+        drawCtx.fillText(text, x + 4, y - 4);
+        break;
+      }
+      case "fillcolor":
+        fillColor = cmd.color || cmd.value || fillColor;
+        break;
+      case "begin_fill":
+        filling = true;
+        fillPath = [{ x, y }];
+        break;
+      case "end_fill":
+        if (filling && fillPath.length > 2) {
+          drawCtx.beginPath();
+          drawCtx.moveTo(fillPath[0].x, fillPath[0].y);
+          for (let i = 1; i < fillPath.length; i++) {
+            drawCtx.lineTo(fillPath[i].x, fillPath[i].y);
+          }
+          drawCtx.closePath();
+          drawCtx.fillStyle = fillColor;
+          drawCtx.globalAlpha = 0.35;
+          drawCtx.fill();
+          drawCtx.globalAlpha = 1;
+        }
+        filling = false;
+        fillPath = [];
+        break;
+      case "speed":
+        turtleSpeed = Math.max(1, Math.min(10, Number(val) || 5));
+        break;
+      case "hideturtle": case "ht":
+        showTurtle = false;
+        break;
+      case "showturtle": case "st":
+        showTurtle = true;
+        break;
+      case "reset":
+        x = canvas.width / 2;
+        y = canvas.height / 2;
+        angle = -90;
+        penDown = true;
+        penColor = "#38bdf8";
+        penWidth = 2;
+        showTurtle = true;
+        filling = false;
+        fillPath = [];
+        clearCanvas();
+        break;
+      case "clear":
+        clearCanvas();
+        break;
+    }
+  }
+
+  // ── Animate or instant draw ──
+  function run() {
+    drawTurtle();
+
+    if (!ANIMATED || COMMANDS.length === 0) {
+      for (const cmd of COMMANDS) executeCommand(cmd);
+      drawTurtle();
+      status.textContent = COMMANDS.length + " commands · done";
+      status.className = "done";
+      reportSize();
+      return;
+    }
+
+    let idx = 0;
+    status.className = "active";
+
+    function step() {
+      if (idx >= COMMANDS.length) {
+        drawTurtle();
+        status.textContent = COMMANDS.length + " commands · done";
+        status.className = "done";
+        reportSize();
+        return;
+      }
+      const cmd = COMMANDS[idx];
+      executeCommand(cmd);
+      drawTurtle();
+      status.textContent = (idx + 1) + "/" + COMMANDS.length + " · " + (cmd.action || cmd.command || "?");
+      idx++;
+      setTimeout(step, STEP_DELAY);
+    }
+    step();
+  }
+
+  function reportSize() {
+    var el = document.body;
+    window.parent.postMessage({ type: "embed-resize", width: el.scrollWidth, height: el.scrollHeight }, "*");
+  }
+
+  run();
+})();
+</${"script"}>`,
+  });
+}
+
+/**
+ * Session-based turtle state — allows the agent to build drawings
+ * incrementally across multiple tool calls. Keyed by sessionId.
+ * Falls back to single-shot mode when no sessionId is provided.
+ */
+const turtleSessions = new Map();
+const TURTLE_SESSION_TTL_MS = 30 * 60_000; // 30 min
+
+function cleanupTurtleSessions() {
+  const now = Date.now();
+  for (const [id, session] of turtleSessions) {
+    if (now - session.updatedAt > TURTLE_SESSION_TTL_MS) turtleSessions.delete(id);
+  }
+}
+
+router.post("/turtle", (req, res) => {
+  const { commands, options, sessionId } = req.body;
+
+  if (!commands || !Array.isArray(commands) || commands.length === 0) {
+    return res.status(400).json({
+      error: "'commands' is required (non-empty array of turtle command objects)",
+    });
+  }
+
+  // Validate commands
+  for (let i = 0; i < commands.length; i++) {
+    const cmd = commands[i];
+    const action = cmd.action || cmd.command || cmd.cmd;
+    if (!action) {
+      return res.status(400).json({
+        error: `Command at index ${i} missing 'action' field`,
+      });
+    }
+    if (!VALID_TURTLE_COMMANDS.has(action)) {
+      return res.status(400).json({
+        error: `Unknown turtle command: '${action}'. Valid: ${[...VALID_TURTLE_COMMANDS].join(", ")}`,
+      });
+    }
+  }
+
+  // ── Session mode: append to existing drawing ──
+  if (sessionId && turtleSessions.has(sessionId)) {
+    const session = turtleSessions.get(sessionId);
+    const totalCommands = session.commands.length + commands.length;
+
+    if (totalCommands > 5000) {
+      return res.status(400).json({
+        error: `Maximum 5,000 total commands per session (current: ${session.commands.length}, adding: ${commands.length})`,
+      });
+    }
+
+    // Merge options (new options override existing)
+    if (options) {
+      if (options.canvasWidth) session.options.canvasWidth = Math.min(options.canvasWidth, 1920);
+      if (options.canvasHeight) session.options.canvasHeight = Math.min(options.canvasHeight, 1080);
+      if (options.background) session.options.background = options.background;
+      if (options.animated !== undefined) session.options.animated = options.animated;
+      if (options.stepDelay) session.options.stepDelay = Math.max(5, Math.min(500, options.stepDelay));
+      if (options.title) session.options.title = options.title;
+    }
+
+    session.commands.push(...commands);
+    session.updatedAt = Date.now();
+
+    // Store full accumulated drawing for the embed
+    const embedId = turtleStore.set({ commands: session.commands, options: session.options });
+    const turtleEmbedUrl = buildLocalUrl("compute/turtle/embed", { id: embedId });
+
+    return res.json({
+      turtleEmbedUrl,
+      sessionId,
+      commandCount: commands.length,
+      totalCommands: session.commands.length,
+      canvasSize: `${session.options.canvasWidth}x${session.options.canvasHeight}`,
+      isAppend: true,
+    });
+  }
+
+  // ── New session ──
+  if (commands.length > 5000) {
+    return res.status(400).json({
+      error: "Maximum 5,000 commands per drawing",
+    });
+  }
+
+  const opts = {
+    canvasWidth: Math.min(options?.canvasWidth || 800, 1920),
+    canvasHeight: Math.min(options?.canvasHeight || 600, 1080),
+    background: options?.background || "#0f172a",
+    animated: options?.animated !== false,
+    stepDelay: Math.max(5, Math.min(500, options?.stepDelay || 40)),
+    title: options?.title || "",
+  };
+
+  // Create new session
+  const newSessionId = sessionId || crypto.randomUUID().slice(0, 12);
+  turtleSessions.set(newSessionId, {
+    commands: [...commands],
+    options: { ...opts },
+    updatedAt: Date.now(),
+  });
+  cleanupTurtleSessions();
+
+  const embedId = turtleStore.set({ commands, options: opts });
+  const turtleEmbedUrl = buildLocalUrl("compute/turtle/embed", { id: embedId });
+
+  res.json({
+    turtleEmbedUrl,
+    sessionId: newSessionId,
+    turtleId: embedId,
+    commandCount: commands.length,
+    totalCommands: commands.length,
+    canvasSize: `${opts.canvasWidth}x${opts.canvasHeight}`,
+  });
+});
+
+router.get("/turtle/embed", (req, res) => {
+  const { id } = req.query;
+  if (!id) return res.status(400).send("Missing 'id' parameter");
+
+  const entry = turtleStore.get(id);
+  if (!entry) {
+    return res.status(404).send("Turtle drawing not found or expired");
+  }
+
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(buildTurtleEmbedHtml(entry.commands, entry.options));
+});
+
+// ═══════════════════════════════════════════════════════════════
 // Health
 // ═══════════════════════════════════════════════════════════════
 
@@ -1341,6 +1832,7 @@ export function getComputeHealth() {
     regexTester: "on-demand (native RegExp)",
     encodeDecode: "on-demand (internal)",
     colorConverter: "on-demand (internal)",
+    turtleGraphics: "on-demand (LOGO canvas embed)",
   };
 }
 
