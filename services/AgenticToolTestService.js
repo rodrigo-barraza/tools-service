@@ -25,11 +25,11 @@ import { executeCommand } from "./AgenticCommandService.js";
 import { agenticGitStatus } from "./AgenticGitService.js";
 import { agenticProjectSummary } from "./AgenticProjectService.js";
 import { agenticLspAction } from "./AgenticLspService.js";
-import { WORKSPACE_ROOT } from "../secrets.js";
+import { WORKSPACE_ROOTS } from "../secrets.js";
 
 // ── Test Fixture ─────────────────────────────────────────────
 
-const FIXTURE_DIR = join(resolve(WORKSPACE_ROOT), ".tool-test-fixtures");
+const FIXTURE_DIR = join(resolve(WORKSPACE_ROOTS[0]), ".tool-test-fixtures");
 const FIXTURE_FILE = join(FIXTURE_DIR, "test_fixture.js");
 const FIXTURE_CONTENT = `// Tool test fixture — auto-generated, safe to delete
 export function greet(name) {
@@ -182,7 +182,7 @@ const TESTS = {
 
   git: () =>
     runTest("git", () =>
-      agenticGitStatus({ repoPath: resolve(WORKSPACE_ROOT) }),
+      agenticGitStatus({ repoPath: resolve(WORKSPACE_ROOTS[0]) }),
     ),
 
   // ── Code Intelligence (LSP) ──────────────────────────────

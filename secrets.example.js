@@ -20,10 +20,13 @@ export const PRISM_API_URL = 'http://localhost:7777';
 export const LIGHTS_API_URL = 'http://localhost:4444';
 
 // ─── Workspace Roots ───────────────────────────────────────────────
-// REQUIRED — comma-separated absolute paths the agentic tools are allowed to access.
-// tools-api will refuse to start if this is empty.
-// Example: '/home/youruser/projects/sun,/home/youruser/other-repo'
-export const WORKSPACE_ROOT = '';
+// REQUIRED — array of absolute paths the agentic tools are allowed to access.
+// The first entry is the default workspace root. tools-api will refuse to
+// start if this is empty.
+export const WORKSPACE_ROOTS = [
+  // '/home/youruser/projects/sun',
+  // '/home/youruser/other-repo',
+];
 
 // ─── Worktree Directory ────────────────────────────────────────────
 // Directory where agent worktrees are created for parallel coding.

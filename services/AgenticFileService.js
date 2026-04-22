@@ -14,17 +14,17 @@
 import { readFile, writeFile, stat, readdir, mkdir, rename, unlink } from "node:fs/promises";
 import { resolve, relative, extname, dirname } from "node:path";
 import { existsSync } from "node:fs";
-import { WORKSPACE_ROOT as WORKSPACE_ROOT_RAW } from "../secrets.js";
+import { WORKSPACE_ROOTS as WORKSPACE_ROOTS_RAW } from "../secrets.js";
 
 // ────────────────────────────────────────────────────────────
 // Configuration
 // ────────────────────────────────────────────────────────────
 
-// Parsed from secrets.js WORKSPACE_ROOT (comma-separated absolute paths).
-if (!WORKSPACE_ROOT_RAW) {
-  throw new Error("[AgenticFileService] WORKSPACE_ROOT is not set in secrets.js — agent tools require at least one allowed root path.");
+// Validated from secrets.js WORKSPACE_ROOTS (array of absolute paths).
+if (!Array.isArray(WORKSPACE_ROOTS_RAW) || WORKSPACE_ROOTS_RAW.length === 0) {
+  throw new Error("[AgenticFileService] WORKSPACE_ROOTS must be a non-empty array in secrets.js — agent tools require at least one allowed root path.");
 }
-const ALLOWED_ROOTS = WORKSPACE_ROOT_RAW.split(",").map((r) => resolve(r.trim()));
+const ALLOWED_ROOTS = WORKSPACE_ROOTS_RAW.map((r) => resolve(r.trim()));
 
 const MAX_READ_BYTES = 1_048_576;      // 1 MB
 const MAX_WRITE_BYTES = 5_242_880;     // 5 MB
