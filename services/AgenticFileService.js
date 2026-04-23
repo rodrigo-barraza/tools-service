@@ -24,7 +24,13 @@ import { WORKSPACE_ROOTS as WORKSPACE_ROOTS_RAW } from "../secrets.js";
 if (!Array.isArray(WORKSPACE_ROOTS_RAW) || WORKSPACE_ROOTS_RAW.length === 0) {
   throw new Error("[AgenticFileService] WORKSPACE_ROOTS must be a non-empty array in secrets.js — agent tools require at least one allowed root path.");
 }
-const ALLOWED_ROOTS = WORKSPACE_ROOTS_RAW.map((r) => resolve(r.trim()));
+
+// Static roots — immutable baseline from secrets.js
+const STATIC_ROOTS = Object.freeze(WORKSPACE_ROOTS_RAW.map((r) => resolve(r.trim())));
+
+// Dynamic roots — mutable array that includes static + user-configured roots.
+// Mutated in-place so all importers automatically see updates.
+const ALLOWED_ROOTS = [...STATIC_ROOTS];
 
 const MAX_READ_BYTES = 1_048_576;      // 1 MB
 const MAX_WRITE_BYTES = 5_242_880;     // 5 MB
@@ -974,6 +980,37 @@ function globToRegex(glob) {
 
 // Export validatePath and ALLOWED_ROOTS for reuse in other agentic services
 export { validatePath, ALLOWED_ROOTS };
+
+/**
+ * Return only the immutable roots from secrets.js (for UI "pinned" distinction).
+ * @returns {string[]}
+ */
+export function getStaticRoots() {
+  return [...STATIC_ROOTS];
+}
+
+/**
+ * Merge extra roots (from MongoDB user config) into ALLOWED_ROOTS.
+ * Static roots are always preserved. Duplicates are de-duped.
+ * Mutates the array in-place so all importers see the update.
+ * @param {string[]} extraRoots - Additional absolute paths to allow
+ */
+export function refreshAllowedRoots(extraRoots = []) {
+  const resolved = extraRoots
+    .filter((r) => r && typeof r === "string")
+    .map((r) => resolve(r.trim()));
+
+  const merged = [...STATIC_ROOTS];
+  for (const root of resolved) {
+    if (!merged.includes(root)) {
+      merged.push(root);
+    }
+  }
+
+  // Mutate in-place so importers see the change
+  ALLOWED_ROOTS.length = 0;
+  ALLOWED_ROOTS.push(...merged);
+}
 
 /**
  * Get the file service metadata (for health checks).

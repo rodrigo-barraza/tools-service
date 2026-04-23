@@ -50,7 +50,7 @@ import clockcrewRoutes, { getClockCrewHealth } from "./routes/ClockCrewRoutes.js
 import newgroundsRoutes, { getNewgroundsHealth } from "./routes/NewgroundsRoutes.js";
 import discordRoutes, { getDiscordHealth } from "./routes/DiscordRoutes.js";
 import lightsRoutes, { getLightsHealth } from "./routes/LightsRoutes.js";
-import adminRoutes from "./routes/AdminRoutes.js";
+import adminRoutes, { loadUserWorkspaceRoots } from "./routes/AdminRoutes.js";
 import { mountMcpRoutes } from "./services/McpAdapter.js";
 
 // ─── Collectors ────────────────────────────────────────────────────
@@ -175,6 +175,9 @@ async function start() {
     // Connect to separate Lupos database (Discord message archive)
     await connectLuposDB(CONFIG.MONGODB_URI);
     await setupLuposCollections();
+
+    // Load user-configured workspace roots from MongoDB
+    await loadUserWorkspaceRoots();
   } catch (error) {
     console.error(`Failed to connect to MongoDB: ${error.message}`);
     process.exit(1);
