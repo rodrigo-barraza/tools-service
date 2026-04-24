@@ -1783,6 +1783,132 @@ router.get("/turtle/embed", (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// Agentic: Think (Echo Scratchpad)
+// ═══════════════════════════════════════════════════════════════
+// No-op tool — the LLM uses this to write private reasoning.
+// We simply acknowledge receipt; the thought is already captured
+// in the tool_result appended to the conversation context.
+
+router.post("/think", (req, res) => {
+  res.json({ acknowledged: true });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Agentic: Sleep (Timed Pause)
+// ═══════════════════════════════════════════════════════════════
+// Blocks for `duration_seconds` before responding.
+// Max 120s. AbortSignal from upstream will short-circuit.
+
+router.post("/sleep", async (req, res) => {
+  const { duration_seconds, reason } = req.body;
+  const duration = Math.max(1, Math.min(120, duration_seconds || 5));
+  const durationMs = duration * 1000;
+
+  await new Promise((resolve) => {
+    const timer = setTimeout(resolve, durationMs);
+    // If the request is aborted (client disconnect), resolve immediately
+    req.on("close", () => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+
+  res.json({
+    acknowledged: true,
+    slept_seconds: duration,
+    reason: reason || null,
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Agentic: Synthetic Output (Structured JSON Response)
+// ═══════════════════════════════════════════════════════════════
+// Validates `data` against an optional JSON Schema and returns it.
+// Lightweight validator — handles type, required, enum, nested objects/arrays.
+
+function validateJsonSchema(data, schema, path = "", errors = []) {
+  if (!schema || typeof schema !== "object") return;
+  const at = path || "root";
+
+  if (schema.type) {
+    const expected = schema.type;
+    if (expected === "object" && (typeof data !== "object" || data === null || Array.isArray(data))) {
+      errors.push(`${at}: expected object, got ${Array.isArray(data) ? "array" : typeof data}`);
+      return;
+    }
+    if (expected === "array" && !Array.isArray(data)) {
+      errors.push(`${at}: expected array, got ${typeof data}`);
+      return;
+    }
+    if (expected === "string" && typeof data !== "string") errors.push(`${at}: expected string, got ${typeof data}`);
+    if (expected === "number" && typeof data !== "number") errors.push(`${at}: expected number, got ${typeof data}`);
+    if (expected === "boolean" && typeof data !== "boolean") errors.push(`${at}: expected boolean, got ${typeof data}`);
+  }
+
+  if (schema.enum && Array.isArray(schema.enum) && !schema.enum.includes(data)) {
+    errors.push(`${at}: value must be one of [${schema.enum.join(", ")}]`);
+  }
+
+  if (typeof data === "string") {
+    if (schema.minLength !== undefined && data.length < schema.minLength) errors.push(`${at}: string length ${data.length} < minLength ${schema.minLength}`);
+    if (schema.maxLength !== undefined && data.length > schema.maxLength) errors.push(`${at}: string length ${data.length} > maxLength ${schema.maxLength}`);
+  }
+
+  if (typeof data === "number") {
+    if (schema.minimum !== undefined && data < schema.minimum) errors.push(`${at}: ${data} < minimum ${schema.minimum}`);
+    if (schema.maximum !== undefined && data > schema.maximum) errors.push(`${at}: ${data} > maximum ${schema.maximum}`);
+  }
+
+  if (schema.required && Array.isArray(schema.required) && typeof data === "object" && data !== null) {
+    for (const key of schema.required) {
+      if (data[key] === undefined) errors.push(`${at}: missing required field "${key}"`);
+    }
+  }
+
+  if (schema.properties && typeof data === "object" && data !== null && !Array.isArray(data)) {
+    for (const [key, propSchema] of Object.entries(schema.properties)) {
+      if (data[key] !== undefined) validateJsonSchema(data[key], propSchema, `${path ? path + "." : ""}${key}`, errors);
+    }
+  }
+
+  if (schema.items && Array.isArray(data)) {
+    for (let i = 0; i < data.length; i++) {
+      validateJsonSchema(data[i], schema.items, `${path}[${i}]`, errors);
+    }
+  }
+}
+
+router.post("/synthetic-output", (req, res) => {
+  const { schema, data, label } = req.body;
+
+  if (!data || typeof data !== "object") {
+    return res.status(400).json({ error: "'data' is required and must be an object" });
+  }
+
+  const validationErrors = [];
+  if (schema && typeof schema === "object") {
+    try {
+      validateJsonSchema(data, schema, "", validationErrors);
+    } catch (err) {
+      validationErrors.push(`Validation error: ${err.message}`);
+    }
+  }
+
+  const result = {
+    acknowledged: true,
+    label: label || null,
+    data,
+    _synthetic: true,
+  };
+
+  if (validationErrors.length > 0) {
+    result.validationWarnings = validationErrors;
+  }
+
+  res.json(result);
+});
+
+// ═══════════════════════════════════════════════════════════════
 // Health
 // ═══════════════════════════════════════════════════════════════
 
@@ -1803,6 +1929,9 @@ export function getComputeHealth() {
     encodeDecode: "on-demand (internal)",
     colorConverter: "on-demand (internal)",
     turtleGraphics: "on-demand (LOGO canvas embed)",
+    think: "on-demand (echo)",
+    sleep: "on-demand (timer)",
+    syntheticOutput: "on-demand (json-schema)",
   };
 }
 

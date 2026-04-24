@@ -6943,6 +6943,100 @@ const TOOL_DEFINITIONS = [
       required: ["path", "action"],
     },
   },
+
+  // ── Agentic: Orchestrator Utilities ───────────────────────
+  // Stateless tools migrated from Prism's local tool registry.
+  // These don't mutate loop state — they're pure compute/echo.
+
+  {
+    name: "think",
+    dataSource: compute("echo"),
+    description:
+      "Use this tool to reason through complex problems step-by-step before acting. " +
+      "Write your private reasoning, analysis, or plan here — this content is NOT shown to the user. " +
+      "Use this when you need to: break down a multi-step task, weigh trade-offs between approaches, " +
+      "analyze information from previous tool calls, plan your next actions, or reason about ambiguous requirements. " +
+      "This tool does not execute anything — it simply records your thinking for context continuity.",
+    endpoint: {
+      method: "POST",
+      path: "/compute/think",
+      bodyParams: ["thought"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        thought: {
+          type: "string",
+          description: "Your private reasoning, analysis, or plan. Be thorough — this is your scratchpad.",
+        },
+      },
+      required: ["thought"],
+    },
+  },
+  {
+    name: "sleep",
+    dataSource: compute("timer"),
+    description:
+      "Pause execution for a specified duration. Use for polling workflows — e.g. wait for a build " +
+      "to finish, a server to restart, or a deployment to propagate before checking results. " +
+      "Maximum duration is 120 seconds. The pause can be cancelled if the user aborts the session.",
+    endpoint: {
+      method: "POST",
+      path: "/compute/sleep",
+      bodyParams: ["duration_seconds", "reason"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        duration_seconds: {
+          type: "number",
+          description: "How long to wait in seconds (1–120). Default: 5.",
+        },
+        reason: {
+          type: "string",
+          description: "Brief explanation of why you are waiting (shown to the user).",
+        },
+      },
+      required: ["duration_seconds"],
+    },
+  },
+  {
+    name: "synthetic_output",
+    dataSource: compute("json-schema"),
+    description:
+      "Produce a structured JSON output conforming to a defined schema. Use this when the user " +
+      "or a downstream system needs machine-readable data rather than natural language. " +
+      "Provide the output format as a JSON Schema object and the data that conforms to it. " +
+      "The tool validates the data against the schema and returns the validated result. " +
+      "Use cases: API-like responses, data extraction, typed reports, pipeline outputs.",
+    endpoint: {
+      method: "POST",
+      path: "/compute/synthetic-output",
+      bodyParams: ["schema", "data", "label"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        schema: {
+          type: "object",
+          description:
+            "JSON Schema definition for the expected output structure. " +
+            "Example: { type: 'object', properties: { title: { type: 'string' }, score: { type: 'number' } }, required: ['title'] }.",
+        },
+        data: {
+          type: "object",
+          description:
+            "The structured data to output. Must conform to the provided schema. " +
+            "Example: { title: 'My Report', score: 95 }.",
+        },
+        label: {
+          type: "string",
+          description: "Optional label for this output (e.g. 'analysis_result', 'extracted_entities').",
+        },
+      },
+      required: ["data"],
+    },
+  },
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -7096,6 +7190,9 @@ const TOOL_DOMAINS = {
   encode_decode: "Compute",
   convert_color: "Compute",
   turtle_draw: "Compute",
+  think: "Reasoning",
+  sleep: "Agentic: Control Flow",
+  synthetic_output: "Agentic: Structured Output",
 
   // Maritime
   get_tracked_vessels: "Maritime",
@@ -7462,6 +7559,9 @@ const TOOL_LABELS = {
   encode_decode: ["coding", "data"],
   convert_color: ["data"],
   turtle_draw: ["coding", "creative", "data"],
+  think: ["coding"],
+  sleep: ["coding"],
+  synthetic_output: ["coding"],
 
   // ── Maritime ─────────────────────────────────────────────
   get_tracked_vessels: ["maritime"],
