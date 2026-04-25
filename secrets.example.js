@@ -37,7 +37,7 @@ export const WORKTREE_DIR = '';
 
 // ─── MongoDB ───────────────────────────────────────────────────────
 
-export const MONGO_URI = "mongodb://192.168.86.2:27017/tools?directConnection=true&replicaSet=rs0";
+export const MONGO_URI = "mongodb://user:password@<host>:27017/tools?directConnection=true&replicaSet=rs0&authSource=admin";
 
 // ─── Location ──────────────────────────────────────────────────────
 // Resolved dynamically from server IP geolocation + NOAA.
