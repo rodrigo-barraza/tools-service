@@ -6056,13 +6056,15 @@ const TOOL_DEFINITIONS = [
     dataSource: onDemand("Lupos MongoDB"),
     description:
       "Search Discord message history from the server's stored messages. " +
-      "Filter by guild, channel, user, time range, and keyword. Returns message content, " +
-      "author, and timestamp. Useful for finding what users have been talking about, " +
-      "checking conversation history beyond the current context window, " +
-      "or looking up who said what and when. Max 200 results per call.",
+      "Filter by guild, channel, user, time range, and keyword. " +
+      "Supports three response modes: 'messages' returns full message objects (default), " +
+      "'count' returns ONLY the matching count with zero message bodies (use this when " +
+      "users ask 'how many' questions), and 'compact' returns minimal per-message data " +
+      "(author, truncated content, timestamp) for scanning large result sets. " +
+      "Max 200 results per call in messages/compact modes.",
     endpoint: {
       path: "/discord/messages/search",
-      queryParams: ["guildId", "channelId", "userId", "username", "query", "before", "after", "limit"],
+      queryParams: ["guildId", "channelId", "userId", "username", "query", "before", "after", "limit", "mode"],
     },
     parameters: {
       type: "object",
@@ -6100,7 +6102,81 @@ const TOOL_DEFINITIONS = [
         },
         limit: {
           type: "number",
-          description: "Max results to return (default: 50, max: 200)",
+          description: "Max results to return (default: 50, max: 200). Not used in 'count' mode.",
+        },
+        mode: {
+          type: "string",
+          enum: ["messages", "count", "compact"],
+          description:
+            "Response mode. 'messages' (default) returns full message objects. " +
+            "'count' returns only the total matching count — use for 'how many' questions. " +
+            "'compact' returns minimal data (author name, first 120 chars, date) — " +
+            "use when scanning many messages without needing full detail.",
+        },
+      },
+      required: ["guildId"],
+    },
+  },
+  {
+    name: "discord_message_analytics",
+    dataSource: onDemand("Lupos MongoDB"),
+    description:
+      "Aggregate Discord message history with group-by queries. " +
+      "Groups messages by a chosen dimension (user, channel, day, hour, weekday, month) " +
+      "and returns counted results sorted by count descending. " +
+      "Supports all the same filters as discord_message_search (guild, channel, user, " +
+      "time range, keyword). Use this for questions like 'who talks the most?', " +
+      "'who says X the most?', 'which channel is most active?', " +
+      "'what day of the week has the most messages?', or 'show monthly message trends'.",
+    endpoint: {
+      path: "/discord/messages/analytics",
+      queryParams: ["guildId", "channelId", "userId", "username", "query", "before", "after", "groupBy", "topN"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        guildId: {
+          type: "string",
+          description: "Discord guild/server ID to analyze",
+        },
+        channelId: {
+          type: "string",
+          description: "Filter to a specific channel ID",
+        },
+        userId: {
+          type: "string",
+          description: "Filter to messages by a specific user ID",
+        },
+        username: {
+          type: "string",
+          description:
+            "Filter by username or display name (case-insensitive)",
+        },
+        query: {
+          type: "string",
+          description:
+            "Text filter — only count messages containing this text. " +
+            "Use this for questions like 'who says lmao the most?' or 'how often do people mention pizza?'",
+        },
+        before: {
+          type: "string",
+          description: "ISO date string — only messages before this date",
+        },
+        after: {
+          type: "string",
+          description: "ISO date string — only messages after this date",
+        },
+        groupBy: {
+          type: "string",
+          enum: ["user", "channel", "day", "hour", "weekday", "month"],
+          description:
+            "Dimension to group by. 'user' = per-author counts, 'channel' = per-channel counts, " +
+            "'day' = per-day (YYYY-MM-DD), 'hour' = by hour of day (0-23 UTC), " +
+            "'weekday' = by day of week (Mon-Sun), 'month' = by month (YYYY-MM). Default: 'user'.",
+        },
+        topN: {
+          type: "number",
+          description: "Max number of groups to return (default: 25, max: 100)",
         },
       },
       required: ["guildId"],
@@ -7281,6 +7357,7 @@ const TOOL_DOMAINS = {
 
   // Discord (Lupos DB)
   discord_message_search: "Discord",
+  discord_message_analytics: "Discord",
   discord_server_activity: "Discord",
 
   // Smart Home (LIFX Lights)
@@ -7649,6 +7726,7 @@ const TOOL_LABELS = {
 
   // ── Discord ──────────────────────────────────────────────
   discord_message_search: ["discord"],
+  discord_message_analytics: ["discord"],
   discord_server_activity: ["discord"],
 
   // ── Smart Home (LIFX) ────────────────────────────────────

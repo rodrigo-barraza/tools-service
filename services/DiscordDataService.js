@@ -4,7 +4,8 @@ import { getMessagesCollection } from "../models/LuposMessage.js";
 //  Discord Data Service
 //
 //  Query layer for the Lupos `Messages` collection. Powers the
-//  discord_message_search and discord_server_activity tools.
+//  discord_message_search, discord_server_activity, and
+//  discord_message_analytics tools.
 // ═══════════════════════════════════════════════════════════════
 
 // ── Excluded Categories ──────────────────────────────────────
@@ -14,6 +15,58 @@ const EXCLUDED_CATEGORY_IDS = [
   "609652454375555082", // Private/staff channels
   "665736600042340352", // Staff/admin channels
 ];
+
+/**
+ * Build the common MongoDB filter used by search and analytics.
+ *
+ * @param {object} opts - Filter options
+ * @returns {object} MongoDB filter document
+ */
+function buildBaseFilter({
+  guildId,
+  channelId,
+  userId,
+  username,
+  query,
+  before,
+  after,
+} = {}) {
+  const filter = {};
+
+  if (guildId) filter.guildId = guildId;
+  if (channelId) filter.channelId = channelId;
+  if (userId) filter["author.id"] = userId;
+
+  // Username search — match across username, globalName, and displayName
+  if (username && !userId) {
+    const nameRegex = { $regex: username, $options: "i" };
+    filter.$or = [
+      { "author.username": nameRegex },
+      { "author.globalName": nameRegex },
+      { "member.displayName": nameRegex },
+    ];
+  }
+
+  // Exclude bot messages by default
+  filter["author.bot"] = { $ne: true };
+
+  // Exclude messages from restricted categories (hard filter)
+  filter["channel.parentId"] = { $nin: EXCLUDED_CATEGORY_IDS };
+
+  // Time range
+  if (before || after) {
+    filter.createdTimestamp = {};
+    if (before) filter.createdTimestamp.$lte = new Date(before).getTime();
+    if (after) filter.createdTimestamp.$gte = new Date(after).getTime();
+  }
+
+  // Text search — prefer $regex for reliability (text index may still be building)
+  if (query) {
+    filter.content = { $regex: query, $options: "i" };
+  }
+
+  return filter;
+}
 
 const DiscordDataService = {
   /**
@@ -28,7 +81,11 @@ const DiscordDataService = {
    * @param {string} [opts.before]    - ISO date string — messages before this date
    * @param {string} [opts.after]     - ISO date string — messages after this date
    * @param {number} [opts.limit=50]  - Max results (capped at 200)
-   * @returns {Promise<{ count: number, messages: object[] }>}
+   * @param {string} [opts.mode="messages"] - Response mode:
+   *   "messages" — full message objects (default)
+   *   "count"    — only the matching count, zero message bodies
+   *   "compact"  — minimal per-message data (author, timestamp, truncated content)
+   * @returns {Promise<{ count: number, messages?: object[] }>}
    */
   async searchMessages({
     guildId,
@@ -39,44 +96,55 @@ const DiscordDataService = {
     before,
     after,
     limit = 50,
+    mode = "messages",
   } = {}) {
     const col = getMessagesCollection();
-    const filter = {};
-
-    if (guildId) filter.guildId = guildId;
-    if (channelId) filter.channelId = channelId;
-    if (userId) filter["author.id"] = userId;
-
-    // Username search — match across username, globalName, and displayName
-    if (username && !userId) {
-      const nameRegex = { $regex: username, $options: "i" };
-      filter.$or = [
-        { "author.username": nameRegex },
-        { "author.globalName": nameRegex },
-        { "member.displayName": nameRegex },
-      ];
-    }
-
-    // Exclude bot messages by default
-    filter["author.bot"] = { $ne: true };
-
-    // Exclude messages from restricted categories (hard filter)
-    filter["channel.parentId"] = { $nin: EXCLUDED_CATEGORY_IDS };
-
-    // Time range
-    if (before || after) {
-      filter.createdTimestamp = {};
-      if (before) filter.createdTimestamp.$lte = new Date(before).getTime();
-      if (after) filter.createdTimestamp.$gte = new Date(after).getTime();
-    }
-
-    // Text search — prefer $regex for reliability (text index may still be building)
-    if (query) {
-      filter.content = { $regex: query, $options: "i" };
-    }
-
+    const filter = buildBaseFilter({ guildId, channelId, userId, username, query, before, after });
     const cappedLimit = Math.min(limit, 200);
 
+    // ── Count mode — return only the total, zero payloads ──────
+    if (mode === "count") {
+      const total = await col.countDocuments(filter);
+      return { count: total };
+    }
+
+    // ── Compact mode — minimal per-message data ───────────────
+    if (mode === "compact") {
+      const messages = await col
+        .find(filter)
+        .sort({ createdTimestamp: -1 })
+        .limit(cappedLimit)
+        .project({
+          _id: 0,
+          id: 1,
+          content: 1,
+          "author.id": 1,
+          "author.username": 1,
+          "author.globalName": 1,
+          "member.displayName": 1,
+          channelId: 1,
+          "channel.name": 1,
+          createdTimestamp: 1,
+        })
+        .toArray();
+
+      const formatted = messages.map((m) => ({
+        id: m.id,
+        // Truncate content to 120 chars to save tokens
+        content: m.content?.length > 120
+          ? m.content.slice(0, 120) + "…"
+          : m.content,
+        author: m.member?.displayName || m.author?.globalName || m.author?.username,
+        channel: m.channel?.name || null,
+        date: m.createdTimestamp
+          ? new Date(m.createdTimestamp).toISOString().slice(0, 16)
+          : null,
+      }));
+
+      return { count: formatted.length, messages: formatted };
+    }
+
+    // ── Messages mode — full message objects (default) ─────────
     const messages = await col
       .find(filter)
       .sort({ createdTimestamp: -1 })
@@ -154,6 +222,176 @@ const DiscordDataService = {
     });
 
     return { count: formatted.length, messages: formatted };
+  },
+
+  /**
+   * Analyze Discord messages with aggregation queries.
+   *
+   * Groups messages by a chosen dimension and returns counted
+   * results, sorted by count descending. Supports all the same
+   * filters as searchMessages.
+   *
+   * @param {object} opts
+   * @param {string} opts.guildId     - Guild to analyze (required)
+   * @param {string} [opts.channelId] - Filter by channel
+   * @param {string} [opts.userId]    - Filter by author ID
+   * @param {string} [opts.username]  - Filter by username/display name
+   * @param {string} [opts.query]     - Text search — count only messages matching this text
+   * @param {string} [opts.before]    - ISO date string
+   * @param {string} [opts.after]     - ISO date string
+   * @param {string} [opts.groupBy="user"] - Dimension to group by:
+   *   "user"    — group by author
+   *   "channel" — group by channel
+   *   "day"     — group by calendar day (YYYY-MM-DD)
+   *   "hour"    — group by hour of day (0–23, UTC)
+   *   "weekday" — group by day of week (Mon–Sun)
+   *   "month"   — group by month (YYYY-MM)
+   * @param {number} [opts.topN=25]   - Max groups to return (capped at 100)
+   * @returns {Promise<object>}
+   */
+  async analyzeMessages({
+    guildId,
+    channelId,
+    userId,
+    username,
+    query,
+    before,
+    after,
+    groupBy = "user",
+    topN = 25,
+  } = {}) {
+    const col = getMessagesCollection();
+    const filter = buildBaseFilter({ guildId, channelId, userId, username, query, before, after });
+    const cappedTopN = Math.min(topN, 100);
+
+    // Weekday labels for the weekday grouping
+    const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    // ── Build group expression based on groupBy dimension ──────
+    let groupId;
+
+    switch (groupBy) {
+      case "user":
+        groupId = "$author.id";
+        break;
+
+      case "channel":
+        groupId = "$channelId";
+        break;
+
+      case "day":
+        // Group by YYYY-MM-DD
+        groupId = {
+          $dateToString: {
+            format: "%Y-%m-%d",
+            date: { $toDate: "$createdTimestamp" },
+          },
+        };
+        break;
+
+      case "hour":
+        // Group by hour of day (0–23)
+        groupId = { $hour: { $toDate: "$createdTimestamp" } };
+        break;
+
+      case "weekday":
+        // Group by day of week (1=Sun … 7=Sat in MongoDB)
+        groupId = { $dayOfWeek: { $toDate: "$createdTimestamp" } };
+        break;
+
+      case "month":
+        // Group by YYYY-MM
+        groupId = {
+          $dateToString: {
+            format: "%Y-%m",
+            date: { $toDate: "$createdTimestamp" },
+          },
+        };
+        break;
+
+      default:
+        groupId = "$author.id";
+        break;
+    }
+
+    // ── Run aggregation ───────────────────────────────────────
+    const pipeline = [
+      { $match: filter },
+      {
+        $group: {
+          _id: groupId,
+          count: { $sum: 1 },
+          // Capture extra fields for label building
+          ...(groupBy === "user" && {
+            username: { $last: "$author.username" },
+            displayName: { $last: "$member.displayName" },
+            globalName: { $last: "$author.globalName" },
+          }),
+          ...(groupBy === "channel" && {
+            channelName: { $last: "$channel.name" },
+          }),
+          // First/last timestamps for time-based groups
+          firstMessage: { $min: "$createdTimestamp" },
+          lastMessage: { $max: "$createdTimestamp" },
+        },
+      },
+      { $sort: { count: -1 } },
+      { $limit: cappedTopN },
+    ];
+
+    const [results, totalCount] = await Promise.all([
+      col.aggregate(pipeline).toArray(),
+      col.countDocuments(filter),
+    ]);
+
+    // ── Format results with human-readable labels ─────────────
+    const groups = results.map((r) => {
+      const base = { count: r.count };
+
+      switch (groupBy) {
+        case "user":
+          base.userId = r._id;
+          base.label = r.displayName || r.globalName || r.username || r._id;
+          base.username = r.username;
+          break;
+
+        case "channel":
+          base.channelId = r._id;
+          base.label = r.channelName || r._id;
+          break;
+
+        case "day":
+        case "month":
+          base.label = r._id; // Already formatted as YYYY-MM-DD or YYYY-MM
+          break;
+
+        case "hour":
+          base.label = `${String(r._id).padStart(2, "0")}:00 UTC`;
+          base.hour = r._id;
+          break;
+
+        case "weekday":
+          // MongoDB dayOfWeek: 1=Sun, 2=Mon, ..., 7=Sat
+          base.label = weekdayLabels[r._id - 1] || `Day ${r._id}`;
+          base.dayOfWeek = r._id;
+          break;
+
+        default:
+          base.label = String(r._id);
+          break;
+      }
+
+      return base;
+    });
+
+    return {
+      guildId,
+      groupBy,
+      totalMatchingMessages: totalCount,
+      groupCount: groups.length,
+      ...(query && { query }),
+      groups,
+    };
   },
 
   /**
