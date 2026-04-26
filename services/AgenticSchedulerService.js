@@ -349,9 +349,9 @@ export function startSchedulePoller() {
 
 async function firePrismAgent(schedule, payload = {}) {
   try {
-    const prismUrl = CONFIG.PRISM_API_URL;
+    const prismUrl = CONFIG.PRISM_URL;
     if (!prismUrl) {
-      console.error("[Scheduler] PRISM_API_URL not configured — cannot fire schedule");
+      console.error("[Scheduler] PRISM_URL not configured — cannot fire schedule");
       return null;
     }
 

@@ -5,13 +5,13 @@
 // service that needs LLM capabilities (text generation, image
 // generation, vision) can call Prism's /chat endpoint.
 //
-// Prism runs on CONFIG.PRISM_API_URL (default: localhost:7777).
+// Prism runs on CONFIG.PRISM_URL (default: localhost:7777).
 // ============================================================
 
 import CONFIG from "../config.js";
 import logger from "../logger.js";
 
-const PRISM_URL = CONFIG.PRISM_API_URL;
+const PRISM_URL = CONFIG.PRISM_URL;
 
 /**
  * Call Prism's /chat endpoint for text/image generation.

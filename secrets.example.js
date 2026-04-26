@@ -12,12 +12,12 @@ export const TOOLS_PORT = 5590;
 // ─── Prism (LLM Gateway) ──────────────────────────────────────────
 // URL of the Prism service — used by creative tools (generate_image,
 // describe_image) to call LLM providers for image generation and vision.
-export const PRISM_API_URL = 'http://localhost:7777';
+export const PRISM_URL = 'http://localhost:7777';
 
 // ─── Smart Home (Lights) ──────────────────────────────────────────
 // URL of the Lights service — used by LIFX smart home tools to proxy
 // requests through the rate-limited Lights API.
-export const LIGHTS_API_URL = 'http://localhost:4444';
+export const LIGHTS_URL = 'http://localhost:4444';
 
 // ─── Workspace Roots ───────────────────────────────────────────────
 // REQUIRED — array of absolute paths the agentic tools are allowed to access.

@@ -18,7 +18,7 @@ const TIMEOUT_MS = 10_000;
  * @returns {Promise<object>}
  */
 async function lightsApiFetch(method, path, body = null) {
-  const url = `${CONFIG.LIGHTS_API_URL}${path}`;
+  const url = `${CONFIG.LIGHTS_URL}${path}`;
   const options = {
     method,
     headers: { "Content-Type": "application/json" },

@@ -7461,13 +7461,13 @@ const TOOL_REQUIRED_KEYS = {
   list_twilio_numbers: ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"],
 
   // Creative (require Prism as LLM backend)
-  generate_image: ["PRISM_API_URL"],
-  describe_image: ["PRISM_API_URL"],
-  text_to_speech: ["PRISM_API_URL"],
-  speech_to_text: ["PRISM_API_URL"],
+  generate_image: ["PRISM_URL"],
+  describe_image: ["PRISM_URL"],
+  text_to_speech: ["PRISM_URL"],
+  speech_to_text: ["PRISM_URL"],
 
   // Agent Management (require Prism for CustomAgentService)
-  create_custom_agent: ["PRISM_API_URL"],
+  create_custom_agent: ["PRISM_URL"],
 };
 
 /**
