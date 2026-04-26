@@ -1,0 +1,14 @@
+node_modules
+.git
+.env
+.env.deploy
+secrets.js
+test-output.log
+tests
+*.md
+!README.md
+.vscode
+.prettierrc
+eslint.config.js
+user_summaries
+*:Zone.Identifier

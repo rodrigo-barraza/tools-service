@@ -26,7 +26,9 @@
     "test:utility": "node --test tests/UtilityEndpoints.test.js",
     "test:transit": "node --test tests/TransitAndHealthEndpoints.test.js",
     "test:static": "node --test tests/StaticDatasetEndpoints.test.js",
-    "test:taxonomy": "node --test tests/ToolTaxonomy.test.js"
+    "test:taxonomy": "node --test tests/ToolTaxonomy.test.js",
+    "deploy": "bash deploy.sh",
+    "deploy:dry": "bash deploy.sh --dry-run"
   },
   "author": "",
   "license": "ISC",
