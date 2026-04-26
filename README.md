@@ -1,6 +1,6 @@
 # Tools API — Unified Data Aggregator
 
-A consolidated Node.js API that continuously collects and serves data from multiple domains — events, finance, market, products, trends, weather, knowledge, health, transit, and utility — through a single unified service. All ingested data is cached in-memory, persisted to MongoDB, and exposed through an aggregated REST API designed for LLM function calling and cross-app synchronization within the Sun ecosystem.
+A consolidated Node.js API that continuously collects and serves data from multiple domains — events, finance, market, products, trends, weather, knowledge, health, transit, and utility — through a single unified service. All ingested data is cached in-memory, persisted to MongoDB, and exposed through an aggregated REST API designed for LLM function calling and cross-app synchronization by Rodrigo Barraza.
 
 ## ✨ Features
 
@@ -586,4 +586,4 @@ tools-api/
 
 ## ☀️ Part of [Sun](https://github.com/rodrigo-barraza)
 
-Tools API is one service in the Sun ecosystem — a collection of composable backend services and frontends designed to be mixed and matched.
+Tools API is one service in a collection of composable backend services and frontends by Rodrigo Barraza.

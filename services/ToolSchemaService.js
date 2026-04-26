@@ -1,7 +1,7 @@
 // ============================================================
 // Tool Schema Service — Single Source of Truth
 // ============================================================
-// Defines all AI-callable tool schemas for the Sun ecosystem.
+// Defines all AI-callable tool schemas.
 // Each tool includes:
 //   - name, description, parameters (JSON Schema for LLM)
 //   - endpoint metadata (path, pathParams, queryParams)

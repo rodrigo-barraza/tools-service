@@ -1,7 +1,7 @@
 {
   "name": "tools-api",
   "version": "0.1.0",
-  "description": "Unified data aggregator API for the Sun ecosystem — events, market, products, trends, weather",
+  "description": "Unified data aggregator API — events, market, products, trends, weather",
   "type": "module",
   "main": "server.js",
   "scripts": {
