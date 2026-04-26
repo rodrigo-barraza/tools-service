@@ -1,138 +1,45 @@
 // ============================================================
 // Tools API — Secrets Template
 // ============================================================
-// Copy this file to secrets.js and fill in your real values.
-//   cp secrets.example.js secrets.js
+// Secrets are resolved from (in priority order):
+//   1. process.env (manual env vars, Docker --env)
+//   2. Vault service (via boot.js → VAULT_URL + VAULT_TOKEN)
+//   3. Fallback .env file (../vault/.env)
+//
+// See vault/.env.example for the full list of variables.
 // ============================================================
 
-// ─── Server ────────────────────────────────────────────────────────
-
-export const TOOLS_PORT = 5590;
-
-// ─── Prism (LLM Gateway) ──────────────────────────────────────────
-// URL of the Prism service — used by creative tools (generate_image,
-// describe_image) to call LLM providers for image generation and vision.
-export const PRISM_URL = 'http://localhost:7777';
-
-// ─── Smart Home (Lights) ──────────────────────────────────────────
-// URL of the Lights service — used by LIFX smart home tools to proxy
-// requests through the rate-limited Lights API.
-export const LIGHTS_URL = 'http://localhost:4444';
-
-// ─── Workspace Roots ───────────────────────────────────────────────
-// REQUIRED — array of absolute paths the agentic tools are allowed to access.
-// The first entry is the default workspace root. tools-api will refuse to
-// start if this is empty.
-export const WORKSPACE_ROOTS = [
-  // '/home/youruser/projects/sun',
-  // '/home/youruser/other-repo',
-];
-
-// ─── Worktree Directory ────────────────────────────────────────────
-// Directory where agent worktrees are created for parallel coding.
-// Defaults to /tmp/prism-worktrees (ephemeral, lost on reboot).
-// Set to a persistent path (e.g. '~/.prism/worktrees') if you want
-// worktrees to survive reboots for session recovery.
-export const WORKTREE_DIR = '';
-
-// ─── MongoDB ───────────────────────────────────────────────────────
-
-export const MONGO_URI = "mongodb://user:password@<host>:27017/tools?directConnection=true&replicaSet=rs0&authSource=admin";
-
-// ─── Location ──────────────────────────────────────────────────────
-// Resolved dynamically from server IP geolocation + NOAA.
-// Cached in MongoDB `location_config` collection (24h TTL).
-// See: services/LocationService.js
-
-// ─── Event Domain ──────────────────────────────────────────────────
-
-export const TICKETMASTER_API_KEY = "";
-export const SEATGEEK_CLIENT_ID = "";
-export const TMDB_API_KEY = "";
-export const GOOGLE_PLACES_API_KEY = "";
-
-// ─── Market Domain ─────────────────────────────────────────────────
-
-// (Uses yahoo-finance2 — no API key needed)
-
-// ─── Finance Domain (Finnhub) ──────────────────────────────────────
-
-export const FINNHUB_API_KEY = "";
-
-// ─── Finance Domain (FRED — Federal Reserve Economic Data) ─────────
-//    Register at https://fred.stlouisfed.org/docs/api/api_key.html
-//    Free — 120 requests/minute.
-
-export const FRED_API_KEY = "";
-
-// ─── Product Domain ────────────────────────────────────────────────
-
-export const BESTBUY_API_KEY = "";
-export const PRODUCTHUNT_API_KEY = "";
-export const PRODUCTHUNT_API_SECRET = "";
-export const EBAY_CLIENT_ID = "";
-export const EBAY_CLIENT_SECRET = "";
-export const ETSY_API_KEY = "";
-export const ETSY_SHARED_SECRET = "";
-
-// ─── Trend Domain ──────────────────────────────────────────────────
-
-export const REDDIT_CLIENT_ID = "";
-export const REDDIT_CLIENT_SECRET = "";
-export const REDDIT_USER_AGENT = "sun:tools:v0.1.0 (by /u/YOUR_USERNAME)";
-export const X_BEARER_TOKEN = "";
-
-// ─── Weather Domain ────────────────────────────────────────────────
-
-export const TOMORROWIO_API_KEY = "";
-export const NASA_API_KEY = "DEMO_KEY";
-export const GOOGLE_API_KEY = "";
-export const GOOGLE_CSE_CX = "";
-
-// ─── Web Search Domain ─────────────────────────────────────────────
-//    Brave Search API — 2,000 queries/month free.
-//    Register at https://api.search.brave.com
-
-export const BRAVE_SEARCH_API_KEY = "";
-
-// ─── Transit Domain ───────────────────────────────────────────────
-//    Register at https://developer.translink.ca/ for a free key.
-
-export const TRANSLINK_API_KEY = "";
-
-// ─── Utility Domain (IPinfo) ──────────────────────────────────────
-//    Register at https://ipinfo.io/signup for a free token.
-//    Free tier: 50,000 requests/month.
-
-export const IPINFO_TOKEN = "";
-
-// ─── Maritime Domain (AIS Stream) ─────────────────────────────────
-//    Register at https://aisstream.io/authenticate (GitHub login).
-//    Free — WebSocket-based. 1 subscription update/second.
-
-export const AIS_STREAM_API_KEY = "";
-
-// ─── Energy Domain (EIA) ──────────────────────────────────────────
-//    Register at https://www.eia.gov/opendata/ for a free key.
-//    Free — undocumented rate limit; key auto-suspended if exceeded.
-
-export const EIA_API_KEY = "";
-
-// ─── Communication Domain (Twilio) ────────────────────────────────
-//    Twilio — Programmable SMS, Voice, Lookup.
-//    Register at https://www.twilio.com/console
-//    Free trial includes a phone number + $15 credit.
-
-export const TWILIO_ACCOUNT_SID = "";
-export const TWILIO_AUTH_TOKEN = "";
-
-// ─── Proxy (Bright Data) ─────────────────────────────────────
-//    Rotating proxy service for web crawling.
-//    Register at https://brightdata.com
-//    Uncomment and fill in when ready.
-//
-// export const BRIGHTDATA_CUSTOMER_ID = "";
-// export const BRIGHTDATA_ZONE_DATACENTER = "datacenter";
-// export const BRIGHTDATA_ZONE_RESIDENTIAL = "residential";
-// export const BRIGHTDATA_ZONE_ISP = "isp";
-// export const BRIGHTDATA_PASSWORD = "";
+// TOOLS_PORT=5590
+// PRISM_URL=http://localhost:7777
+// LIGHTS_URL=http://localhost:4444
+// WORKSPACE_ROOTS=/home/youruser/projects/sun,/home/youruser/other-repo
+// WORKTREE_DIR=
+// MONGO_URI=mongodb://user:password@<host>:27017/tools?directConnection=true&replicaSet=rs0&authSource=admin
+// TICKETMASTER_API_KEY=
+// SEATGEEK_CLIENT_ID=
+// TMDB_API_KEY=
+// GOOGLE_PLACES_API_KEY=
+// FINNHUB_API_KEY=
+// FRED_API_KEY=
+// BESTBUY_API_KEY=
+// PRODUCTHUNT_API_KEY=
+// PRODUCTHUNT_API_SECRET=
+// EBAY_CLIENT_ID=
+// EBAY_CLIENT_SECRET=
+// ETSY_API_KEY=
+// ETSY_SHARED_SECRET=
+// REDDIT_CLIENT_ID=
+// REDDIT_CLIENT_SECRET=
+// REDDIT_USER_AGENT=sun:tools:v0.1.0 (by /u/YOUR_USERNAME)
+// X_BEARER_TOKEN=
+// TOMORROWIO_API_KEY=
+// NASA_API_KEY=DEMO_KEY
+// GOOGLE_API_KEY=
+// GOOGLE_CSE_CX=
+// BRAVE_SEARCH_API_KEY=
+// TRANSLINK_API_KEY=
+// IPINFO_TOKEN=
+// AIS_STREAM_API_KEY=
+// EIA_API_KEY=
+// TWILIO_ACCOUNT_SID=
+// TWILIO_AUTH_TOKEN=
