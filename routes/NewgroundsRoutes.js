@@ -113,9 +113,58 @@ router.get(
   }, "Top users", 500),
 );
 
+// ─── GET /portal/years ──────────────────────────────────────────
+// Returns the distinct available years from content collections
+// for building the year filter dropdown in the frontend.
+
+router.get(
+  "/portal/years",
+  asyncHandler(async () => {
+    const db = getClockCrewDB();
+
+    const TYPE_COLLECTIONS = [
+      "NewgroundsMovies",
+      "NewgroundsGames",
+      "NewgroundsAudio",
+      "NewgroundsArt",
+    ];
+
+    // Extract distinct years from publishedDate across all content collections
+    const yearSets = await Promise.all(
+      TYPE_COLLECTIONS.map(async (colName) => {
+        const docs = await db
+          .collection(colName)
+          .aggregate([
+            { $match: { publishedDate: { $exists: true, $ne: null } } },
+            { $group: { _id: { $substr: ["$publishedDate", 0, 4] } } },
+          ])
+          .toArray();
+        return docs.map((d) => d._id).filter((y) => /^\d{4}$/.test(y));
+      }),
+    );
+
+    // Also get years from Clocks (joinDate)
+    const clockYears = await db
+      .collection("NewgroundsProfiles")
+      .aggregate([
+        { $match: { joinDate: { $exists: true, $ne: null } } },
+        { $group: { _id: { $substr: ["$joinDate", 0, 4] } } },
+      ])
+      .toArray();
+
+    const contentYears = [...new Set(yearSets.flat())].sort();
+    const profileYears = clockYears
+      .map((d) => d._id)
+      .filter((y) => /^\d{4}$/.test(y))
+      .sort();
+
+    return { contentYears, profileYears };
+  }, "Portal years", 500),
+);
+
 // ─── GET /portal ────────────────────────────────────────────────
-// Browse all movies + games with search, type filter, and sorting.
-// Query: ?q=clock&type=movie|game|all&sort=score|title|newest&limit=50&skip=0&username=strawberry
+// Browse all content with search, type filter, and sorting.
+// Query: ?q=clock&type=movie|game|audio|art|all&sort=score|title|newest&limit=50&skip=0&username=strawberry&year=2005
 
 router.get(
   "/portal",
@@ -125,6 +174,7 @@ router.get(
     const username = req.query.username?.trim();
     const type = req.query.type || "all";
     const sort = req.query.sort || "score";
+    const year = req.query.year?.trim();
     const limit = parseIntParam(req.query.limit, 50, 200);
     const skip = parseIntParam(req.query.skip, 0);
 
@@ -146,6 +196,14 @@ router.get(
       filter.usernameLower = username.toLowerCase();
     }
 
+    // Year filter — publishedDate is stored as "YYYY-MM-DD" string
+    if (year && /^\d{4}$/.test(year)) {
+      filter.publishedDate = {
+        $gte: `${year}-01-01`,
+        $lte: `${year}-12-31`,
+      };
+    }
+
     // Sort mapping
     const sortMap = {
       score: { score: -1 },
@@ -154,10 +212,21 @@ router.get(
     };
     const sortSpec = sortMap[sort] || sortMap.score;
 
+    // Type → collection mapping
+    const TYPE_COLLECTIONS = {
+      movie: "NewgroundsMovies",
+      game: "NewgroundsGames",
+      audio: "NewgroundsAudio",
+      art: "NewgroundsArt",
+    };
+
     // Which collections to query
     const collections = [];
-    if (type === "all" || type === "movie") collections.push("NewgroundsMovies");
-    if (type === "all" || type === "game") collections.push("NewgroundsGames");
+    if (type === "all") {
+      collections.push(...Object.values(TYPE_COLLECTIONS));
+    } else if (TYPE_COLLECTIONS[type]) {
+      collections.push(TYPE_COLLECTIONS[type]);
+    }
 
     // Query each collection and merge
     const results = await Promise.all(
@@ -191,18 +260,72 @@ router.get(
     items = items.slice(0, limit);
 
     // Get total counts for UI display
-    const [movieCount, gameCount] = await Promise.all([
+    const [movieCount, gameCount, audioCount, artCount] = await Promise.all([
       db.collection("NewgroundsMovies").countDocuments(filter),
       db.collection("NewgroundsGames").countDocuments(filter),
+      db.collection("NewgroundsAudio").countDocuments(filter),
+      db.collection("NewgroundsArt").countDocuments(filter),
     ]);
 
     return {
       count: items.length,
       totalMovies: movieCount,
       totalGames: gameCount,
+      totalAudio: audioCount,
+      totalArt: artCount,
       items,
     };
   }, "Portal browse", 500),
+);
+
+// ─── GET /portal/clocks ─────────────────────────────────────────
+// Browse Clock Crew user profiles.
+// Query: ?q=clock&sort=fans|level|newest&limit=50&skip=0&year=2004
+
+router.get(
+  "/portal/clocks",
+  asyncHandler(async (req) => {
+    const db = getClockCrewDB();
+    const q = req.query.q?.trim();
+    const sort = req.query.sort || "fans";
+    const year = req.query.year?.trim();
+    const limit = parseIntParam(req.query.limit, 50, 200);
+    const skip = parseIntParam(req.query.skip, 0);
+
+    const filter = {};
+    if (q) {
+      filter.$or = [
+        { username: { $regex: q, $options: "i" } },
+        { usernameLower: { $regex: q, $options: "i" } },
+        { description: { $regex: q, $options: "i" } },
+      ];
+    }
+
+    // Year filter — joinDate is stored as a string like "1/1/04" or "Jan 1, 2004"
+    // Use regex prefix match on the 4-digit year
+    if (year && /^\d{4}$/.test(year)) {
+      filter.joinDate = { $regex: year };
+    }
+
+    const sortMap = {
+      fans: { "fans.count": -1 },
+      level: { level: -1 },
+      newest: { joinDate: -1, firstScrapedAt: -1 },
+    };
+    const sortSpec = sortMap[sort] || sortMap.fans;
+
+    const col = db.collection("NewgroundsProfiles");
+    const [profiles, totalCount] = await Promise.all([
+      col.find(filter).sort(sortSpec).skip(skip).limit(limit).toArray(),
+      col.countDocuments(filter),
+    ]);
+
+    return {
+      count: profiles.length,
+      totalClocks: totalCount,
+      profiles,
+    };
+  }, "Portal clocks", 500),
 );
 
 // ─── GET /portal/:username/card ─────────────────────────────────
@@ -235,21 +358,62 @@ router.get(
         .findOne({ userId: link.ccUserId });
     }
 
+    // ── Fetch a random forum post by this CC user ─────────────────
+    let randomPost = null;
+    if (ccUser) {
+      const postFilter = ccUser.userId
+        ? { authorUserId: ccUser.userId }
+        : { author: new RegExp(`^${ccUser.username}$`, "i") };
+
+      const [post] = await db
+        .collection("ClockCrewNetPosts")
+        .aggregate([{ $match: postFilter }, { $sample: { size: 1 } }])
+        .toArray();
+
+      if (post) {
+        // Fetch thread title for context
+        const thread = post.topicId
+          ? await db.collection("ClockCrewNetThreads").findOne(
+              { topicId: post.topicId },
+              { projection: { title: 1 } },
+            )
+          : null;
+
+        randomPost = {
+          body: post.body,
+          date: post.date,
+          threadTitle: thread?.title || null,
+          topicId: post.topicId || null,
+        };
+      }
+    }
+
     // ── Fetch content counts directly (more accurate than profile) ─
-    const [movieCount, gameCount, audioCount] = await Promise.all([
+    const [movieCount, gameCount, audioCount, artCount] = await Promise.all([
       db.collection("NewgroundsMovies").countDocuments({ usernameLower }),
       db.collection("NewgroundsGames").countDocuments({ usernameLower }),
       db.collection("NewgroundsAudio").countDocuments({ usernameLower }),
+      db.collection("NewgroundsArt").countDocuments({ usernameLower }),
     ]);
 
     // ── Fetch top-scored submissions ────────────────────────────
-    const [topMovies, topGames] = await Promise.all([
+    const [topMovies, topGames, topAudio, topArt] = await Promise.all([
       db.collection("NewgroundsMovies")
         .find({ usernameLower })
         .sort({ score: -1 })
         .limit(5)
         .toArray(),
       db.collection("NewgroundsGames")
+        .find({ usernameLower })
+        .sort({ score: -1 })
+        .limit(5)
+        .toArray(),
+      db.collection("NewgroundsAudio")
+        .find({ usernameLower })
+        .sort({ score: -1 })
+        .limit(5)
+        .toArray(),
+      db.collection("NewgroundsArt")
         .find({ usernameLower })
         .sort({ score: -1 })
         .limit(5)
@@ -288,6 +452,7 @@ router.get(
         movieCount: profile.movies?.count ?? movieCount,
         gameCount: profile.games?.count ?? gameCount,
         audioCount: profile.audio?.count ?? audioCount,
+        artCount: profile.art?.count ?? artCount,
         reviewCount: profile.reviews?.count ?? 0,
         postCount: profile.posts?.count ?? 0,
         faveCount: profile.faves?.count ?? 0,
@@ -313,9 +478,13 @@ router.get(
         : null,
       topMovies,
       topGames,
+      topAudio,
+      topArt,
+      randomPost,
       scrapedMovies: movieCount,
       scrapedGames: gameCount,
       scrapedAudio: audioCount,
+      scrapedArt: artCount,
     };
   }, "Portal card", 500),
 );
