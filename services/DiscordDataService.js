@@ -33,6 +33,23 @@ function buildAvatarUrl(author) {
 }
 
 /**
+ * Resolve a media URL using the mediaArchive map.
+ * Prefers the permanent MinIO URL when the original URL was archived.
+ * Falls back to the original URL otherwise.
+ *
+ * @param {string} url - Original URL (potentially expired Discord CDN)
+ * @param {object} [archiveMap] - mediaArchive map: { originalUrl → { publicUrl, ... } }
+ * @returns {string}
+ */
+function resolveArchivedUrl(url, archiveMap) {
+  if (!url || !archiveMap) return url;
+  const ref = archiveMap[url];
+  // If the entry was marked as expired during backfill, it has no publicUrl
+  if (ref?.publicUrl) return ref.publicUrl;
+  return url;
+}
+
+/**
  * Build the common MongoDB filter used by search and analytics.
  *
  * @param {object} opts - Filter options
@@ -199,22 +216,30 @@ const DiscordDataService = {
         embeds: 1,
         // Stickers
         stickers: 1,
+        // Archived media URLs (MinIO permanent URLs)
+        mediaArchive: 1,
       })
       .toArray();
 
     // Format into a clean shape with human-readable names
     const formatted = messages.map((m) => {
-      // Build attachment list with URLs for image rendering
+      // Build attachment list with URLs for image rendering.
+      // Prefer archived MinIO URLs over potentially-expired Discord CDN URLs.
+      const archive = m.mediaArchive || null;
       const attachments = Array.isArray(m.attachments) && m.attachments.length > 0
-        ? m.attachments.map((a) => ({
-          name: a.name || null,
-          contentType: a.contentType || null,
-          size: a.size || null,
-          url: a.url || a.proxyURL || null,
-          proxyURL: a.proxyURL || null,
-          width: a.width || null,
-          height: a.height || null,
-        }))
+        ? m.attachments.map((a) => {
+          const resolvedUrl = resolveArchivedUrl(a.url, archive) || resolveArchivedUrl(a.proxyURL, archive) || null;
+          const resolvedProxy = resolveArchivedUrl(a.proxyURL, archive) || null;
+          return {
+            name: a.name || null,
+            contentType: a.contentType || null,
+            size: a.size || null,
+            url: resolvedUrl,
+            proxyURL: resolvedProxy,
+            width: a.width || null,
+            height: a.height || null,
+          };
+        })
         : undefined;
 
       // Build embed summary (just titles/descriptions, not full payloads)
