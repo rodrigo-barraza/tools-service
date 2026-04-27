@@ -17,6 +17,22 @@ const EXCLUDED_CATEGORY_IDS = [
 ];
 
 /**
+ * Build a Discord CDN avatar URL from raw author data stored in MongoDB.
+ * Falls back to the default avatar URL (e.g. blue/green Wumpus silhouette).
+ *
+ * @param {object} author - Raw author subdocument { id, avatar, defaultAvatarURL }
+ * @returns {string|null}
+ */
+function buildAvatarUrl(author) {
+  if (!author) return null;
+  if (author.avatar && author.id) {
+    const ext = author.avatar.startsWith("a_") ? "gif" : "png";
+    return `https://cdn.discordapp.com/avatars/${author.id}/${author.avatar}.${ext}?size=128`;
+  }
+  return author.defaultAvatarURL || null;
+}
+
+/**
  * Build the common MongoDB filter used by search and analytics.
  *
  * @param {object} opts - Filter options
@@ -121,6 +137,8 @@ const DiscordDataService = {
           "author.id": 1,
           "author.username": 1,
           "author.globalName": 1,
+          "author.avatar": 1,
+          "author.defaultAvatarURL": 1,
           "member.displayName": 1,
           channelId: 1,
           "channel.name": 1,
@@ -135,6 +153,7 @@ const DiscordDataService = {
           ? m.content.slice(0, 120) + "…"
           : m.content,
         author: m.member?.displayName || m.author?.globalName || m.author?.username,
+        avatarUrl: buildAvatarUrl(m.author),
         channel: m.channel?.name || null,
         date: m.createdTimestamp
           ? new Date(m.createdTimestamp).toISOString().slice(0, 16)
@@ -158,7 +177,10 @@ const DiscordDataService = {
         "author.username": 1,
         "author.globalName": 1,
         "author.bot": 1,
+        "author.avatar": 1,
+        "author.defaultAvatarURL": 1,
         "member.displayName": 1,
+        "member.displayHexColor": 1,
         channelId: 1,
         "channel.name": 1,
         guildId: 1,
@@ -178,12 +200,16 @@ const DiscordDataService = {
 
     // Format into a clean shape with human-readable names
     const formatted = messages.map((m) => {
-      // Build attachment summary (don't send full URLs, just metadata)
+      // Build attachment list with URLs for image rendering
       const attachments = Array.isArray(m.attachments) && m.attachments.length > 0
         ? m.attachments.map((a) => ({
           name: a.name || null,
           contentType: a.contentType || null,
           size: a.size || null,
+          url: a.url || a.proxyURL || null,
+          proxyURL: a.proxyURL || null,
+          width: a.width || null,
+          height: a.height || null,
         }))
         : undefined;
 
@@ -191,6 +217,11 @@ const DiscordDataService = {
       const embeds = Array.isArray(m.embeds) && m.embeds.length > 0
         ? m.embeds.map((e) => e.title || e.description || e.url).filter(Boolean).slice(0, 3)
         : undefined;
+
+      // Role color — #000000 means no custom color, treat as null
+      const roleColor = m.member?.displayHexColor && m.member.displayHexColor !== "#000000"
+        ? m.member.displayHexColor
+        : null;
 
       return {
         id: m.id,
@@ -200,6 +231,8 @@ const DiscordDataService = {
           id: m.author?.id,
           username: m.author?.username,
           displayName: m.member?.displayName || m.author?.globalName || m.author?.username,
+          avatarUrl: buildAvatarUrl(m.author),
+          roleColor,
         },
         channelId: m.channelId,
         channelName: m.channel?.name || null,
