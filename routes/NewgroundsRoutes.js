@@ -128,12 +128,21 @@ router.get(
     const limit = parseIntParam(req.query.limit, 50, 200);
     const skip = parseIntParam(req.query.skip, 0);
 
-    // Build filter
+    // Build filter — q searches title+username via regex, username is exact match.
+    // When both are provided, unify as $or to avoid AND conflict.
     const filter = {};
-    if (q) {
-      filter.title = { $regex: q, $options: "i" };
-    }
-    if (username) {
+    if (q && username) {
+      filter.$or = [
+        { title: { $regex: q, $options: "i" } },
+        { usernameLower: { $regex: q, $options: "i" } },
+        { usernameLower: username.toLowerCase() },
+      ];
+    } else if (q) {
+      filter.$or = [
+        { title: { $regex: q, $options: "i" } },
+        { usernameLower: { $regex: q, $options: "i" } },
+      ];
+    } else if (username) {
       filter.usernameLower = username.toLowerCase();
     }
 
