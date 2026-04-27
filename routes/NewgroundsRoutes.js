@@ -65,7 +65,6 @@ const CONTENT_COLLECTIONS = [
   { path: "movies", collection: "NewgroundsMovies" },
   { path: "games", collection: "NewgroundsGames" },
   { path: "audio", collection: "NewgroundsAudio" },
-  { path: "art", collection: "NewgroundsArt" },
   { path: "faves", collection: "NewgroundsFaves" },
   { path: "reviews", collection: "NewgroundsReviews" },
   { path: "posts", collection: "NewgroundsPosts" },
@@ -126,7 +125,6 @@ router.get(
       "NewgroundsMovies",
       "NewgroundsGames",
       "NewgroundsAudio",
-      "NewgroundsArt",
     ];
 
     // Extract distinct years from publishedDate across all content collections
@@ -164,7 +162,7 @@ router.get(
 
 // ─── GET /portal ────────────────────────────────────────────────
 // Browse all content with search, type filter, and sorting.
-// Query: ?q=clock&type=movie|game|audio|art|all&sort=score|title|newest&limit=50&skip=0&username=strawberry&year=2005
+// Query: ?q=clock&type=movie|game|audio|all&sort=score|title|newest&limit=50&skip=0&username=strawberry&year=2005
 
 router.get(
   "/portal",
@@ -217,7 +215,6 @@ router.get(
       movie: "NewgroundsMovies",
       game: "NewgroundsGames",
       audio: "NewgroundsAudio",
-      art: "NewgroundsArt",
     };
 
     // Which collections to query
@@ -260,11 +257,10 @@ router.get(
     items = items.slice(0, limit);
 
     // Get total counts for UI display
-    const [movieCount, gameCount, audioCount, artCount] = await Promise.all([
+    const [movieCount, gameCount, audioCount] = await Promise.all([
       db.collection("NewgroundsMovies").countDocuments(filter),
       db.collection("NewgroundsGames").countDocuments(filter),
       db.collection("NewgroundsAudio").countDocuments(filter),
-      db.collection("NewgroundsArt").countDocuments(filter),
     ]);
 
     return {
@@ -272,7 +268,6 @@ router.get(
       totalMovies: movieCount,
       totalGames: gameCount,
       totalAudio: audioCount,
-      totalArt: artCount,
       items,
     };
   }, "Portal browse", 500),
@@ -319,6 +314,37 @@ router.get(
       col.find(filter).sort(sortSpec).skip(skip).limit(limit).toArray(),
       col.countDocuments(filter),
     ]);
+
+    // ── Enrich with CC forum avatar via UserProfileLink ──────────
+    const usernameLowers = profiles.map((p) => p.usernameLower).filter(Boolean);
+    if (usernameLowers.length > 0) {
+      const links = await db
+        .collection("UserProfileLink")
+        .find({ ngUsernameLower: { $in: usernameLowers } })
+        .toArray();
+      const ccUserIds = links.map((l) => l.ccUserId).filter(Boolean);
+
+      if (ccUserIds.length > 0) {
+        const ccUsers = await db
+          .collection("ClockCrewNetUsers")
+          .find(
+            { userId: { $in: ccUserIds } },
+            { projection: { userId: 1, avatarUrl: 1 } },
+          )
+          .toArray();
+
+        // Build lookup: ngUsernameLower → ccAvatarUrl
+        const ccUserMap = new Map(ccUsers.map((u) => [u.userId, u.avatarUrl]));
+        const linkMap = new Map(links.map((l) => [l.ngUsernameLower, l.ccUserId]));
+
+        for (const p of profiles) {
+          const ccUserId = linkMap.get(p.usernameLower);
+          if (ccUserId && ccUserMap.has(ccUserId)) {
+            p.ccAvatarUrl = ccUserMap.get(ccUserId);
+          }
+        }
+      }
+    }
 
     return {
       count: profiles.length,
@@ -389,15 +415,14 @@ router.get(
     }
 
     // ── Fetch content counts directly (more accurate than profile) ─
-    const [movieCount, gameCount, audioCount, artCount] = await Promise.all([
+    const [movieCount, gameCount, audioCount] = await Promise.all([
       db.collection("NewgroundsMovies").countDocuments({ usernameLower }),
       db.collection("NewgroundsGames").countDocuments({ usernameLower }),
       db.collection("NewgroundsAudio").countDocuments({ usernameLower }),
-      db.collection("NewgroundsArt").countDocuments({ usernameLower }),
     ]);
 
     // ── Fetch top-scored submissions ────────────────────────────
-    const [topMovies, topGames, topAudio, topArt] = await Promise.all([
+    const [topMovies, topGames, topAudio] = await Promise.all([
       db.collection("NewgroundsMovies")
         .find({ usernameLower })
         .sort({ score: -1 })
@@ -409,11 +434,6 @@ router.get(
         .limit(5)
         .toArray(),
       db.collection("NewgroundsAudio")
-        .find({ usernameLower })
-        .sort({ score: -1 })
-        .limit(5)
-        .toArray(),
-      db.collection("NewgroundsArt")
         .find({ usernameLower })
         .sort({ score: -1 })
         .limit(5)
@@ -452,7 +472,6 @@ router.get(
         movieCount: profile.movies?.count ?? movieCount,
         gameCount: profile.games?.count ?? gameCount,
         audioCount: profile.audio?.count ?? audioCount,
-        artCount: profile.art?.count ?? artCount,
         reviewCount: profile.reviews?.count ?? 0,
         postCount: profile.posts?.count ?? 0,
         faveCount: profile.faves?.count ?? 0,
@@ -479,12 +498,10 @@ router.get(
       topMovies,
       topGames,
       topAudio,
-      topArt,
       randomPost,
       scrapedMovies: movieCount,
       scrapedGames: gameCount,
       scrapedAudio: audioCount,
-      scrapedArt: artCount,
     };
   }, "Portal card", 500),
 );
