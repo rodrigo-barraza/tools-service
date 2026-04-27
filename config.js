@@ -1,6 +1,6 @@
 import {
   // Server
-  TOOLS_PORT,
+  TOOLS_SERVICE_PORT,
   MONGO_URI,
 
   // Event
@@ -56,15 +56,15 @@ import {
   TWILIO_AUTH_TOKEN,
 
   // Prism (LLM Gateway)
-  PRISM_URL,
+  PRISM_SERVICE_URL,
 
   // Smart Home (Lights)
-  LIGHTS_URL,
+  LIGHTS_SERVICE_URL,
 } from "./secrets.js";
 
 const CONFIG = {
   // ─── Server ──────────────────────────────────────────────────────
-  TOOLS_PORT: TOOLS_PORT || 5590,
+  TOOLS_SERVICE_PORT: TOOLS_SERVICE_PORT || 5590,
   MONGODB_URI: MONGO_URI,
 
   // ─── Location (populated dynamically by LocationService.initLocation()) ───
@@ -128,10 +128,10 @@ const CONFIG = {
   TWILIO_AUTH_TOKEN,
 
   // ─── Prism (LLM Gateway) ────────────────────────────────────────
-  PRISM_URL: PRISM_URL || "http://localhost:7777",
+  PRISM_SERVICE_URL: PRISM_SERVICE_URL || "http://localhost:7777",
 
   // ─── Smart Home (Lights) ────────────────────────────────────────
-  LIGHTS_URL: LIGHTS_URL || "http://localhost:4444",
+  LIGHTS_SERVICE_URL: LIGHTS_SERVICE_URL || "http://localhost:4444",
 
   // ─── Proxy (Bright Data) ───────────────────────────────────────
   // Uncomment imports in secrets.js + config.js when ready.

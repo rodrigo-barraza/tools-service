@@ -3,15 +3,15 @@
 // ============================================================
 // Secrets are resolved from (in priority order):
 //   1. process.env (manual env vars, Docker --env)
-//   2. Vault service (via boot.js → VAULT_URL + VAULT_TOKEN)
-//   3. Fallback .env file (../vault/.env)
+//   2. Vault service (via boot.js → VAULT_SERVICE_URL + VAULT_SERVICE_TOKEN)
+//   3. Fallback .env file (../vault-service/.env)
 //
-// See vault/.env.example for the full list of variables.
+// See vault-service/.env.example for the full list of variables.
 // ============================================================
 
-// TOOLS_PORT=5590
-// PRISM_URL=http://localhost:7777
-// LIGHTS_URL=http://localhost:4444
+// TOOLS_SERVICE_PORT=5590
+// PRISM_SERVICE_URL=http://localhost:7777
+// LIGHTS_SERVICE_URL=http://localhost:4444
 // WORKSPACE_ROOTS=/home/youruser/projects/sun,/home/youruser/other-repo
 // WORKTREE_DIR=
 // MONGO_URI=mongodb://user:password@<host>:27017/tools?directConnection=true&replicaSet=rs0&authSource=admin

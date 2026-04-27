@@ -65,7 +65,7 @@ function buildUrl(endpoint, args = {}) {
   }
 
   const qs = params.toString();
-  return `http://localhost:${CONFIG.TOOLS_PORT}${path}${qs ? `?${qs}` : ""}`;
+  return `http://localhost:${CONFIG.TOOLS_SERVICE_PORT}${path}${qs ? `?${qs}` : ""}`;
 }
 
 // ── Arg remaps (same as Prism's ToolOrchestratorService) ────
@@ -90,7 +90,7 @@ async function executeTool(toolName, endpoint, args = {}, context = {}) {
 
   try {
     if (endpoint.method === "POST") {
-      const url = `http://localhost:${CONFIG.TOOLS_PORT}${endpoint.path}`;
+      const url = `http://localhost:${CONFIG.TOOLS_SERVICE_PORT}${endpoint.path}`;
       const headers = { "Content-Type": "application/json" };
       if (context.project) headers["X-Project"] = context.project;
       if (context.agent) headers["X-Agent"] = context.agent;

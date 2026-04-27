@@ -409,13 +409,13 @@ export function toISODate(date = new Date()) {
 
 /**
  * Build a full local URL for this server (embed/download endpoints).
- * Replaces the repeated `http://localhost:${CONFIG.TOOLS_PORT}/...` pattern.
+ * Replaces the repeated `http://localhost:${CONFIG.TOOLS_SERVICE_PORT}/...` pattern.
  * @param {string} routePath - Path after the port, e.g. "compute/csv/download"
  * @param {object} [params] - Query parameters as key-value pairs
  * @returns {string}
  */
 export function buildLocalUrl(routePath, params) {
-  const base = `http://localhost:${CONFIG.TOOLS_PORT}/${routePath}`;
+  const base = `http://localhost:${CONFIG.TOOLS_SERVICE_PORT}/${routePath}`;
   if (!params || Object.keys(params).length === 0) return base;
   const qs = new URLSearchParams(params).toString();
   return `${base}?${qs}`;

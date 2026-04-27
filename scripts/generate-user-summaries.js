@@ -180,7 +180,7 @@ async function main() {
           console.log(`[${userNumber}/${users.length}] ⏳ Generating profile for: ${user.username} (${user.postCount || 0} posts)...`);
           try {
             const dataDump = await generateDataDump(db, user);
-            const res = await fetch(`${CONFIG.PRISM_URL}/chat`, {
+            const res = await fetch(`${CONFIG.PRISM_SERVICE_URL}/chat`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({

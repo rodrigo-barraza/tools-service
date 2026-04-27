@@ -5,13 +5,13 @@
 // service that needs LLM capabilities (text generation, image
 // generation, vision) can call Prism's /chat endpoint.
 //
-// Prism runs on CONFIG.PRISM_URL (default: localhost:7777).
+// Prism runs on CONFIG.PRISM_SERVICE_URL (default: localhost:7777).
 // ============================================================
 
 import CONFIG from "../config.js";
 import logger from "../logger.js";
 
-const PRISM_URL = CONFIG.PRISM_URL;
+const PRISM_SERVICE_URL = CONFIG.PRISM_SERVICE_URL;
 
 /**
  * Call Prism's /chat endpoint for text/image generation.
@@ -28,7 +28,7 @@ export async function chat(params) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120_000);
 
-    const res = await fetch(`${PRISM_URL}/chat?stream=false`, {
+    const res = await fetch(`${PRISM_SERVICE_URL}/chat?stream=false`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -61,7 +61,7 @@ export async function health() {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(`${PRISM_URL}/health`, {
+    const res = await fetch(`${PRISM_SERVICE_URL}/health`, {
       signal: controller.signal,
     });
     clearTimeout(timeout);
@@ -89,7 +89,7 @@ export async function textToSpeech(params) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60_000);
 
-    const res = await fetch(`${PRISM_URL}/text-to-audio`, {
+    const res = await fetch(`${PRISM_SERVICE_URL}/text-to-audio`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -138,7 +138,7 @@ export async function speechToText(params) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120_000);
 
-    const res = await fetch(`${PRISM_URL}/audio-to-text`, {
+    const res = await fetch(`${PRISM_SERVICE_URL}/audio-to-text`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

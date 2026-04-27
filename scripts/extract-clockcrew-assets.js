@@ -17,7 +17,7 @@
 //    node scripts/extract-clockcrew-assets.js --reprocess      # re-scan already-processed posts
 //
 //  Requires: MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY
-//  in vault/.env (or process.env / local .env).
+//  in vault-service/.env (or process.env / local .env).
 // ═══════════════════════════════════════════════════════════════
 
 import { Client as MinioClient } from "minio";
@@ -130,7 +130,7 @@ async function main() {
   // ── Bootstrap secrets ───────────────────────────────────────
   const vault = createVaultClient({
     localEnvFile: "./.env",
-    fallbackEnvFile: "../vault/.env",
+    fallbackEnvFile: "../vault-service/.env",
   });
   const secrets = await vault.fetch();
   for (const [key, value] of Object.entries(secrets)) {

@@ -790,7 +790,7 @@ router.post("/memory/upsert", async (req, res) => {
   const agentSessionId = req.headers["x-agent-session-id"] || null;
 
   try {
-    const prismRes = await fetch(`${CONFIG.PRISM_URL}/agent-memories`, {
+    const prismRes = await fetch(`${CONFIG.PRISM_SERVICE_URL}/agent-memories`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -850,7 +850,7 @@ router.post("/custom-agent/create", async (req, res) => {
   }
 
   try {
-    const prismRes = await fetch(`${CONFIG.PRISM_URL}/custom-agents`, {
+    const prismRes = await fetch(`${CONFIG.PRISM_SERVICE_URL}/custom-agents`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

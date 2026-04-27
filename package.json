@@ -1,5 +1,5 @@
 {
-  "name": "tools-api",
+  "name": "tools-service",
   "version": "0.1.0",
   "description": "Unified data aggregator API — events, market, products, trends, weather",
   "type": "module",
