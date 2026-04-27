@@ -242,9 +242,25 @@ const DiscordDataService = {
         })
         : undefined;
 
-      // Build embed summary (just titles/descriptions, not full payloads)
+      // Build rich embed objects — preserve image/thumbnail/video for rendering
       const embeds = Array.isArray(m.embeds) && m.embeds.length > 0
-        ? m.embeds.map((e) => e.title || e.description || e.url).filter(Boolean).slice(0, 3)
+        ? m.embeds
+          .map((e) => {
+            // Skip empty embeds
+            if (!e.title && !e.description && !e.url && !e.image && !e.thumbnail && !e.video) return null;
+            return {
+              ...(e.title && { title: e.title }),
+              ...(e.description && { description: e.description }),
+              ...(e.url && { url: e.url }),
+              ...(e.image && { image: e.image }),
+              ...(e.thumbnail && { thumbnail: e.thumbnail }),
+              ...(e.video && { video: e.video }),
+              ...(e.provider && { provider: e.provider }),
+              ...(e.color != null && { color: e.color }),
+            };
+          })
+          .filter(Boolean)
+          .slice(0, 5)
         : undefined;
 
       // Role color — #000000 means no custom color, treat as null
