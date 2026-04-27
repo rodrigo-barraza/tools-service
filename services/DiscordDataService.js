@@ -46,6 +46,7 @@ function buildBaseFilter({
   query,
   before,
   after,
+  includeBots = false,
 } = {}) {
   const filter = {};
 
@@ -63,8 +64,10 @@ function buildBaseFilter({
     ];
   }
 
-  // Exclude bot messages by default
-  filter["author.bot"] = { $ne: true };
+  // Exclude bot messages by default — callers can opt-in with includeBots
+  if (!includeBots) {
+    filter["author.bot"] = { $ne: true };
+  }
 
   // Exclude messages from restricted categories (hard filter)
   filter["channel.parentId"] = { $nin: EXCLUDED_CATEGORY_IDS };
@@ -113,10 +116,11 @@ const DiscordDataService = {
     after,
     limit = 50,
     mode = "messages",
+    includeBots = false,
   } = {}) {
     const col = getMessagesCollection();
-    const filter = buildBaseFilter({ guildId, channelId, userId, username, query, before, after });
-    const cappedLimit = Math.min(limit, 200);
+    const filter = buildBaseFilter({ guildId, channelId, userId, username, query, before, after, includeBots });
+    const cappedLimit = Math.min(limit, 500);
 
     // ── Count mode — return only the total, zero payloads ──────
     if (mode === "count") {
@@ -232,6 +236,7 @@ const DiscordDataService = {
           username: m.author?.username,
           displayName: m.member?.displayName || m.author?.globalName || m.author?.username,
           avatarUrl: buildAvatarUrl(m.author),
+          isBot: m.author?.bot === true,
           roleColor,
         },
         channelId: m.channelId,
@@ -292,9 +297,10 @@ const DiscordDataService = {
     after,
     groupBy = "user",
     topN = 25,
+    includeBots = false,
   } = {}) {
     const col = getMessagesCollection();
-    const filter = buildBaseFilter({ guildId, channelId, userId, username, query, before, after });
+    const filter = buildBaseFilter({ guildId, channelId, userId, username, query, before, after, includeBots });
     const cappedTopN = Math.min(topN, 100);
 
     // Weekday labels for the weekday grouping

@@ -32,6 +32,7 @@ router.get(
       after: req.query.after,
       limit: parseIntParam(req.query.limit, 50),
       mode: req.query.mode || "messages",
+      includeBots: req.query.includeBots === "true",
     });
   }, "Message search", opts),
 );
@@ -47,7 +48,8 @@ router.get(
 router.get("/messages/stream", (req, res) => {
   const guildId = req.query.guildId;
   const channelId = req.query.channelId;
-  const limit = parseIntParam(req.query.limit, 50, 100);
+  const limit = parseIntParam(req.query.limit, 50, 500);
+  const includeBots = req.query.includeBots === "true";
 
   if (!guildId) {
     return res.status(400).json({ error: "guildId is required" });
@@ -62,7 +64,7 @@ router.get("/messages/stream", (req, res) => {
   async function init() {
     try {
       const data = await DiscordDataService.searchMessages({
-        guildId, channelId, limit,
+        guildId, channelId, limit, includeBots,
       });
       if (closed) return;
 
@@ -90,6 +92,7 @@ router.get("/messages/stream", (req, res) => {
       const data = await DiscordDataService.searchMessages({
         guildId, channelId, limit: 20,
         after: new Date(lastTimestamp + 1).toISOString(),
+        includeBots,
       });
 
       const messages = data.messages || [];
@@ -143,6 +146,7 @@ router.get(
       after: req.query.after,
       groupBy: req.query.groupBy || "user",
       topN: parseIntParam(req.query.topN, 25),
+      includeBots: req.query.includeBots === "true",
     });
   }, "Message analytics", opts),
 );
