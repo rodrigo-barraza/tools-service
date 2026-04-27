@@ -113,4 +113,202 @@ router.get(
   }, "Top users", 500),
 );
 
+// ─── GET /portal ────────────────────────────────────────────────
+// Browse all movies + games with search, type filter, and sorting.
+// Query: ?q=clock&type=movie|game|all&sort=score|title|newest&limit=50&skip=0&username=strawberry
+
+router.get(
+  "/portal",
+  asyncHandler(async (req) => {
+    const db = getClockCrewDB();
+    const q = req.query.q?.trim();
+    const username = req.query.username?.trim();
+    const type = req.query.type || "all";
+    const sort = req.query.sort || "score";
+    const limit = parseIntParam(req.query.limit, 50, 200);
+    const skip = parseIntParam(req.query.skip, 0);
+
+    // Build filter
+    const filter = {};
+    if (q) {
+      filter.title = { $regex: q, $options: "i" };
+    }
+    if (username) {
+      filter.usernameLower = username.toLowerCase();
+    }
+
+    // Sort mapping
+    const sortMap = {
+      score: { score: -1 },
+      title: { title: 1 },
+      newest: { publishedDate: -1, firstScrapedAt: -1 },
+    };
+    const sortSpec = sortMap[sort] || sortMap.score;
+
+    // Which collections to query
+    const collections = [];
+    if (type === "all" || type === "movie") collections.push("NewgroundsMovies");
+    if (type === "all" || type === "game") collections.push("NewgroundsGames");
+
+    // Query each collection and merge
+    const results = await Promise.all(
+      collections.map(async (colName) => {
+        const col = db.collection(colName);
+        const items = await col
+          .find(filter)
+          .sort(sortSpec)
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+        return items;
+      }),
+    );
+
+    // Merge and re-sort
+    let items = results.flat();
+    if (sort === "score") {
+      items.sort((a, b) => (b.score || 0) - (a.score || 0));
+    } else if (sort === "title") {
+      items.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    } else {
+      items.sort((a, b) => {
+        const da = b.publishedDate || b.firstScrapedAt || "";
+        const db2 = a.publishedDate || a.firstScrapedAt || "";
+        return new Date(da) - new Date(db2);
+      });
+    }
+
+    // Trim to limit after merge
+    items = items.slice(0, limit);
+
+    // Get total counts for UI display
+    const [movieCount, gameCount] = await Promise.all([
+      db.collection("NewgroundsMovies").countDocuments(filter),
+      db.collection("NewgroundsGames").countDocuments(filter),
+    ]);
+
+    return {
+      count: items.length,
+      totalMovies: movieCount,
+      totalGames: gameCount,
+      items,
+    };
+  }, "Portal browse", 500),
+);
+
+// ─── GET /portal/:username/card ─────────────────────────────────
+// Enriched profile card: NG profile + CC forum user + content counts.
+
+router.get(
+  "/portal/:username/card",
+  asyncHandler(async (req) => {
+    const db = getClockCrewDB();
+    const usernameLower = req.params.username.toLowerCase();
+
+    // ── Fetch NG profile ────────────────────────────────────────
+    const profile = await db
+      .collection("NewgroundsProfiles")
+      .findOne({ usernameLower });
+
+    if (!profile) {
+      return { error: "Profile not found", profile: null, ccUser: null };
+    }
+
+    // ── Fetch UserProfileLink → ClockCrewNetUser ────────────────
+    let ccUser = null;
+    const link = await db
+      .collection("UserProfileLink")
+      .findOne({ ngUsernameLower: usernameLower });
+
+    if (link?.ccUserId) {
+      ccUser = await db
+        .collection("ClockCrewNetUsers")
+        .findOne({ userId: link.ccUserId });
+    }
+
+    // ── Fetch content counts directly (more accurate than profile) ─
+    const [movieCount, gameCount, audioCount] = await Promise.all([
+      db.collection("NewgroundsMovies").countDocuments({ usernameLower }),
+      db.collection("NewgroundsGames").countDocuments({ usernameLower }),
+      db.collection("NewgroundsAudio").countDocuments({ usernameLower }),
+    ]);
+
+    // ── Fetch top-scored submissions ────────────────────────────
+    const [topMovies, topGames] = await Promise.all([
+      db.collection("NewgroundsMovies")
+        .find({ usernameLower })
+        .sort({ score: -1 })
+        .limit(5)
+        .toArray(),
+      db.collection("NewgroundsGames")
+        .find({ usernameLower })
+        .sort({ score: -1 })
+        .limit(5)
+        .toArray(),
+    ]);
+
+    return {
+      profile: {
+        username: profile.username,
+        usernameLower: profile.usernameLower,
+        avatarUrl: profile.avatarUrl,
+        bannerUrl: profile.bannerUrl,
+        profileUrl: profile.profileUrl,
+        description: profile.description,
+        level: profile.level,
+        rank: profile.rank,
+        globalRank: profile.globalRank,
+        expPoints: profile.expPoints,
+        expRank: profile.expRank,
+        blams: profile.blams,
+        saves: profile.saves,
+        votePower: profile.votePower,
+        fans: profile.fans?.count ?? 0,
+        medals: profile.medals,
+        trophies: profile.trophies,
+        sex: profile.sex,
+        age: profile.age,
+        location: profile.location,
+        job: profile.job,
+        joinDate: profile.joinDate,
+        realName: profile.realName,
+        school: profile.school,
+        supporter: profile.supporter,
+        links: profile.links,
+        // Content counts from profile metadata
+        movieCount: profile.movies?.count ?? movieCount,
+        gameCount: profile.games?.count ?? gameCount,
+        audioCount: profile.audio?.count ?? audioCount,
+        reviewCount: profile.reviews?.count ?? 0,
+        postCount: profile.posts?.count ?? 0,
+        faveCount: profile.faves?.count ?? 0,
+        newsCount: profile.news?.count ?? 0,
+      },
+      ccUser: ccUser
+        ? {
+            userId: ccUser.userId,
+            username: ccUser.username,
+            avatarUrl: ccUser.avatarUrl,
+            customTitle: ccUser.customTitle,
+            position: ccUser.position,
+            postCount: ccUser.postCount,
+            personalText: ccUser.personalText,
+            dateRegistered: ccUser.dateRegistered,
+            age: ccUser.age,
+            gender: ccUser.gender,
+            location: ccUser.location,
+            onlineStatus: ccUser.onlineStatus,
+            profileUrl: ccUser.profileUrl,
+            signature: ccUser.signature,
+          }
+        : null,
+      topMovies,
+      topGames,
+      scrapedMovies: movieCount,
+      scrapedGames: gameCount,
+      scrapedAudio: audioCount,
+    };
+  }, "Portal card", 500),
+);
+
 export default router;
