@@ -1,6 +1,6 @@
 services:
-  tools-api:
-    image: tools-api:latest
+  tools-service:
+    image: tools-service:latest
     container_name: tools-api
     restart: unless-stopped
     ports:
