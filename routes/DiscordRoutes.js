@@ -39,10 +39,11 @@ router.get(
 
 // ─── GET /messages/stream ───────────────────────────────────────
 // SSE endpoint — streams Discord messages in real-time.
-// Sends an `init` event with the initial batch, then pushes `new`
-// events every second containing only messages newer than the last
-// seen timestamp. A `heartbeat` event is sent every 15s to keep
-// the connection alive through proxies/load balancers.
+// Sends an `init` event with the initial batch, then polls every
+// second and pushes:
+//   `new`       — messages that appeared since the last poll
+//   `delete`    — IDs of messages removed since the last poll
+//   `heartbeat` — keep-alive ping every 15s
 // Query: ?guildId=...&channelId=...&limit=50
 
 router.get("/messages/stream", (req, res) => {
@@ -57,8 +58,10 @@ router.get("/messages/stream", (req, res) => {
 
   // Set SSE headers (Content-Type: text/event-stream, etc.)
   setupStreamingSSE(res);
-  let lastTimestamp = 0;
   let closed = false;
+
+  // Track known message IDs so we can detect deletions
+  let knownIds = new Set();
 
   // ── Initial load ──────────────────────────────────────────────
   async function init() {
@@ -69,10 +72,7 @@ router.get("/messages/stream", (req, res) => {
       if (closed) return;
 
       const messages = data.messages || [];
-      if (messages.length > 0) {
-        // Messages come sorted newest-first — track the newest timestamp
-        lastTimestamp = new Date(messages[0].createdAtISO).getTime();
-      }
+      knownIds = new Set(messages.map((m) => m.id));
 
       res.write(`event: init\ndata: ${JSON.stringify({ messages })}\n\n`);
       health.markSuccess();
@@ -85,22 +85,38 @@ router.get("/messages/stream", (req, res) => {
     }
   }
 
-  // ── Poll for new messages ─────────────────────────────────────
+  // ── Poll for changes (new messages + deletions) ──────────────
   async function poll() {
     if (closed) return;
     try {
       const data = await DiscordDataService.searchMessages({
-        guildId, channelId, limit: 20,
-        after: new Date(lastTimestamp + 1).toISOString(),
-        includeBots,
+        guildId, channelId, limit, includeBots,
       });
 
       const messages = data.messages || [];
-      if (messages.length > 0) {
-        lastTimestamp = new Date(messages[0].createdAtISO).getTime();
-        res.write(`event: new\ndata: ${JSON.stringify({ messages })}\n\n`);
+      const currentIds = new Set(messages.map((m) => m.id));
+
+      // ── Detect new messages ─────────────────────────────────
+      const newMessages = messages.filter((m) => !knownIds.has(m.id));
+      if (newMessages.length > 0) {
+        // Send newest-first (same order as searchMessages returns)
+        res.write(`event: new\ndata: ${JSON.stringify({ messages: newMessages })}\n\n`);
         health.markSuccess();
       }
+
+      // ── Detect deleted messages ─────────────────────────────
+      const deletedIds = [];
+      for (const id of knownIds) {
+        if (!currentIds.has(id)) {
+          deletedIds.push(id);
+        }
+      }
+      if (deletedIds.length > 0) {
+        res.write(`event: delete\ndata: ${JSON.stringify({ ids: deletedIds })}\n\n`);
+      }
+
+      // Update tracked set
+      knownIds = currentIds;
     } catch (err) {
       logger.error("[discord/stream] Poll error:", err.message);
       health.markError(err);
