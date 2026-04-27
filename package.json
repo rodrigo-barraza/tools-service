@@ -45,6 +45,7 @@
     "diff": "^8.0.4",
     "express": "^5.1.0",
     "jsonpath-plus": "^10.4.0",
+    "minio": "^8.0.7",
     "mongodb": "^6.16.0",
     "pdf-parse": "^2.4.5",
     "playwright": "^1.59.1",
