@@ -13,6 +13,6 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 IMAGE_NAME="tools-service"
-DISPLAY_NAME="🔧 Tools API"
+DISPLAY_NAME="🔧 Tools Service"
 
 source "${SCRIPT_DIR}/../deploy/lib.sh"

@@ -1,7 +1,7 @@
 services:
   tools-service:
     image: tools-service:latest
-    container_name: tools-api
+    container_name: tools-service
     restart: unless-stopped
     ports:
       - "5590:5590"
