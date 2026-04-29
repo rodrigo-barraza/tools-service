@@ -12,7 +12,7 @@ FROM node:22-slim AS deps
 
 # Native module build tools (chart.js canvas, etc.)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ \
+    python3 make g++ git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
