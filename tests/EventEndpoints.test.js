@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { BASE_URL } from "./helpers.js";
 
 // ─── Integration Tests for Event Domain Cached Endpoints ────────
 //
@@ -8,7 +9,7 @@ import assert from "node:assert/strict";
 // /event/* endpoints (both cached and DB-backed).
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = "http://localhost:5590/event";
+const BASE = `${BASE_URL}/event`;
 
 async function fetchJson(path) {
   const res = await fetch(`${BASE}${path}`);

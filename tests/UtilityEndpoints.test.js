@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { BASE_URL } from "./helpers.js";
 
 // ─── Integration Tests for Utility Domain Endpoints ──────────────
 //
@@ -8,7 +9,7 @@ import assert from "node:assert/strict";
 // (on-demand fetchers: currency, timezone, IP, places, airports).
 // ──────────────────────────────────────────────────────────────────
 
-const BASE = "http://localhost:5590/utility";
+const BASE = `${BASE_URL}/utility`;
 
 async function fetchJson(path) {
   const res = await fetch(`${BASE}${path}`);

@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { BASE_URL } from "./helpers.js";
 
 // ─── Integration Tests for Knowledge Domain Endpoints ───────────
 //
@@ -8,7 +9,7 @@ import assert from "node:assert/strict";
 // (on-demand fetchers + in-memory datasets).
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = "http://localhost:5590/knowledge";
+const BASE = `${BASE_URL}/knowledge`;
 
 async function fetchJson(path) {
   const res = await fetch(`${BASE}${path}`);

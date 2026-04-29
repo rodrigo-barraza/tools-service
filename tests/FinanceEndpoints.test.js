@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { BASE_URL } from "./helpers.js";
 
 // ─── Integration Tests for Finance Domain Cached Endpoints ──────
 //
@@ -9,7 +10,7 @@ import assert from "node:assert/strict";
 // (quote, profile, recommendation, financials, FRED macro).
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = "http://localhost:5590/finance";
+const BASE = `${BASE_URL}/finance`;
 
 async function fetchJson(path) {
   const res = await fetch(`${BASE}${path}`);

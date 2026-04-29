@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { BASE_URL } from "./helpers.js";
 
 // ─── Integration Tests for Market Domain Cached Endpoints ───────
 //
@@ -8,7 +9,7 @@ import assert from "node:assert/strict";
 // endpoints (all cached/polled).
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = "http://localhost:5590/market";
+const BASE = `${BASE_URL}/market`;
 
 async function fetchJson(path) {
   const res = await fetch(`${BASE}${path}`);

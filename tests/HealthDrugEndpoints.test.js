@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { BASE_URL } from "./helpers.js";
 
 // ─── Integration Tests for Health Domain Endpoints ──────────────
 //
@@ -9,7 +10,7 @@ import assert from "node:assert/strict";
 // Covers: openFDA drugs, FDA NDC drugs.
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = "http://localhost:5590/health";
+const BASE = `${BASE_URL}/health`;
 
 async function fetchJson(path) {
   const res = await fetch(`${BASE}${path}`);

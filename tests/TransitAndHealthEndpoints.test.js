@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { BASE_URL } from "./helpers.js";
 
 // ─── Integration Tests for Transit Domain Endpoints ─────────────
 //
@@ -8,7 +9,7 @@ import assert from "node:assert/strict";
 // (on-demand TransLink API fetchers).
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = "http://localhost:5590/transit";
+const BASE = `${BASE_URL}/transit`;
 
 async function fetchJson(path) {
   const res = await fetch(`${BASE}${path}`);
@@ -46,7 +47,7 @@ describe("GET /transit/stops/:stopNo", () => {
 
 describe("GET /health (unified)", () => {
   it("returns full system health status", async () => {
-    const res = await fetch("http://localhost:5590/health");
+    const res = await fetch(`${BASE_URL}/health`);
     const data = await res.json();
     assert.equal(res.status, 200);
     assert.equal(data.status, "ok");

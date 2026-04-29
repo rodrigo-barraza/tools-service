@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { BASE_URL } from "./helpers.js";
 
 // ─── Integration Tests for Trend Domain Cached Endpoints ────────
 //
@@ -8,7 +9,7 @@ import assert from "node:assert/strict";
 // (cached trend listings, correlated hot trends, and searches).
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = "http://localhost:5590/trend";
+const BASE = `${BASE_URL}/trend`;
 
 async function fetchJson(path) {
   const res = await fetch(`${BASE}${path}`);

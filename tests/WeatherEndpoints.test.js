@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { BASE_URL } from "./helpers.js";
 
 // ─── Integration Tests for Weather Domain Cached Endpoints ──────
 //
@@ -8,7 +9,7 @@ import assert from "node:assert/strict";
 // /weather/* cached endpoints.
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = "http://localhost:5590/weather";
+const BASE = `${BASE_URL}/weather`;
 
 async function fetchJson(path) {
   const res = await fetch(`${BASE}${path}`);

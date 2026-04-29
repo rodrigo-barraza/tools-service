@@ -1,7 +1,7 @@
 // ============================================================
 // Tools API — Boot Sequence
 // ============================================================
-import { createVaultClient } from "./utils/vault-client.js";
+import { createVaultClient } from "@rodrigo-barraza/utilities/vault";
 
 const vault = createVaultClient({
   localEnvFile: "./.env",

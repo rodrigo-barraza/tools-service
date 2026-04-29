@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { BASE_URL } from "./helpers.js";
 
 // ─── Integration Tests for Static In-Memory Dataset Endpoints ────
 //
@@ -16,7 +17,7 @@ import assert from "node:assert/strict";
 // to catch schema regressions.
 // ──────────────────────────────────────────────────────────────────
 
-const BASE = "http://localhost:5590";
+const BASE = `${BASE_URL}`;
 
 async function fetchJson(path) {
   const res = await fetch(`${BASE}${path}`);

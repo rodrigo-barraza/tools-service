@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { BASE_URL } from "./helpers.js";
 
 // ─── Integration Tests for Web Extraction Endpoints ─────────────
 //
@@ -12,7 +13,7 @@ import assert from "node:assert/strict";
 // All hit the live tools-api server on localhost:5590.
 // ────────────────────────────────────────────────────────────────
 
-const BASE = "http://localhost:5590/knowledge";
+const BASE = `${BASE_URL}/knowledge`;
 
 async function fetchJson(path) {
   const res = await fetch(`${BASE}${path}`);

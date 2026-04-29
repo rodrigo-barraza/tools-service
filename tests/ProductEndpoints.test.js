@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { BASE_URL } from "./helpers.js";
 
 // ─── Integration Tests for Product Domain Cached Endpoints ──────
 //
@@ -8,7 +9,7 @@ import assert from "node:assert/strict";
 // (cached product listings + Best Buy CA availability).
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = "http://localhost:5590/product";
+const BASE = `${BASE_URL}/product`;
 
 async function fetchJson(path) {
   const res = await fetch(`${BASE}${path}`);
