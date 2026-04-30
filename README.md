@@ -52,7 +52,7 @@ Edit `secrets.js` and fill in your API keys:
 | Secret                     | Domain   | Required | Description                                 |
 | -------------------------- | -------- | -------- | ------------------------------------------- |
 | `TOOLS_PORT`               | Server   | No       | Default `5590`                              |
-| `MONGO_URI`                | Server   | No       | Default `mongodb://192.168.86.2:27017/tools` |
+| `MONGO_URI`                | Server   | No       | Default `mongodb://<host>:27017/tools` |
 | `LATITUDE` / `LONGITUDE`   | Shared   | No       | Default Vancouver (49.28, -123.12)          |
 | `RADIUS_MILES`             | Shared   | No       | Default `50`                                |
 | `TIMEZONE`                 | Shared   | No       | Default `America/Vancouver`                 |
