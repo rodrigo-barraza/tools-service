@@ -45,6 +45,7 @@ import energyRoutes, { getEnergyHealth } from "./routes/EnergyRoutes.js";
 import agenticRoutes, { getAgenticHealth } from "./routes/AgenticRoutes.js";
 import communicationRoutes, { getCommunicationHealth } from "./routes/CommunicationRoutes.js";
 import creativeRoutes, { getCreativeHealth } from "./routes/CreativeRoutes.js";
+import gamingRoutes, { getGamingHealth } from "./routes/GamingRoutes.js";
 
 import discordRoutes, { getDiscordHealth } from "./routes/DiscordRoutes.js";
 import lightsRoutes, { getLightsHealth } from "./routes/LightsRoutes.js";
@@ -95,6 +96,7 @@ app.use("/energy", energyRoutes);
 app.use("/agentic", agenticRoutes);
 app.use("/communication", communicationRoutes);
 app.use("/creative", express.json({ limit: "50mb" }), creativeRoutes);
+app.use("/gaming", gamingRoutes);
 
 app.use("/discord", discordRoutes);
 app.use("/lights", lightsRoutes);
@@ -124,6 +126,7 @@ app.get("/health", (_req, res) => {
       agentic: getAgenticHealth(),
       communication: getCommunicationHealth(),
       creative: getCreativeHealth(),
+      gaming: getGamingHealth(),
 
       discord: getDiscordHealth(),
       lights: getLightsHealth(),
@@ -195,10 +198,10 @@ async function start() {
     console.log(`🔧 Tools API running on port ${port}`);
     console.log(`   Database: ${CONFIG.MONGODB_URI}`);
     console.log(
-      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy, agentic, communication, creative, discord, lights",
+      "   Domains: event, finance, market, product, trend, weather, knowledge, health, transit, utility, compute, maritime, energy, agentic, communication, creative, gaming, discord, lights",
     );
     console.log(
-      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*, /agentic/*, /communication/*, /creative/*, /discord/*, /lights/*",
+      "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*, /agentic/*, /communication/*, /creative/*, /gaming/*, /discord/*, /lights/*",
     );
   });
 }

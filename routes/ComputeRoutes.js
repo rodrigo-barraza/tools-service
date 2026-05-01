@@ -1794,6 +1794,157 @@ router.post("/think", (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// Cron Expression Parser
+// ═══════════════════════════════════════════════════════════════
+// Pure-compute — no external dependencies.
+// Parses standard 5-field cron expressions, explains them in
+// human-readable English, and computes next N execution times.
+
+const CRON_FIELD_NAMES = ["minute", "hour", "dayOfMonth", "month", "dayOfWeek"];
+const CRON_FIELD_RANGES = [
+  { min: 0, max: 59 },
+  { min: 0, max: 23 },
+  { min: 1, max: 31 },
+  { min: 1, max: 12 },
+  { min: 0, max: 6 },
+];
+const MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+function parseCronField(field, { min, max }) {
+  const values = new Set();
+
+  for (const part of field.split(",")) {
+    // Handle step syntax: */5, 1-10/2
+    const [rangePart, stepStr] = part.split("/");
+    const step = stepStr ? parseInt(stepStr) : 1;
+    if (isNaN(step) || step < 1) throw new Error(`Invalid step: ${part}`);
+
+    if (rangePart === "*") {
+      for (let i = min; i <= max; i += step) values.add(i);
+    } else if (rangePart.includes("-")) {
+      const [startStr, endStr] = rangePart.split("-");
+      const start = parseInt(startStr);
+      const end = parseInt(endStr);
+      if (isNaN(start) || isNaN(end) || start < min || end > max || start > end) {
+        throw new Error(`Invalid range: ${part} (valid: ${min}-${max})`);
+      }
+      for (let i = start; i <= end; i += step) values.add(i);
+    } else {
+      const val = parseInt(rangePart);
+      if (isNaN(val) || val < min || val > max) {
+        throw new Error(`Invalid value: ${part} (valid: ${min}-${max})`);
+      }
+      values.add(val);
+    }
+  }
+
+  return [...values].sort((a, b) => a - b);
+}
+
+function explainCronField(values, fieldIdx) {
+  const { min, max } = CRON_FIELD_RANGES[fieldIdx];
+  const name = CRON_FIELD_NAMES[fieldIdx];
+
+  // Wildcard — all values
+  if (values.length === max - min + 1) return `every ${name}`;
+
+  // Single value
+  if (values.length === 1) {
+    const v = values[0];
+    if (fieldIdx === 3) return `in ${MONTH_NAMES[v]}`;
+    if (fieldIdx === 4) return `on ${DAY_NAMES[v]}`;
+    if (fieldIdx === 0) return `at minute ${v}`;
+    if (fieldIdx === 1) return `at hour ${v}`;
+    if (fieldIdx === 2) return `on day ${v}`;
+    return `${name} ${v}`;
+  }
+
+  // Step pattern detection
+  if (values.length > 2) {
+    const diffs = values.slice(1).map((v, i) => v - values[i]);
+    if (diffs.every((d) => d === diffs[0])) {
+      return `every ${diffs[0]} ${name}s${values[0] !== min ? ` from ${values[0]}` : ""}`;
+    }
+  }
+
+  // List
+  if (fieldIdx === 3) return `in ${values.map((v) => MONTH_NAMES[v]).join(", ")}`;
+  if (fieldIdx === 4) return `on ${values.map((v) => DAY_NAMES[v]).join(", ")}`;
+  return `${name} ${values.join(", ")}`;
+}
+
+function getNextCronExecutions(parsed, count, fromDate) {
+  const results = [];
+  const dt = new Date(fromDate);
+  dt.setSeconds(0, 0);
+  dt.setMinutes(dt.getMinutes() + 1); // Start from next minute
+
+  const maxIterations = 525960; // ~1 year of minutes
+  let iterations = 0;
+
+  while (results.length < count && iterations < maxIterations) {
+    iterations++;
+    const month = dt.getMonth() + 1;
+    const dom = dt.getDate();
+    const dow = dt.getDay();
+    const hour = dt.getHours();
+    const minute = dt.getMinutes();
+
+    if (
+      parsed[3].includes(month) &&
+      parsed[2].includes(dom) &&
+      parsed[4].includes(dow) &&
+      parsed[1].includes(hour) &&
+      parsed[0].includes(minute)
+    ) {
+      results.push(new Date(dt));
+    }
+
+    dt.setMinutes(dt.getMinutes() + 1);
+  }
+
+  return results;
+}
+
+router.get("/cron/parse", (req, res) => {
+  const { expression, count, from } = req.query;
+  if (!expression) {
+    return res.status(400).json({ error: "Query parameter 'expression' is required (e.g. '*/5 * * * *')" });
+  }
+
+  try {
+    const fields = expression.trim().split(/\s+/);
+    if (fields.length !== 5) {
+      return res.status(400).json({
+        error: `Expected 5 fields (minute hour day month weekday), got ${fields.length}`,
+        hint: "Standard cron: minute(0-59) hour(0-23) day(1-31) month(1-12) weekday(0-6, 0=Sun)",
+      });
+    }
+
+    const parsed = fields.map((f, i) => parseCronField(f, CRON_FIELD_RANGES[i]));
+    const explanations = parsed.map((vals, i) => explainCronField(vals, i));
+    const humanReadable = explanations.filter((e) => !e.startsWith("every ") || e !== `every ${CRON_FIELD_NAMES[explanations.indexOf(e)]}`).join(", ");
+
+    const nextCount = Math.min(Math.max(parseInt(count) || 5, 1), 25);
+    const fromDate = from ? new Date(from) : new Date();
+    const nextExecutions = getNextCronExecutions(parsed, nextCount, fromDate);
+
+    res.json({
+      expression,
+      fields: Object.fromEntries(CRON_FIELD_NAMES.map((name, i) => [name, { raw: fields[i], values: parsed[i] }])),
+      explanation: humanReadable,
+      descriptions: Object.fromEntries(CRON_FIELD_NAMES.map((name, i) => [name, explanations[i]])),
+      nextExecutions: nextExecutions.map((d) => d.toISOString()),
+      nextExecutionCount: nextExecutions.length,
+      fromDate: fromDate.toISOString(),
+    });
+  } catch (err) {
+    res.status(400).json({ error: `Cron parse failed: ${err.message}` });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
 // Agentic: Sleep (Timed Pause)
 // ═══════════════════════════════════════════════════════════════
 // Blocks for `duration_seconds` before responding.
@@ -1928,6 +2079,7 @@ export function getComputeHealth() {
     regexTester: "on-demand (native RegExp)",
     encodeDecode: "on-demand (internal)",
     colorConverter: "on-demand (internal)",
+    cronParser: "on-demand (internal)",
     turtleGraphics: "on-demand (LOGO canvas embed)",
     think: "on-demand (echo)",
     sleep: "on-demand (timer)",

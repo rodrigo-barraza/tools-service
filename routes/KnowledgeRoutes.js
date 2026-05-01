@@ -66,6 +66,17 @@ import { getHackerNewsThread } from "../fetchers/web/HackerNewsFetcher.js";
 import { getStackOverflowQuestion } from "../fetchers/web/StackOverflowFetcher.js";
 import { getWebContent } from "../fetchers/web/WebContentFetcher.js";
 import { getPackageInfo } from "../fetchers/web/PackageFetcher.js";
+import {
+  searchArtists,
+  getArtist,
+  searchAlbums,
+  getAlbum,
+  searchTracks,
+} from "../fetchers/knowledge/MusicBrainzFetcher.js";
+import {
+  getSnapshot as getWaybackSnapshot,
+  getSnapshotHistory,
+} from "../fetchers/web/WaybackFetcher.js";
 import { parseIntParam, asyncHandler } from "../utilities.js";
 
 const router = Router();
@@ -615,6 +626,62 @@ router.get("/package/info", async (req, res) => {
   res.json(result);
 });
 
+// ─── Music (MusicBrainz) ───────────────────────────────────────────
+
+router.get("/music/artists/search", async (req, res) => {
+  const { q, limit } = req.query;
+  if (!q) return res.status(400).json({ error: "Query parameter 'q' is required" });
+  res.json(await searchArtists(q, parseIntParam(limit, 10)));
+});
+
+router.get("/music/artists/:mbid", asyncHandler(
+  (req) => getArtist(req.params.mbid),
+  "Artist details",
+));
+
+router.get("/music/albums/search", async (req, res) => {
+  const { q, artist, limit } = req.query;
+  if (!q) return res.status(400).json({ error: "Query parameter 'q' is required" });
+  res.json(await searchAlbums(q, artist, parseIntParam(limit, 10)));
+});
+
+router.get("/music/albums/:mbid", asyncHandler(
+  (req) => getAlbum(req.params.mbid),
+  "Album details",
+));
+
+router.get("/music/tracks/search", async (req, res) => {
+  const { q, artist, limit } = req.query;
+  if (!q) return res.status(400).json({ error: "Query parameter 'q' is required" });
+  res.json(await searchTracks(q, artist, parseIntParam(limit, 10)));
+});
+
+// ─── Wayback Machine ───────────────────────────────────────────────
+
+router.get("/wayback/snapshot", async (req, res) => {
+  const { url, timestamp } = req.query;
+  if (!url) return res.status(400).json({ error: "Query parameter 'url' is required" });
+  try {
+    res.json(await getWaybackSnapshot(url, timestamp));
+  } catch (err) {
+    res.status(500).json({ error: `Wayback lookup failed: ${err.message}` });
+  }
+});
+
+router.get("/wayback/history", async (req, res) => {
+  const { url, limit, from, to } = req.query;
+  if (!url) return res.status(400).json({ error: "Query parameter 'url' is required" });
+  try {
+    res.json(await getSnapshotHistory(url, {
+      limit: parseIntParam(limit, 20),
+      from,
+      to,
+    }));
+  } catch (err) {
+    res.status(500).json({ error: `Wayback history failed: ${err.message}` });
+  }
+});
+
 // ─── Health ────────────────────────────────────────────────────────
 
 export function getKnowledgeHealth() {
@@ -642,6 +709,8 @@ export function getKnowledgeHealth() {
     stackOverflow: "on-demand (Stack Exchange API v2.3)",
     webContent: "unified (YouTube/Reddit/Twitter/HN/SO/GitHub + generic fallback)",
     packageInfo: "unified (NPM/PyPI)",
+    musicBrainz: "on-demand (MusicBrainz API)",
+    waybackMachine: "on-demand (Internet Archive)",
   };
 }
 
@@ -823,6 +892,59 @@ router.get("/media/:id", async (req, res) => {
   if (!type) return res.status(400).json({ error: "'type' is required" });
   req.url = `/${type === "tv" ? "tv" : "movies"}/${req.params.id}`;
   return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+});
+
+// ── Unified Music Data ─────────────────────────────────────────────
+
+router.get("/music", async (req, res) => {
+  const { action, q, mbid, artist, limit } = req.query;
+  if (!action) return res.status(400).json({ error: "'action' is required", actions: ["search_artists", "artist", "search_albums", "album", "search_tracks"] });
+
+  switch (action) {
+    case "search_artists":
+      if (!q) return res.status(400).json({ error: "'q' is required for action=search_artists" });
+      req.url = `/music/artists/search?q=${encodeURIComponent(q)}&limit=${limit || 10}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "artist":
+      if (!mbid) return res.status(400).json({ error: "'mbid' is required for action=artist" });
+      req.url = `/music/artists/${mbid}`;
+      req.params.mbid = mbid;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "search_albums":
+      if (!q) return res.status(400).json({ error: "'q' is required for action=search_albums" });
+      req.url = `/music/albums/search?q=${encodeURIComponent(q)}&artist=${artist || ""}&limit=${limit || 10}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "album":
+      if (!mbid) return res.status(400).json({ error: "'mbid' is required for action=album" });
+      req.url = `/music/albums/${mbid}`;
+      req.params.mbid = mbid;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "search_tracks":
+      if (!q) return res.status(400).json({ error: "'q' is required for action=search_tracks" });
+      req.url = `/music/tracks/search?q=${encodeURIComponent(q)}&artist=${artist || ""}&limit=${limit || 10}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    default:
+      return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["search_artists", "artist", "search_albums", "album", "search_tracks"] });
+  }
+});
+
+// ── Unified Wayback Machine ────────────────────────────────────────
+
+router.get("/wayback", async (req, res) => {
+  const { action, url, timestamp, limit, from, to } = req.query;
+  if (!action) return res.status(400).json({ error: "'action' is required", actions: ["snapshot", "history"] });
+  if (!url) return res.status(400).json({ error: "'url' is required" });
+
+  switch (action) {
+    case "snapshot":
+      req.url = `/wayback/snapshot?url=${encodeURIComponent(url)}${timestamp ? "&timestamp=" + timestamp : ""}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    case "history":
+      req.url = `/wayback/history?url=${encodeURIComponent(url)}&limit=${limit || 20}${from ? "&from=" + from : ""}${to ? "&to=" + to : ""}`;
+      return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
+    default:
+      return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["snapshot", "history"] });
+  }
 });
 
 export default router;

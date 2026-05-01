@@ -7113,6 +7113,189 @@ const TOOL_DEFINITIONS = [
       required: ["data"],
     },
   },
+
+  // ── Cron Expression Parser ─────────────────────────────────
+  {
+    name: "parse_cron_expression",
+    dataSource: compute("internal"),
+    description:
+      "Parse, validate, and explain a standard 5-field cron expression (minute hour day month weekday). " +
+      "Returns a human-readable explanation of the schedule, the expanded values for each field, " +
+      "and the next N execution times. Useful for debugging scheduled tasks, cron jobs, and periodic automations.",
+    endpoint: {
+      path: "/compute/cron/parse",
+      queryParams: ["expression", "count", "from"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        expression: {
+          type: "string",
+          description:
+            "Standard 5-field cron expression. Format: 'minute hour dayOfMonth month dayOfWeek'. " +
+            "Examples: '*/5 * * * *' (every 5 min), '0 9 * * 1-5' (9am weekdays), '30 2 1 * *' (2:30am on 1st of month)",
+        },
+        count: {
+          type: "number",
+          description: "Number of next execution times to compute (default: 5, max: 25)",
+        },
+        from: {
+          type: "string",
+          description: "ISO date to compute next executions from (default: now). E.g. '2026-01-01T00:00:00Z'",
+        },
+      },
+      required: ["expression"],
+    },
+  },
+
+  // ── Dota 2 (OpenDota) ─────────────────────────────────────────
+  {
+    name: "get_dota_data",
+    dataSource: onDemand("OpenDota"),
+    description:
+      "Get Dota 2 game data from the OpenDota API. Supports multiple actions: " +
+      "heroes (list all heroes with stats, filterable by role/attribute), " +
+      "hero (get details for a specific hero by name or ID), " +
+      "matchups (get best/worst hero matchups), " +
+      "player (get player profile by Steam32 account ID), " +
+      "player_matches (get a player's recent match history), " +
+      "match (get detailed match data including all player stats), " +
+      "pro_matches (get recent professional matches).",
+    endpoint: {
+      path: "/gaming/dota",
+      queryParams: ["action", "query", "heroId", "accountId", "matchId", "limit", "role", "attr"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          enum: ["heroes", "hero", "matchups", "player", "player_matches", "match", "pro_matches"],
+          description: "What data to retrieve",
+        },
+        query: {
+          type: "string",
+          description: "Hero name or partial name (for action=hero or action=heroes with q filter)",
+        },
+        heroId: {
+          type: "number",
+          description: "Hero ID (for action=matchups)",
+        },
+        accountId: {
+          type: "number",
+          description: "Steam32 Account ID (for action=player or action=player_matches)",
+        },
+        matchId: {
+          type: "number",
+          description: "Match ID (for action=match)",
+        },
+        limit: {
+          type: "number",
+          description: "Number of results to return (default: 10, max: 50)",
+        },
+        role: {
+          type: "string",
+          description: "Filter heroes by role (for action=heroes). E.g. 'Carry', 'Support', 'Nuker'",
+        },
+        attr: {
+          type: "string",
+          enum: ["str", "agi", "int", "all"],
+          description: "Filter heroes by primary attribute (for action=heroes)",
+        },
+      },
+      required: ["action"],
+    },
+  },
+
+  // ── Music (MusicBrainz) ────────────────────────────────────────
+  {
+    name: "get_music_data",
+    dataSource: onDemand("MusicBrainz"),
+    description:
+      "Search and retrieve music metadata from MusicBrainz — the open music encyclopedia. Supports: " +
+      "search_artists (find artists by name), " +
+      "artist (get detailed artist info including discography, social links, tags), " +
+      "search_albums (find albums/release groups by title, optionally filtered by artist), " +
+      "album (get album details including track listing, cover art URL, tags), " +
+      "search_tracks (find recordings/tracks by title, optionally filtered by artist).",
+    endpoint: {
+      path: "/knowledge/music",
+      queryParams: ["action", "q", "mbid", "artist", "limit"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          enum: ["search_artists", "artist", "search_albums", "album", "search_tracks"],
+          description: "What music data to retrieve",
+        },
+        q: {
+          type: "string",
+          description: "Search query — artist name, album title, or track title (for search actions)",
+        },
+        mbid: {
+          type: "string",
+          description: "MusicBrainz ID (for action=artist or action=album)",
+        },
+        artist: {
+          type: "string",
+          description: "Artist name to narrow album/track search results (for action=search_albums or action=search_tracks)",
+        },
+        limit: {
+          type: "number",
+          description: "Number of search results to return (default: 10)",
+        },
+      },
+      required: ["action"],
+    },
+  },
+
+  // ── Wayback Machine ────────────────────────────────────────────
+  {
+    name: "get_wayback_snapshot",
+    dataSource: onDemand("Internet Archive"),
+    description:
+      "Check if a URL has been archived by the Wayback Machine and retrieve snapshots. " +
+      "Two actions: 'snapshot' checks availability and gets the closest archived snapshot " +
+      "(optionally near a specific date). 'history' returns the capture timeline with " +
+      "deduplicated snapshots, each with archive URL, status code, and size.",
+    endpoint: {
+      path: "/knowledge/wayback",
+      queryParams: ["action", "url", "timestamp", "limit", "from", "to"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          enum: ["snapshot", "history"],
+          description: "'snapshot' for closest available capture, 'history' for capture timeline",
+        },
+        url: {
+          type: "string",
+          description: "The URL to look up in the Wayback Machine (e.g. 'https://example.com')",
+        },
+        timestamp: {
+          type: "string",
+          description: "For action=snapshot: find the closest snapshot to this date (YYYYMMDD format)",
+        },
+        limit: {
+          type: "number",
+          description: "For action=history: max number of snapshots to return (default: 20, max: 100)",
+        },
+        from: {
+          type: "string",
+          description: "For action=history: start date filter (YYYYMMDD)",
+        },
+        to: {
+          type: "string",
+          description: "For action=history: end date filter (YYYYMMDD)",
+        },
+      },
+      required: ["action", "url"],
+    },
+  },
 ];
 
 // ────────────────────────────────────────────────────────────
@@ -7265,10 +7448,20 @@ const TOOL_DOMAINS = {
   regex_tester: "Compute",
   encode_decode: "Compute",
   convert_color: "Compute",
+  parse_cron_expression: "Compute",
   turtle_draw: "Compute",
   think: "Reasoning",
   sleep: "Agentic: Control Flow",
   synthetic_output: "Agentic: Structured Output",
+
+  // Gaming
+  get_dota_data: "Gaming",
+
+  // Music
+  get_music_data: "Knowledge",
+
+  // Wayback Machine
+  get_wayback_snapshot: "Knowledge",
 
   // Maritime
   get_tracked_vessels: "Maritime",
@@ -7635,10 +7828,20 @@ const TOOL_LABELS = {
   regex_tester: ["coding"],
   encode_decode: ["coding", "data"],
   convert_color: ["data"],
+  parse_cron_expression: ["coding", "automation", "data"],
   turtle_draw: ["coding", "creative", "data"],
   think: ["coding"],
   sleep: ["coding"],
   synthetic_output: ["coding"],
+
+  // ── Gaming ───────────────────────────────────────────────
+  get_dota_data: ["reference", "media"],
+
+  // ── Music ─────────────────────────────────────────────────
+  get_music_data: ["reference", "media"],
+
+  // ── Wayback Machine ──────────────────────────────────────
+  get_wayback_snapshot: ["web", "reference"],
 
   // ── Maritime ─────────────────────────────────────────────
   get_tracked_vessels: ["maritime"],
