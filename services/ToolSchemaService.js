@@ -11,7 +11,7 @@
 //
 // Consumed by:
 //   - tools-api: GET /admin/tool-schemas
-//   - retina: fetches schemas and builds a generic executor
+//   - prism-client: fetches schemas and builds a generic executor
 //
 // CRITICAL CONVENTION:
 //   Property keys in parameters.properties MUST exactly match

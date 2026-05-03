@@ -64,7 +64,7 @@ async function nextTaskId(project) {
 /**
  * Create a new task.
  *
- * @param {string} project - Project scope (e.g. "retina", "prism")
+ * @param {string} project - Project scope (e.g. "prism", "lupos")
  * @param {object} data
  * @param {string} data.subject - Brief title
  * @param {string} data.description - What needs to be done
