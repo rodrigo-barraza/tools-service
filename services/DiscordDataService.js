@@ -1,3 +1,4 @@
+import { days as daysToMs } from "@rodrigo-barraza/utilities";
 import { getMessagesCollection } from "../models/LuposMessage.js";
 
 // ═══════════════════════════════════════════════════════════════
@@ -492,7 +493,7 @@ const DiscordDataService = {
   } = {}) {
     const col = getMessagesCollection();
     const cappedDays = Math.min(days, 365);
-    const sinceTimestamp = Date.now() - cappedDays * 24 * 60 * 60 * 1000;
+    const sinceTimestamp = Date.now() - daysToMs(cappedDays);
 
     const match = {
       guildId,

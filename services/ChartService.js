@@ -6,6 +6,7 @@
 // embeds work correctly.
 // ============================================================
 
+import { MS_PER_HOUR } from "@rodrigo-barraza/utilities";
 import crypto from "node:crypto";
 import { ChartJSNodeCanvas } from "chartjs-node-canvas";
 
@@ -23,7 +24,7 @@ const renderer = new ChartJSNodeCanvas({
 // ─── In-Memory Store ───────────────────────────────────────────
 
 const CHART_STORE = new Map();
-const CHART_TTL_MS = 60 * 60 * 1000; // 1 hour
+const CHART_TTL_MS = MS_PER_HOUR;
 
 /**
  * Store chart config and return a short ID.

@@ -5,12 +5,14 @@
 // Docs: https://docs.opendota.com/
 // ============================================================
 
+import { MS_PER_DAY } from "@rodrigo-barraza/utilities";
+
 const BASE_URL = "https://api.opendota.com/api";
 
 // Cache hero list in memory (static data, changes only on patches)
 let heroCache = null;
 let heroCacheTime = 0;
-const HERO_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+const HERO_CACHE_TTL = MS_PER_DAY;
 
 async function fetchJson(path) {
   const res = await fetch(`${BASE_URL}${path}`);

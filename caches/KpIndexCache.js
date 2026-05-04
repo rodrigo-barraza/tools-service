@@ -1,4 +1,5 @@
 import { createSimpleCache } from "./createSimpleCache.js";
+import { MS_PER_DAY } from "@rodrigo-barraza/utilities";
 import { KP_STORM_SCALE } from "../constants.js";
 
 const cache = createSimpleCache({ type: "array", itemsKey: "readings" });
@@ -38,7 +39,7 @@ export function getCurrentKp() {
   const classification = classifyKp(latest.kp);
 
   // Find peak in last 24 hours
-  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const dayAgo = new Date(Date.now() - MS_PER_DAY);
   const last24h = readings.filter((r) => r.time >= dayAgo);
   const peak = last24h.reduce(
     (max, r) => (r.kp > (max?.kp ?? -1) ? r : max),

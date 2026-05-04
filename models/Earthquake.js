@@ -1,3 +1,4 @@
+import { hours as hoursToMs } from "@rodrigo-barraza/utilities";
 import { getDB } from "../db.js";
 
 let collection = null;
@@ -62,7 +63,7 @@ export async function getRecentEarthquakes(
 ) {
   if (!collection) return [];
 
-  const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+  const cutoff = new Date(Date.now() - hoursToMs(hours));
   const query = { time: { $gte: cutoff } };
 
   if (minMagnitude !== null) {

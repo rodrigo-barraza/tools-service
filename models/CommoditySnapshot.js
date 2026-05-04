@@ -1,3 +1,4 @@
+import { hours as hoursToMs } from "@rodrigo-barraza/utilities";
 import { getDB } from "../db.js";
 import { SNAPSHOT_TTL_SECONDS } from "../constants.js";
 
@@ -40,7 +41,7 @@ export async function insertSnapshots(quotes) {
 export async function getHistory(ticker, hours = 24) {
   const db = getDB();
   const collection = db.collection("commodity_snapshots");
-  const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+  const since = new Date(Date.now() - hoursToMs(hours));
 
   return collection
     .find({ ticker, fetchedAt: { $gte: since } })

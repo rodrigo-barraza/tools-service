@@ -1,3 +1,4 @@
+import { hours as hoursToMs } from "@rodrigo-barraza/utilities";
 import { getDB } from "../db.js";
 
 /**
@@ -71,7 +72,7 @@ export async function getRecentTrends(
 ) {
   const db = getDB();
   const collection = db.collection("trends");
-  const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+  const since = new Date(Date.now() - hoursToMs(hours));
 
   const filter = { lastSeen: { $gte: since } };
   if (category) filter.category = category;
@@ -99,7 +100,7 @@ export async function searchTrendsDB(query, limit = 50) {
 export async function getTopTrends(hours = 24, limit = 20) {
   const db = getDB();
   const collection = db.collection("trends");
-  const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+  const since = new Date(Date.now() - hoursToMs(hours));
 
   return collection
     .aggregate([

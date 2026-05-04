@@ -1,3 +1,4 @@
+import { days as daysToMs } from "@rodrigo-barraza/utilities";
 import { getDB } from "../db.js";
 
 let collection = null;
@@ -82,7 +83,7 @@ export async function getEventsUpcoming(days = 30, limit = 200) {
   if (!collection) return [];
 
   const now = new Date();
-  const cutoff = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+  const cutoff = new Date(now.getTime() + daysToMs(days));
 
   return collection
     .find({ startDate: { $gte: now, $lte: cutoff } })
@@ -98,7 +99,7 @@ export async function getEventsPast(days = 30, limit = 200) {
   if (!collection) return [];
 
   const now = new Date();
-  const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  const cutoff = new Date(now.getTime() - daysToMs(days));
 
   return collection
     .find({ startDate: { $gte: cutoff, $lt: now } })

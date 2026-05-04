@@ -3,12 +3,12 @@ const PLASMA_URL =
 const MAG_URL =
   "https://services.swpc.noaa.gov/products/solar-wind/mag-7-day.json";
 
-const MS_24H = 24 * 60 * 60 * 1000;
+import { MS_PER_DAY } from "@rodrigo-barraza/utilities";
 
 function parseRows(rows, fields) {
   // First row is header, skip it
   const data = rows.slice(1);
-  const cutoff = Date.now() - MS_24H;
+  const cutoff = Date.now() - MS_PER_DAY;
 
   return data
     .map((row) => {

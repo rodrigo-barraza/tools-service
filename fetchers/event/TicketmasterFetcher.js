@@ -1,3 +1,4 @@
+import { days } from "@rodrigo-barraza/utilities";
 import CONFIG from "../../config.js";
 import {
   EVENT_SOURCES,
@@ -139,7 +140,7 @@ export async function fetchTicketmasterEvents() {
   }
 
   const now = new Date();
-  const endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const endDate = new Date(now.getTime() + days(30));
 
   const params = new URLSearchParams({
     apikey: CONFIG.TICKETMASTER_API_KEY,

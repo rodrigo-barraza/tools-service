@@ -1,7 +1,6 @@
+import { MS_PER_DAY } from "@rodrigo-barraza/utilities";
 import { getWebcamsByCity, getWebcamsLastUpdated } from "../../models/Webcam.js";
 import { WEBCAM_REGISTRY, getSupportedCities } from "./webcams/WebcamRegistry.js";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function getPublicWebcams({ city = "vancouver", limit = 100 } = {}) {
   const normalizedCity = city.toLowerCase();
@@ -14,7 +13,7 @@ export async function getPublicWebcams({ city = "vancouver", limit = 100 } = {})
   const capitalizedCity = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
 
   const lastUpdated = await getWebcamsLastUpdated(capitalizedCity);
-  const isStale = !lastUpdated || (Date.now() - lastUpdated.getTime()) > DAY_MS;
+  const isStale = !lastUpdated || (Date.now() - lastUpdated.getTime()) > MS_PER_DAY;
 
   if (isStale) {
     console.log(`📷 Refreshing webcam data for ${capitalizedCity}`);
