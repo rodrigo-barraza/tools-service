@@ -1,11 +1,9 @@
+import { TokenManager } from "@rodrigo-barraza/utilities/node";
 import CONFIG from "../../config.js";
 import { PRODUCT_SOURCES } from "../../constants.js";
-import { computeTrendingScore, TokenManager } from "../../utilities.js";
-
+import { computeTrendingScore } from "../../utilities.js";
 const GRAPHQL_URL = "https://api.producthunt.com/v2/api/graphql";
-
 // ─── OAuth2 Token Management ──────────────────────────────────────
-
 const phTokenManager = new TokenManager(async () => {
   const response = await fetch("https://api.producthunt.com/v2/oauth/token", {
     method: "POST",
@@ -16,12 +14,10 @@ const phTokenManager = new TokenManager(async () => {
       grant_type: "client_credentials",
     }),
   });
-
   if (!response.ok) {
     const text = await response.text();
     throw new Error(`Product Hunt OAuth failed (${response.status}): ${text}`);
   }
-
   const data = await response.json();
   return {
     token: data.access_token,
@@ -29,9 +25,7 @@ const phTokenManager = new TokenManager(async () => {
     expiresInMs: 86_400_000,
   };
 });
-
 // ─── GraphQL Query ────────────────────────────────────────────────
-
 const POSTS_QUERY = `
   query {
     posts(order: VOTES, first: 20) {
@@ -60,13 +54,11 @@ const POSTS_QUERY = `
     }
   }
 `;
-
 /**
  * Map Product Hunt topics to a unified category.
  */
 function mapTopicToCategory(topics) {
   const topicNames = topics.map((t) => t.toLowerCase());
-
   if (topicNames.some((t) => t.includes("gaming") || t.includes("game")))
     return "gaming";
   if (topicNames.some((t) => t.includes("developer") || t.includes("api")))
@@ -79,11 +71,9 @@ function mapTopicToCategory(topics) {
     topicNames.some((t) => t.includes("productivity") || t.includes("office"))
   )
     return "office";
-
   // Default for Product Hunt — mostly tech/software
   return "tech";
 }
-
 /**
  * Fetch today's trending products from Product Hunt.
  */
@@ -93,9 +83,7 @@ export async function fetchProductHuntTrending() {
       "PRODUCTHUNT_API_KEY and PRODUCTHUNT_API_SECRET not configured",
     );
   }
-
   const token = await phTokenManager.getToken();
-
   const response = await fetch(GRAPHQL_URL, {
     method: "POST",
     headers: {
@@ -104,7 +92,6 @@ export async function fetchProductHuntTrending() {
     },
     body: JSON.stringify({ query: POSTS_QUERY }),
   });
-
   if (!response.ok) {
     // Invalidate cached token on auth failure
     if (response.status === 401) {
@@ -114,21 +101,16 @@ export async function fetchProductHuntTrending() {
       `Product Hunt API returned ${response.status}: ${await response.text()}`,
     );
   }
-
   const data = await response.json();
-
   if (data.errors) {
     throw new Error(
       `Product Hunt GraphQL errors: ${data.errors.map((e) => e.message).join(", ")}`,
     );
   }
-
   const edges = data?.data?.posts?.edges || [];
-
   const products = edges.map((edge, index) => {
     const node = edge.node;
     const topics = node.topics?.edges?.map((e) => e.node.name) || [];
-
     const product = {
       sourceId: node.id,
       source: PRODUCT_SOURCES.PRODUCTHUNT,
@@ -150,6 +132,5 @@ export async function fetchProductHuntTrending() {
     product.trendingScore = computeTrendingScore(product);
     return product;
   });
-
   return products;
 }

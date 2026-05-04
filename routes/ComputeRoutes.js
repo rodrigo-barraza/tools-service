@@ -1,3 +1,4 @@
+import { setupStreamingSSE, lazyImport } from "@rodrigo-barraza/utilities/node";
 // ============================================================
 // Compute Routes — Process-Based Tool Endpoints
 // ============================================================
@@ -7,7 +8,6 @@
 //
 // Mounted at: /compute
 // ============================================================
-
 import { Router } from "express";
 import {
   executeJavaScript,
@@ -20,24 +20,19 @@ import {
 } from "../services/ShellExecutorService.js";
 import { MAX_CODE_LENGTH, MAX_COMMAND_LENGTH } from "../constants.js";
 import crypto from "node:crypto";
-import { setupStreamingSSE, EphemeralStore, buildLocalUrl, validateMaxLength, buildEmbedHtml, lazyImport } from "../utilities.js";
-
+import { EphemeralStore, buildLocalUrl, validateMaxLength, buildEmbedHtml } from "../utilities.js";
 // ─── Lazy-loaded dependencies ──────────────────────────────────────
 // These are loaded on first use to avoid blocking startup.
-
 const getConvertUnits = lazyImport("convert-units");
 const getDateFns = lazyImport("date-fns", (m) => m);
 const getDateFnsTz = lazyImport("date-fns-tz", (m) => m);
 const getJSONPath = lazyImport("jsonpath-plus", (m) => m.JSONPath);
 const getQRCode = lazyImport("qrcode");
 const getDiff = lazyImport("diff", (m) => m);
-
 const router = Router();
-
 // ═══════════════════════════════════════════════════════════════
 // 1. JavaScript Interpreter (vm sandbox)
 // ═══════════════════════════════════════════════════════════════
-
 router.post("/js/execute", (req, res) => {
   const { code, timeout } = req.body;
   if (!code || typeof code !== "string") {
@@ -54,13 +49,10 @@ router.post("/js/execute", (req, res) => {
   });
   res.json(result);
 });
-
 router.get("/js/info", (_req, res) => {
   res.json(getJsInterpreterInfo());
 });
-
 // ── JS Streaming (SSE) — synchronous vm, but follows the same SSE pattern ──
-
 router.post("/js/stream", (req, res) => {
   const { code, timeout } = req.body;
   if (!code || typeof code !== "string") {
@@ -68,14 +60,11 @@ router.post("/js/stream", (req, res) => {
   }
   const lengthErr = validateMaxLength(code, MAX_CODE_LENGTH, "Code");
   if (lengthErr) return res.status(400).json({ error: lengthErr });
-
   const send = setupStreamingSSE(res);
   send({ event: "start", language: "javascript" });
-
   const result = executeJavaScript(code, {
     timeout: timeout ? Math.min(Math.max(parseInt(timeout), 100), 30_000) : undefined,
   });
-
   // Emit console output as stdout chunks
   if (result.output) {
     send({ event: "stdout", data: result.output + "\n" });
@@ -83,15 +72,12 @@ router.post("/js/stream", (req, res) => {
   if (result.error) {
     send({ event: "stderr", data: result.error + "\n" });
   }
-
   send({ event: "exit", exitCode: result.error ? 1 : 0, executionTimeMs: result.executionTimeMs, success: result.success });
   res.end();
 });
-
 // ═══════════════════════════════════════════════════════════════
 // 2. Shell Executor (allowlisted commands)
 // ═══════════════════════════════════════════════════════════════
-
 router.post("/shell/execute", async (req, res) => {
   const { command, stdin, timeout } = req.body;
   if (!command || typeof command !== "string") {
@@ -109,14 +95,11 @@ router.post("/shell/execute", async (req, res) => {
   });
   res.json(result);
 });
-
 router.get("/shell/binaries", (_req, res) => {
   const binaries = getAllowedBinaries();
   res.json({ count: binaries.length, binaries });
 });
-
 // ── Shell Streaming (SSE) ─────────────────────────────────────
-
 router.post("/shell/stream", async (req, res) => {
   const { command, stdin, timeout } = req.body;
   if (!command || typeof command !== "string") {
@@ -124,24 +107,19 @@ router.post("/shell/stream", async (req, res) => {
   }
   const lengthErr = validateMaxLength(command, MAX_COMMAND_LENGTH, "Command");
   if (lengthErr) return res.status(400).json({ error: lengthErr });
-
   const send = setupStreamingSSE(res);
   send({ event: "start", command });
-
   const result = await executeShellStreaming(command, {
     stdin: stdin || "",
     timeout: timeout ? Math.min(Math.max(parseInt(timeout), 500), 30_000) : undefined,
     onChunk: (event, data) => send({ event, data }),
   });
-
   send({ event: "exit", exitCode: result.exitCode, executionTimeMs: result.executionTimeMs, success: result.success, timedOut: result.timedOut, error: result.error || undefined });
   res.end();
 });
-
 // ═══════════════════════════════════════════════════════════════
 // 3. Unit Conversion
 // ═══════════════════════════════════════════════════════════════
-
 router.get("/units/convert", async (req, res) => {
   const { value, from, to } = req.query;
   if (!value || !from || !to) {
@@ -149,18 +127,15 @@ router.get("/units/convert", async (req, res) => {
       .status(400)
       .json({ error: "Query parameters 'value', 'from', and 'to' are required" });
   }
-
   try {
     const convert = await getConvertUnits();
     const numValue = parseFloat(value);
     if (isNaN(numValue)) {
       return res.status(400).json({ error: "'value' must be a valid number" });
     }
-
     const result = convert(numValue).from(from).to(to);
     const fromUnit = convert().describe(from);
     const toUnit = convert().describe(to);
-
     res.json({
       value: numValue,
       from: { abbr: from, singular: fromUnit.singular, plural: fromUnit.plural },
@@ -171,7 +146,6 @@ router.get("/units/convert", async (req, res) => {
     res.status(400).json({ error: `Conversion failed: ${err.message}` });
   }
 });
-
 router.get("/units/list", async (req, res) => {
   const { measure } = req.query;
   try {
@@ -198,11 +172,9 @@ router.get("/units/list", async (req, res) => {
     res.status(400).json({ error: `Unit listing failed: ${err.message}` });
   }
 });
-
 // ═══════════════════════════════════════════════════════════════
 // 4. DateTime Parsing & Arithmetic
 // ═══════════════════════════════════════════════════════════════
-
 router.post("/datetime/parse", async (req, res) => {
   const { operation, date, date2, amount, unit, format, timezone } = req.body;
   if (!operation) {
@@ -210,11 +182,9 @@ router.post("/datetime/parse", async (req, res) => {
       error: "Request body must include 'operation' (parse|format|diff|add|subtract|startOf|endOf|isValid|now)",
     });
   }
-
   try {
     const fns = await getDateFns();
     const tz = await getDateFnsTz();
-
     const parseDate = (d) => {
       if (!d) return new Date();
       if (d === "now") return new Date();
@@ -222,16 +192,13 @@ router.post("/datetime/parse", async (req, res) => {
       if (isNaN(parsed.getTime())) throw new Error(`Invalid date: ${d}`);
       return parsed;
     };
-
     const formatDate = (d) => {
       if (timezone) {
         return tz.formatInTimeZone(d, timezone, format || "yyyy-MM-dd'T'HH:mm:ssXXX");
       }
       return format ? fns.format(d, format) : d.toISOString();
     };
-
     let result;
-
     switch (operation) {
       case "now": {
         const now = new Date();
@@ -365,32 +332,26 @@ router.post("/datetime/parse", async (req, res) => {
           error: `Unknown operation: ${operation}. Use: now, parse, format, diff, add, subtract, startOf, endOf, isValid`,
         });
     }
-
     res.json({ operation, ...result });
   } catch (err) {
     res.status(400).json({ error: `DateTime operation failed: ${err.message}` });
   }
 });
-
 // ═══════════════════════════════════════════════════════════════
 // 5. JSON Transform (JSONPath)
 // ═══════════════════════════════════════════════════════════════
-
 router.post("/json/transform", async (req, res) => {
   const { data, expression, operations } = req.body;
   if (!data) {
     return res.status(400).json({ error: "Request body must include 'data' (object or array)" });
   }
-
   try {
     let result = data;
-
     // JSONPath expression
     if (expression) {
       const jp = await getJSONPath();
       result = jp({ path: expression, json: data, wrap: true });
     }
-
     // Chained operations
     if (operations && Array.isArray(operations)) {
       for (const op of operations) {
@@ -499,31 +460,25 @@ router.post("/json/transform", async (req, res) => {
         }
       }
     }
-
     const count = Array.isArray(result) ? result.length : typeof result === "object" ? Object.keys(result).length : 1;
     res.json({ count, result });
   } catch (err) {
     res.status(400).json({ error: `JSON transform failed: ${err.message}` });
   }
 });
-
 // ═══════════════════════════════════════════════════════════════
 // 6. CSV Generation
 // ═══════════════════════════════════════════════════════════════
-
 const csvStore = new EphemeralStore();
-
 router.post("/csv", (req, res) => {
   const { data, columns, filename, delimiter } = req.body;
   if (!data || !Array.isArray(data) || data.length === 0) {
     return res.status(400).json({ error: "'data' must be a non-empty array of objects" });
   }
-
   try {
     const delim = delimiter || ",";
     // Determine columns from explicit list or first object keys
     const cols = columns || Object.keys(data[0]);
-
     // Escape CSV values
     const escape = (val) => {
       if (val === null || val === undefined) return "";
@@ -533,15 +488,12 @@ router.post("/csv", (req, res) => {
       }
       return str;
     };
-
     const lines = [cols.map(escape).join(delim)];
     for (const row of data) {
       lines.push(cols.map((c) => escape(row[c])).join(delim));
     }
     const csv = lines.join("\n");
-
     const id = csvStore.set({ csv, filename: filename || "export.csv" });
-
     const downloadUrl = buildLocalUrl("compute/csv/download", { id });
     res.json({
       downloadUrl,
@@ -553,27 +505,21 @@ router.post("/csv", (req, res) => {
     res.status(400).json({ error: `CSV generation failed: ${err.message}` });
   }
 });
-
 router.get("/csv/download", (req, res) => {
   const { id } = req.query;
   if (!id) return res.status(400).send("Missing 'id' parameter");
-
   const entry = csvStore.get(id);
   if (!entry) {
     return res.status(404).send("CSV not found or expired");
   }
-
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename="${entry.filename}"`);
   res.send(entry.csv);
 });
-
 // ═══════════════════════════════════════════════════════════════
 // 7. QR Code Generation
 // ═══════════════════════════════════════════════════════════════
-
 const qrStore = new EphemeralStore();
-
 router.post("/qr", async (req, res) => {
   const { data, size, errorCorrection, darkColor, lightColor } = req.body;
   if (!data || typeof data !== "string") {
@@ -582,7 +528,6 @@ router.post("/qr", async (req, res) => {
   if (data.length > 4296) {
     return res.status(400).json({ error: "Data exceeds QR code capacity (max ~4296 chars)" });
   }
-
   try {
     const qrcode = await getQRCode();
     const pngBuffer = await qrcode.toBuffer(data, {
@@ -594,36 +539,28 @@ router.post("/qr", async (req, res) => {
       },
       margin: 2,
     });
-
     const id = qrStore.set({ buffer: pngBuffer });
-
     const qrImageUrl = buildLocalUrl("compute/qr/render", { id });
     res.json({ qrImageUrl, qrId: id, dataLength: data.length });
   } catch (err) {
     res.status(400).json({ error: `QR code generation failed: ${err.message}` });
   }
 });
-
 router.get("/qr/render", (req, res) => {
   const { id } = req.query;
   if (!id) return res.status(400).send("Missing 'id' parameter");
-
   const entry = qrStore.get(id);
   if (!entry) {
     return res.status(404).send("QR code not found or expired");
   }
-
   res.setHeader("Content-Type", "image/png");
   res.setHeader("Cache-Control", "public, max-age=3600");
   res.send(entry.buffer);
 });
-
 // ═══════════════════════════════════════════════════════════════
 // 8. LaTeX Rendering (KaTeX CDN embed)
 // ═══════════════════════════════════════════════════════════════
-
 const latexStore = new EphemeralStore();
-
 function buildLatexEmbedHtml(latex, displayMode = true) {
   return buildEmbedHtml({
     headExtra: `<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
@@ -653,8 +590,6 @@ function buildLatexEmbedHtml(latex, displayMode = true) {
 </${"script"}>`,
   });
 }
-
-
 router.post("/latex", (req, res) => {
   const { latex, displayMode } = req.body;
   if (!latex || typeof latex !== "string") {
@@ -663,35 +598,27 @@ router.post("/latex", (req, res) => {
   if (latex.length > 10_000) {
     return res.status(400).json({ error: "LaTeX expression exceeds 10,000 characters" });
   }
-
   const id = latexStore.set({
     latex,
     displayMode: displayMode !== false,
   });
-
   const latexEmbedUrl = buildLocalUrl("compute/latex/embed", { id });
   res.json({ latexEmbedUrl, latexId: id });
 });
-
 router.get("/latex/embed", (req, res) => {
   const { id } = req.query;
   if (!id) return res.status(400).send("Missing 'id' parameter");
-
   const entry = latexStore.get(id);
   if (!entry) {
     return res.status(404).send("LaTeX not found or expired");
   }
-
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.send(buildLatexEmbedHtml(entry.latex, entry.displayMode));
 });
-
 // ═══════════════════════════════════════════════════════════════
 // 9. Mermaid Diagram Rendering (CDN embed)
 // ═══════════════════════════════════════════════════════════════
-
 const diagramStore = new EphemeralStore();
-
 function buildMermaidEmbedHtml(definition, theme = "dark") {
   return buildEmbedHtml({
     styles: `  #diagram{
@@ -720,7 +647,6 @@ function buildMermaidEmbedHtml(definition, theme = "dark") {
 </${"script"}>`,
   });
 }
-
 router.post("/diagram", (req, res) => {
   const { definition, theme } = req.body;
   if (!definition || typeof definition !== "string") {
@@ -729,43 +655,34 @@ router.post("/diagram", (req, res) => {
   if (definition.length > 50_000) {
     return res.status(400).json({ error: "Diagram definition exceeds 50,000 characters" });
   }
-
   const id = diagramStore.set({
     definition,
     theme: theme || "dark",
   });
-
   const diagramEmbedUrl = buildLocalUrl("compute/diagram/embed", { id });
   res.json({ diagramEmbedUrl, diagramId: id });
 });
-
 router.get("/diagram/embed", (req, res) => {
   const { id } = req.query;
   if (!id) return res.status(400).send("Missing 'id' parameter");
-
   const entry = diagramStore.get(id);
   if (!entry) {
     return res.status(404).send("Diagram not found or expired");
   }
-
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.send(buildMermaidEmbedHtml(entry.definition, entry.theme));
 });
-
 // ═══════════════════════════════════════════════════════════════
 // 10. Text Diff
 // ═══════════════════════════════════════════════════════════════
-
 router.post("/diff", async (req, res) => {
   const { textA, textB, mode } = req.body;
   if (textA === undefined || textB === undefined) {
     return res.status(400).json({ error: "'textA' and 'textB' are required" });
   }
-
   try {
     const diff = await getDiff();
     const diffMode = mode || "lines";
-
     let changes;
     switch (diffMode) {
       case "chars":
@@ -791,10 +708,8 @@ router.post("/diff", async (req, res) => {
         changes = diff.diffLines(textA, textB);
         break;
     }
-
     // Also generate unified patch
     const patch = diff.createPatch("diff", textA, textB, "original", "modified");
-
     // Compute stats
     let additions = 0;
     let deletions = 0;
@@ -804,7 +719,6 @@ router.post("/diff", async (req, res) => {
       else if (change.removed) deletions += change.count || 1;
       else unchanged += change.count || 1;
     }
-
     res.json({
       mode: diffMode,
       identical: additions === 0 && deletions === 0,
@@ -821,20 +735,16 @@ router.post("/diff", async (req, res) => {
     res.status(400).json({ error: `Diff failed: ${err.message}` });
   }
 });
-
 // ═══════════════════════════════════════════════════════════════
 // 11. Cryptographic Hashing
 // ═══════════════════════════════════════════════════════════════
-
 router.get("/hash", (req, res) => {
   const { data, algorithm, encoding, key } = req.query;
   if (!data) {
     return res.status(400).json({ error: "Query parameter 'data' is required" });
   }
-
   const algo = (algorithm || "sha256").toLowerCase();
   const enc = encoding || "hex";
-
   try {
     let hash;
     if (key) {
@@ -849,7 +759,6 @@ router.get("/hash", (req, res) => {
         .update(data)
         .digest(enc);
     }
-
     res.json({
       algorithm: key ? `hmac-${algo}` : algo,
       encoding: enc,
@@ -864,7 +773,6 @@ router.get("/hash", (req, res) => {
     });
   }
 });
-
 // UUID generation
 router.get("/uuid", (_req, res) => {
   res.json({
@@ -874,24 +782,20 @@ router.get("/uuid", (_req, res) => {
     base64: crypto.randomBytes(16).toString("base64"),
   });
 });
-
 // ═══════════════════════════════════════════════════════════════
 // 12. Regex Tester
 // ═══════════════════════════════════════════════════════════════
-
 router.post("/regex", (req, res) => {
   const { pattern, flags, text } = req.body;
   if (!pattern || text === undefined) {
     return res.status(400).json({ error: "'pattern' and 'text' are required" });
   }
-
   try {
     const regex = new RegExp(pattern, flags || "g");
     const matches = [];
     let match;
     let iterations = 0;
     const MAX_MATCHES = 1000;
-
     if (regex.global || regex.sticky) {
       while ((match = regex.exec(text)) !== null && iterations < MAX_MATCHES) {
         matches.push({
@@ -915,7 +819,6 @@ router.post("/regex", (req, res) => {
         });
       }
     }
-
     res.json({
       pattern,
       flags: flags || "g",
@@ -934,22 +837,17 @@ router.post("/regex", (req, res) => {
     });
   }
 });
-
 // ═══════════════════════════════════════════════════════════════
 // 13. Encode / Decode
 // ═══════════════════════════════════════════════════════════════
-
 router.get("/encode", (req, res) => {
   const { data, format, direction } = req.query;
   if (!data || !format) {
     return res.status(400).json({ error: "Query parameters 'data' and 'format' are required" });
   }
-
   const dir = direction || "encode";
-
   try {
     let result;
-
     switch (format.toLowerCase()) {
       case "base64":
         result = dir === "decode"
@@ -1027,7 +925,6 @@ router.get("/encode", (req, res) => {
           error: `Unknown format: ${format}. Supported: base64, base64url, hex, url, html, rot13, binary, jwt`,
         });
     }
-
     res.json({
       format: format.toLowerCase(),
       direction: dir,
@@ -1039,13 +936,10 @@ router.get("/encode", (req, res) => {
     res.status(400).json({ error: `Encoding failed: ${err.message}` });
   }
 });
-
 // ═══════════════════════════════════════════════════════════════
 // 14. Color Converter
 // ═══════════════════════════════════════════════════════════════
-
 // ─── Color Math ────────────────────────────────────────────────
-
 function hexToRgb(hex) {
   const clean = hex.replace("#", "");
   const full = clean.length === 3
@@ -1057,11 +951,9 @@ function hexToRgb(hex) {
     b: parseInt(full.slice(4, 6), 16),
   };
 }
-
 function rgbToHex({ r, g, b }) {
   return `#${[r, g, b].map((c) => Math.round(c).toString(16).padStart(2, "0")).join("")}`;
 }
-
 function rgbToHsl({ r, g, b }) {
   const rn = r / 255;
   const gn = g / 255;
@@ -1071,7 +963,6 @@ function rgbToHsl({ r, g, b }) {
   const l = (max + min) / 2;
   let h = 0;
   let s = 0;
-
   if (max !== min) {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
@@ -1081,24 +972,20 @@ function rgbToHsl({ r, g, b }) {
       case bn: h = ((rn - gn) / d + 4) / 6; break;
     }
   }
-
   return {
     h: Math.round(h * 360),
     s: Math.round(s * 100),
     l: Math.round(l * 100),
   };
 }
-
 function hslToRgb({ h, s, l }) {
   const hn = h / 360;
   const sn = s / 100;
   const ln = l / 100;
-
   if (sn === 0) {
     const v = Math.round(ln * 255);
     return { r: v, g: v, b: v };
   }
-
   const hue2rgb = (p, q, t) => {
     let tn = t;
     if (tn < 0) tn += 1;
@@ -1108,17 +995,14 @@ function hslToRgb({ h, s, l }) {
     if (tn < 2 / 3) return p + (q - p) * (2 / 3 - tn) * 6;
     return p;
   };
-
   const q = ln < 0.5 ? ln * (1 + sn) : ln + sn - ln * sn;
   const p = 2 * ln - q;
-
   return {
     r: Math.round(hue2rgb(p, q, hn + 1 / 3) * 255),
     g: Math.round(hue2rgb(p, q, hn) * 255),
     b: Math.round(hue2rgb(p, q, hn - 1 / 3) * 255),
   };
 }
-
 function rgbToHsv({ r, g, b }) {
   const rn = r / 255;
   const gn = g / 255;
@@ -1129,7 +1013,6 @@ function rgbToHsv({ r, g, b }) {
   let h = 0;
   const s = max === 0 ? 0 : d / max;
   const v = max;
-
   if (max !== min) {
     switch (max) {
       case rn: h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6; break;
@@ -1137,14 +1020,12 @@ function rgbToHsv({ r, g, b }) {
       case bn: h = ((rn - gn) / d + 4) / 6; break;
     }
   }
-
   return {
     h: Math.round(h * 360),
     s: Math.round(s * 100),
     v: Math.round(v * 100),
   };
 }
-
 function rgbToCmyk({ r, g, b }) {
   const rn = r / 255;
   const gn = g / 255;
@@ -1158,24 +1039,20 @@ function rgbToCmyk({ r, g, b }) {
     k: Math.round(k * 100),
   };
 }
-
 /**
  * Parse any common color format into RGB.
  */
 function parseColorToRgb(color) {
   const c = color.trim();
-
   // HEX
   if (/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(c)) {
     return hexToRgb(c);
   }
-
   // rgb(r, g, b)
   const rgbMatch = c.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
   if (rgbMatch) {
     return { r: parseInt(rgbMatch[1]), g: parseInt(rgbMatch[2]), b: parseInt(rgbMatch[3]) };
   }
-
   // hsl(h, s%, l%)
   const hslMatch = c.match(/^hsla?\((\d+),\s*(\d+)%?,\s*(\d+)%?/);
   if (hslMatch) {
@@ -1185,7 +1062,6 @@ function parseColorToRgb(color) {
       l: parseInt(hslMatch[3]),
     });
   }
-
   // CSS named colors (top 30)
   const NAMED = {
     black: "#000000", white: "#ffffff", red: "#ff0000", green: "#008000",
@@ -1199,10 +1075,8 @@ function parseColorToRgb(color) {
   };
   const named = NAMED[c.toLowerCase()];
   if (named) return hexToRgb(named);
-
   throw new Error(`Cannot parse color: ${color}. Use HEX (#ff0000), rgb(255,0,0), hsl(0,100%,50%), or CSS named colors.`);
 }
-
 /**
  * Generate color harmonies from a base hue.
  */
@@ -1238,10 +1112,8 @@ function generatePalette(hsl, type) {
       { ...hsl, l: Math.min(hsl.l + 30, 90) },
     ],
   };
-
   const colors = palettes[type];
   if (!colors) throw new Error(`Unknown palette type: ${type}. Use: ${Object.keys(palettes).join(", ")}`);
-
   return colors.map((h) => {
     const rgb = hslToRgb(h);
     return {
@@ -1251,20 +1123,17 @@ function generatePalette(hsl, type) {
     };
   });
 }
-
 router.get("/color/convert", (req, res) => {
   const { color, palette } = req.query;
   if (!color) {
     return res.status(400).json({ error: "Query parameter 'color' is required" });
   }
-
   try {
     const rgb = parseColorToRgb(color);
     const hex = rgbToHex(rgb);
     const hsl = rgbToHsl(rgb);
     const hsv = rgbToHsv(rgb);
     const cmyk = rgbToCmyk(rgb);
-
     const result = {
       input: color,
       hex,
@@ -1277,7 +1146,6 @@ router.get("/color/convert", (req, res) => {
       cmyk: `cmyk(${cmyk.c}%, ${cmyk.m}%, ${cmyk.y}%, ${cmyk.k}%)`,
       cmykValues: cmyk,
     };
-
     // Generate palette if requested
     if (palette) {
       result.palette = {
@@ -1285,19 +1153,15 @@ router.get("/color/convert", (req, res) => {
         colors: generatePalette(hsl, palette),
       };
     }
-
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
-
 // ═══════════════════════════════════════════════════════════════
 // 15. LOGO Turtle Graphics
 // ═══════════════════════════════════════════════════════════════
-
 const turtleStore = new EphemeralStore();
-
 const VALID_TURTLE_COMMANDS = new Set([
   "forward", "fd", "backward", "bk", "back",
   "right", "rt", "left", "lt",
@@ -1315,7 +1179,6 @@ const VALID_TURTLE_COMMANDS = new Set([
   "hideturtle", "ht", "showturtle", "st",
   "home",
 ]);
-
 function buildTurtleEmbedHtml(commands, options = {}) {
   const {
     canvasWidth = 800,
@@ -1325,9 +1188,7 @@ function buildTurtleEmbedHtml(commands, options = {}) {
     stepDelay = 40,
     title = "",
   } = options;
-
   const commandsJson = JSON.stringify(commands);
-
   return buildEmbedHtml({
     styles: `
   canvas {
@@ -1372,7 +1233,6 @@ function buildTurtleEmbedHtml(commands, options = {}) {
   const ANIMATED = ${animated};
   const STEP_DELAY = ${stepDelay};
   const BG = "${background}";
-
   // ── Turtle State ──
   let x = canvas.width / 2;
   let y = canvas.height / 2;
@@ -1385,7 +1245,6 @@ function buildTurtleEmbedHtml(commands, options = {}) {
   let fillPath = [];
   let turtleSpeed = 5;
   let showTurtle = true;
-
   // ── Drawing Layer (persistent) ──
   const drawCanvas = document.createElement("canvas");
   drawCanvas.width = canvas.width;
@@ -1393,23 +1252,17 @@ function buildTurtleEmbedHtml(commands, options = {}) {
   const drawCtx = drawCanvas.getContext("2d");
   drawCtx.lineCap = "round";
   drawCtx.lineJoin = "round";
-
   function clearCanvas() {
     drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
   }
-
   function deg2rad(d) { return d * Math.PI / 180; }
-
   function drawTurtle() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
     // Draw the persistent drawing layer
     ctx.drawImage(drawCanvas, 0, 0);
-
     if (!showTurtle) return;
-
     // Turtle cursor — a triangle pointing in the heading direction
     const size = 12;
     const rad = deg2rad(angle);
@@ -1419,7 +1272,6 @@ function buildTurtleEmbedHtml(commands, options = {}) {
     const leftY = y + Math.sin(rad + 2.4) * size;
     const rightX = x + Math.cos(rad - 2.4) * size;
     const rightY = y + Math.sin(rad - 2.4) * size;
-
     ctx.beginPath();
     ctx.moveTo(tipX, tipY);
     ctx.lineTo(leftX, leftY);
@@ -1433,13 +1285,11 @@ function buildTurtleEmbedHtml(commands, options = {}) {
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
-
   // ── Execute a single command ──
   function executeCommand(cmd) {
     const action = cmd.action || cmd.command || cmd.cmd;
     const val = cmd.value !== undefined ? cmd.value : cmd.distance || cmd.angle || cmd.amount || 0;
     const val2 = cmd.value2 !== undefined ? cmd.value2 : cmd.extent || 0;
-
     switch (action) {
       case "forward": case "fd": {
         const d = Number(val);
@@ -1607,11 +1457,9 @@ function buildTurtleEmbedHtml(commands, options = {}) {
         break;
     }
   }
-
   // ── Animate or instant draw ──
   function run() {
     drawTurtle();
-
     if (!ANIMATED || COMMANDS.length === 0) {
       for (const cmd of COMMANDS) executeCommand(cmd);
       drawTurtle();
@@ -1620,10 +1468,8 @@ function buildTurtleEmbedHtml(commands, options = {}) {
       reportSize();
       return;
     }
-
     let idx = 0;
     status.className = "active";
-
     function step() {
       if (idx >= COMMANDS.length) {
         drawTurtle();
@@ -1641,18 +1487,15 @@ function buildTurtleEmbedHtml(commands, options = {}) {
     }
     step();
   }
-
   function reportSize() {
     var el = document.body;
     window.parent.postMessage({ type: "embed-resize", width: el.scrollWidth, height: el.scrollHeight }, "*");
   }
-
   run();
 })();
 </${"script"}>`,
   });
 }
-
 /**
  * Session-based turtle state — allows the agent to build drawings
  * incrementally across multiple tool calls. Keyed by sessionId.
@@ -1660,23 +1503,19 @@ function buildTurtleEmbedHtml(commands, options = {}) {
  */
 const turtleSessions = new Map();
 const TURTLE_SESSION_TTL_MS = 30 * 60_000; // 30 min
-
 function cleanupTurtleSessions() {
   const now = Date.now();
   for (const [id, session] of turtleSessions) {
     if (now - session.updatedAt > TURTLE_SESSION_TTL_MS) turtleSessions.delete(id);
   }
 }
-
 router.post("/turtle", (req, res) => {
   const { commands, options, sessionId } = req.body;
-
   if (!commands || !Array.isArray(commands) || commands.length === 0) {
     return res.status(400).json({
       error: "'commands' is required (non-empty array of turtle command objects)",
     });
   }
-
   // Validate commands
   for (let i = 0; i < commands.length; i++) {
     const cmd = commands[i];
@@ -1692,18 +1531,15 @@ router.post("/turtle", (req, res) => {
       });
     }
   }
-
   // ── Session mode: append to existing drawing ──
   if (sessionId && turtleSessions.has(sessionId)) {
     const session = turtleSessions.get(sessionId);
     const totalCommands = session.commands.length + commands.length;
-
     if (totalCommands > 5000) {
       return res.status(400).json({
         error: `Maximum 5,000 total commands per session (current: ${session.commands.length}, adding: ${commands.length})`,
       });
     }
-
     // Merge options (new options override existing)
     if (options) {
       if (options.canvasWidth) session.options.canvasWidth = Math.min(options.canvasWidth, 1920);
@@ -1713,14 +1549,11 @@ router.post("/turtle", (req, res) => {
       if (options.stepDelay) session.options.stepDelay = Math.max(5, Math.min(500, options.stepDelay));
       if (options.title) session.options.title = options.title;
     }
-
     session.commands.push(...commands);
     session.updatedAt = Date.now();
-
     // Store full accumulated drawing for the embed
     const embedId = turtleStore.set({ commands: session.commands, options: session.options });
     const turtleEmbedUrl = buildLocalUrl("compute/turtle/embed", { id: embedId });
-
     return res.json({
       turtleEmbedUrl,
       sessionId,
@@ -1730,14 +1563,12 @@ router.post("/turtle", (req, res) => {
       isAppend: true,
     });
   }
-
   // ── New session ──
   if (commands.length > 5000) {
     return res.status(400).json({
       error: "Maximum 5,000 commands per drawing",
     });
   }
-
   const opts = {
     canvasWidth: Math.min(options?.canvasWidth || 800, 1920),
     canvasHeight: Math.min(options?.canvasHeight || 600, 1080),
@@ -1746,7 +1577,6 @@ router.post("/turtle", (req, res) => {
     stepDelay: Math.max(5, Math.min(500, options?.stepDelay || 40)),
     title: options?.title || "",
   };
-
   // Create new session
   const newSessionId = sessionId || crypto.randomUUID().slice(0, 12);
   turtleSessions.set(newSessionId, {
@@ -1755,10 +1585,8 @@ router.post("/turtle", (req, res) => {
     updatedAt: Date.now(),
   });
   cleanupTurtleSessions();
-
   const embedId = turtleStore.set({ commands, options: opts });
   const turtleEmbedUrl = buildLocalUrl("compute/turtle/embed", { id: embedId });
-
   res.json({
     turtleEmbedUrl,
     sessionId: newSessionId,
@@ -1768,38 +1596,31 @@ router.post("/turtle", (req, res) => {
     canvasSize: `${opts.canvasWidth}x${opts.canvasHeight}`,
   });
 });
-
 router.get("/turtle/embed", (req, res) => {
   const { id } = req.query;
   if (!id) return res.status(400).send("Missing 'id' parameter");
-
   const entry = turtleStore.get(id);
   if (!entry) {
     return res.status(404).send("Turtle drawing not found or expired");
   }
-
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.send(buildTurtleEmbedHtml(entry.commands, entry.options));
 });
-
 // ═══════════════════════════════════════════════════════════════
 // Agentic: Think (Echo Scratchpad)
 // ═══════════════════════════════════════════════════════════════
 // No-op tool — the LLM uses this to write private reasoning.
 // We simply acknowledge receipt; the thought is already captured
 // in the tool_result appended to the conversation context.
-
 router.post("/think", (req, res) => {
   res.json({ acknowledged: true });
 });
-
 // ═══════════════════════════════════════════════════════════════
 // Cron Expression Parser
 // ═══════════════════════════════════════════════════════════════
 // Pure-compute — no external dependencies.
 // Parses standard 5-field cron expressions, explains them in
 // human-readable English, and computes next N execution times.
-
 const CRON_FIELD_NAMES = ["minute", "hour", "dayOfMonth", "month", "dayOfWeek"];
 const CRON_FIELD_RANGES = [
   { min: 0, max: 59 },
@@ -1810,16 +1631,13 @@ const CRON_FIELD_RANGES = [
 ];
 const MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
 function parseCronField(field, { min, max }) {
   const values = new Set();
-
   for (const part of field.split(",")) {
     // Handle step syntax: */5, 1-10/2
     const [rangePart, stepStr] = part.split("/");
     const step = stepStr ? parseInt(stepStr) : 1;
     if (isNaN(step) || step < 1) throw new Error(`Invalid step: ${part}`);
-
     if (rangePart === "*") {
       for (let i = min; i <= max; i += step) values.add(i);
     } else if (rangePart.includes("-")) {
@@ -1838,17 +1656,13 @@ function parseCronField(field, { min, max }) {
       values.add(val);
     }
   }
-
   return [...values].sort((a, b) => a - b);
 }
-
 function explainCronField(values, fieldIdx) {
   const { min, max } = CRON_FIELD_RANGES[fieldIdx];
   const name = CRON_FIELD_NAMES[fieldIdx];
-
   // Wildcard — all values
   if (values.length === max - min + 1) return `every ${name}`;
-
   // Single value
   if (values.length === 1) {
     const v = values[0];
@@ -1859,7 +1673,6 @@ function explainCronField(values, fieldIdx) {
     if (fieldIdx === 2) return `on day ${v}`;
     return `${name} ${v}`;
   }
-
   // Step pattern detection
   if (values.length > 2) {
     const diffs = values.slice(1).map((v, i) => v - values[i]);
@@ -1867,22 +1680,18 @@ function explainCronField(values, fieldIdx) {
       return `every ${diffs[0]} ${name}s${values[0] !== min ? ` from ${values[0]}` : ""}`;
     }
   }
-
   // List
   if (fieldIdx === 3) return `in ${values.map((v) => MONTH_NAMES[v]).join(", ")}`;
   if (fieldIdx === 4) return `on ${values.map((v) => DAY_NAMES[v]).join(", ")}`;
   return `${name} ${values.join(", ")}`;
 }
-
 function getNextCronExecutions(parsed, count, fromDate) {
   const results = [];
   const dt = new Date(fromDate);
   dt.setSeconds(0, 0);
   dt.setMinutes(dt.getMinutes() + 1); // Start from next minute
-
   const maxIterations = 525960; // ~1 year of minutes
   let iterations = 0;
-
   while (results.length < count && iterations < maxIterations) {
     iterations++;
     const month = dt.getMonth() + 1;
@@ -1890,7 +1699,6 @@ function getNextCronExecutions(parsed, count, fromDate) {
     const dow = dt.getDay();
     const hour = dt.getHours();
     const minute = dt.getMinutes();
-
     if (
       parsed[3].includes(month) &&
       parsed[2].includes(dom) &&
@@ -1900,19 +1708,15 @@ function getNextCronExecutions(parsed, count, fromDate) {
     ) {
       results.push(new Date(dt));
     }
-
     dt.setMinutes(dt.getMinutes() + 1);
   }
-
   return results;
 }
-
 router.get("/cron/parse", (req, res) => {
   const { expression, count, from } = req.query;
   if (!expression) {
     return res.status(400).json({ error: "Query parameter 'expression' is required (e.g. '*/5 * * * *')" });
   }
-
   try {
     const fields = expression.trim().split(/\s+/);
     if (fields.length !== 5) {
@@ -1921,15 +1725,12 @@ router.get("/cron/parse", (req, res) => {
         hint: "Standard cron: minute(0-59) hour(0-23) day(1-31) month(1-12) weekday(0-6, 0=Sun)",
       });
     }
-
     const parsed = fields.map((f, i) => parseCronField(f, CRON_FIELD_RANGES[i]));
     const explanations = parsed.map((vals, i) => explainCronField(vals, i));
     const humanReadable = explanations.filter((e) => !e.startsWith("every ") || e !== `every ${CRON_FIELD_NAMES[explanations.indexOf(e)]}`).join(", ");
-
     const nextCount = Math.min(Math.max(parseInt(count) || 5, 1), 25);
     const fromDate = from ? new Date(from) : new Date();
     const nextExecutions = getNextCronExecutions(parsed, nextCount, fromDate);
-
     res.json({
       expression,
       fields: Object.fromEntries(CRON_FIELD_NAMES.map((name, i) => [name, { raw: fields[i], values: parsed[i] }])),
@@ -1943,18 +1744,15 @@ router.get("/cron/parse", (req, res) => {
     res.status(400).json({ error: `Cron parse failed: ${err.message}` });
   }
 });
-
 // ═══════════════════════════════════════════════════════════════
 // Agentic: Sleep (Timed Pause)
 // ═══════════════════════════════════════════════════════════════
 // Blocks for `duration_seconds` before responding.
 // Max 120s. AbortSignal from upstream will short-circuit.
-
 router.post("/sleep", async (req, res) => {
   const { duration_seconds, reason } = req.body;
   const duration = Math.max(1, Math.min(120, duration_seconds || 5));
   const durationMs = duration * 1000;
-
   await new Promise((resolve) => {
     const timer = setTimeout(resolve, durationMs);
     // If the request is aborted (client disconnect), resolve immediately
@@ -1963,24 +1761,20 @@ router.post("/sleep", async (req, res) => {
       resolve();
     });
   });
-
   res.json({
     acknowledged: true,
     slept_seconds: duration,
     reason: reason || null,
   });
 });
-
 // ═══════════════════════════════════════════════════════════════
 // Agentic: Synthetic Output (Structured JSON Response)
 // ═══════════════════════════════════════════════════════════════
 // Validates `data` against an optional JSON Schema and returns it.
 // Lightweight validator — handles type, required, enum, nested objects/arrays.
-
 function validateJsonSchema(data, schema, path = "", errors = []) {
   if (!schema || typeof schema !== "object") return;
   const at = path || "root";
-
   if (schema.type) {
     const expected = schema.type;
     if (expected === "object" && (typeof data !== "object" || data === null || Array.isArray(data))) {
@@ -1995,47 +1789,38 @@ function validateJsonSchema(data, schema, path = "", errors = []) {
     if (expected === "number" && typeof data !== "number") errors.push(`${at}: expected number, got ${typeof data}`);
     if (expected === "boolean" && typeof data !== "boolean") errors.push(`${at}: expected boolean, got ${typeof data}`);
   }
-
   if (schema.enum && Array.isArray(schema.enum) && !schema.enum.includes(data)) {
     errors.push(`${at}: value must be one of [${schema.enum.join(", ")}]`);
   }
-
   if (typeof data === "string") {
     if (schema.minLength !== undefined && data.length < schema.minLength) errors.push(`${at}: string length ${data.length} < minLength ${schema.minLength}`);
     if (schema.maxLength !== undefined && data.length > schema.maxLength) errors.push(`${at}: string length ${data.length} > maxLength ${schema.maxLength}`);
   }
-
   if (typeof data === "number") {
     if (schema.minimum !== undefined && data < schema.minimum) errors.push(`${at}: ${data} < minimum ${schema.minimum}`);
     if (schema.maximum !== undefined && data > schema.maximum) errors.push(`${at}: ${data} > maximum ${schema.maximum}`);
   }
-
   if (schema.required && Array.isArray(schema.required) && typeof data === "object" && data !== null) {
     for (const key of schema.required) {
       if (data[key] === undefined) errors.push(`${at}: missing required field "${key}"`);
     }
   }
-
   if (schema.properties && typeof data === "object" && data !== null && !Array.isArray(data)) {
     for (const [key, propSchema] of Object.entries(schema.properties)) {
       if (data[key] !== undefined) validateJsonSchema(data[key], propSchema, `${path ? path + "." : ""}${key}`, errors);
     }
   }
-
   if (schema.items && Array.isArray(data)) {
     for (let i = 0; i < data.length; i++) {
       validateJsonSchema(data[i], schema.items, `${path}[${i}]`, errors);
     }
   }
 }
-
 router.post("/synthetic-output", (req, res) => {
   const { schema, data, label } = req.body;
-
   if (!data || typeof data !== "object") {
     return res.status(400).json({ error: "'data' is required and must be an object" });
   }
-
   const validationErrors = [];
   if (schema && typeof schema === "object") {
     try {
@@ -2044,25 +1829,20 @@ router.post("/synthetic-output", (req, res) => {
       validationErrors.push(`Validation error: ${err.message}`);
     }
   }
-
   const result = {
     acknowledged: true,
     label: label || null,
     data,
     _synthetic: true,
   };
-
   if (validationErrors.length > 0) {
     result.validationWarnings = validationErrors;
   }
-
   res.json(result);
 });
-
 // ═══════════════════════════════════════════════════════════════
 // Health
 // ═══════════════════════════════════════════════════════════════
-
 export function getComputeHealth() {
   return {
     jsInterpreter: "on-demand (Node.js vm)",
@@ -2086,5 +1866,4 @@ export function getComputeHealth() {
     syntheticOutput: "on-demand (json-schema)",
   };
 }
-
 export default router;

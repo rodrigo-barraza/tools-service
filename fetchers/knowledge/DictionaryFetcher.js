@@ -1,14 +1,12 @@
+import { stripHtml } from "@rodrigo-barraza/utilities";
 import { DICTIONARY_BASE_URL } from "../../constants.js";
-import { stripHtml } from "../../utilities.js";
-
+import {  } from "../../utilities.js";
 /**
  * Free Dictionary API fetcher.
  * https://dictionaryapi.dev/ — no auth, fully open.
  * Returns definitions, phonetics, pronunciation audio, synonyms, antonyms.
  */
-
 // ─── Define Word ───────────────────────────────────────────────────
-
 /**
  * Look up a word and return structured definition data.
  * @param {string} word
@@ -17,17 +15,14 @@ import { stripHtml } from "../../utilities.js";
 export async function fetchDefinition(word) {
   const url = `${DICTIONARY_BASE_URL}/${encodeURIComponent(word.toLowerCase().trim())}`;
   const res = await fetch(url);
-
   if (res.status === 404) {
     return { word, found: false, message: "Word not found" };
   }
   if (!res.ok) {
     throw new Error(`Dictionary API → ${res.status} ${res.statusText}`);
   }
-
   const data = await res.json();
   const entry = data[0];
-
   // Extract phonetics with audio
   const phonetics = (entry.phonetics || [])
     .filter((p) => p.text || p.audio)
@@ -35,7 +30,6 @@ export async function fetchDefinition(word) {
       text: p.text || null,
       audio: p.audio || null,
     }));
-
   // Extract meanings grouped by part of speech
   const meanings = (entry.meanings || []).map((m) => ({
     partOfSpeech: m.partOfSpeech,
@@ -48,7 +42,6 @@ export async function fetchDefinition(word) {
     synonyms: (m.synonyms || []).slice(0, 10),
     antonyms: (m.antonyms || []).slice(0, 10),
   }));
-
   return {
     word: entry.word,
     found: true,

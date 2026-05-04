@@ -1,5 +1,6 @@
+import { asyncHandler } from "@rodrigo-barraza/utilities/node";
 import { Router } from "express";
-import { asyncHandler } from "../utilities.js";
+import {  } from "../utilities.js";
 import {
   sendSms,
   listMessages,
@@ -7,11 +8,8 @@ import {
   lookupPhone,
   listPhoneNumbers,
 } from "../services/TwilioService.js";
-
 const router = Router();
-
 // ─── Send SMS ──────────────────────────────────────────────────────
-
 router.post("/sms/send", async (req, res) => {
   const { to, body, from } = req.body;
   if (!to || !body) {
@@ -24,7 +22,6 @@ router.post("/sms/send", async (req, res) => {
       .status(400)
       .json({ error: "Message body exceeds maximum length of 1,600 characters" });
   }
-
   try {
     const result = await sendSms(to, body, from);
     res.json(result);
@@ -32,9 +29,7 @@ router.post("/sms/send", async (req, res) => {
     res.status(502).json({ error: `SMS send failed: ${err.message}` });
   }
 });
-
 // ─── List Messages ─────────────────────────────────────────────────
-
 router.get("/sms/messages", asyncHandler(
   async (req) => {
     const { to, from, limit, dateSent } = req.query;
@@ -42,30 +37,22 @@ router.get("/sms/messages", asyncHandler(
   },
   "SMS message list",
 ));
-
 // ─── Account Info ──────────────────────────────────────────────────
-
 router.get("/account", asyncHandler(
   () => getAccountInfo(),
   "Twilio account info",
 ));
-
 // ─── Phone Lookup ──────────────────────────────────────────────────
-
 router.get("/lookup/:phone", asyncHandler(
   (req) => lookupPhone(req.params.phone),
   "Phone lookup",
 ));
-
 // ─── List Numbers ──────────────────────────────────────────────────
-
 router.get("/numbers", asyncHandler(
   () => listPhoneNumbers(),
   "Twilio phone numbers",
 ));
-
 // ─── Health ────────────────────────────────────────────────────────
-
 export function getCommunicationHealth() {
   return {
     sms: "on-demand (Twilio)",
@@ -73,5 +60,4 @@ export function getCommunicationHealth() {
     account: "on-demand (Twilio API)",
   };
 }
-
 export default router;

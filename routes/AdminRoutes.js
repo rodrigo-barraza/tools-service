@@ -1,3 +1,4 @@
+import { asyncHandler } from "@rodrigo-barraza/utilities/node";
 import { Router } from "express";
 import { resolve } from "node:path";
 import { stat } from "node:fs/promises";
@@ -20,14 +21,10 @@ import {
   refreshAllowedRoots,
 } from "../services/AgenticFileService.js";
 import { getDB } from "../db.js";
-import { asyncHandler } from "../utilities.js";
-
+import {  } from "../utilities.js";
 const router = Router();
-
 // ─── Path Translation ─────────────────────────────────────────────
-
 const WORKSPACE_COLLECTION = "workspace_config";
-
 /**
  * Convert a Windows-style path to a WSL mount path.
  * e.g. C:\Users\foo\bar → /mnt/c/Users/foo/bar
@@ -40,14 +37,12 @@ function windowsToWslPath(winPath) {
   const rest = match[2].replace(/\\/g, "/");
   return `/mnt/${drive}/${rest}`;
 }
-
 /**
  * Detect whether a path is Windows-style.
  */
 function isWindowsPath(path) {
   return /^[A-Za-z]:[\\\/]/.test(path);
 }
-
 /**
  * Resolve a user-supplied path to a WSL-native absolute path.
  * Windows paths are translated, WSL paths are resolved as-is.
@@ -60,9 +55,7 @@ function resolveWorkspacePath(rawPath) {
   }
   return resolve(trimmed);
 }
-
 // ─── Tool Schema Endpoints ────────────────────────────────────────
-
 /**
  * GET /admin/tool-schemas
  * Full tool schemas with endpoint metadata for dynamic clients.
@@ -70,7 +63,6 @@ function resolveWorkspacePath(rawPath) {
 router.get("/tool-schemas", (_req, res) => {
   res.json(getToolSchemas());
 });
-
 /**
  * GET /admin/tool-schemas/ai
  * Clean schemas for LLM consumption (no endpoint metadata).
@@ -78,7 +70,6 @@ router.get("/tool-schemas", (_req, res) => {
 router.get("/tool-schemas/ai", (_req, res) => {
   res.json(getToolSchemasForAI());
 });
-
 /**
  * GET /admin/tool-schemas/disabled
  * Tools hidden because their required API keys are not configured.
@@ -86,9 +77,7 @@ router.get("/tool-schemas/ai", (_req, res) => {
 router.get("/tool-schemas/disabled", (_req, res) => {
   res.json(getDisabledTools());
 });
-
 // ─── Request Log Endpoints ─────────────────────────────────────────
-
 /**
  * GET /admin/requests
  * Query persisted request logs with optional filters.
@@ -100,7 +89,6 @@ router.get("/requests", asyncHandler(
   "Request log query",
   500,
 ));
-
 /**
  * GET /admin/requests/stats
  * Aggregated request statistics.
@@ -111,9 +99,7 @@ router.get("/requests/stats", asyncHandler(
   "Request stats",
   500,
 ));
-
 // ─── Tool Call Telemetry Endpoints ─────────────────────────────────
-
 /**
  * GET /admin/tool-calls
  * Query tool-call-level telemetry logs with optional filters.
@@ -125,7 +111,6 @@ router.get("/tool-calls", asyncHandler(
   "Tool call log query",
   500,
 ));
-
 /**
  * GET /admin/tool-calls/stats
  * Aggregated tool-call performance statistics.
@@ -138,9 +123,7 @@ router.get("/tool-calls/stats", asyncHandler(
   "Tool call stats",
   500,
 ));
-
 // ─── Config Endpoint ──────────────────────────────────────────────
-
 /**
  * GET /admin/config
  * Exposes workspace configuration so downstream services (Prism)
@@ -153,7 +136,6 @@ router.get("/config", (_req, res) => {
     staticRoots: getStaticRoots(),
   });
 });
-
 /**
  * PUT /admin/config/workspaces
  * Update user-configured workspace roots.
@@ -167,27 +149,22 @@ router.put("/config/workspaces", async (req, res) => {
   if (!Array.isArray(roots)) {
     return res.status(400).json({ error: "'roots' must be an array of path strings" });
   }
-
   const staticRoots = getStaticRoots();
   const errors = [];
   const validRoots = [];
-
   for (const rawPath of roots) {
     const resolved = resolveWorkspacePath(rawPath);
     if (!resolved) {
       errors.push({ path: rawPath, error: "Invalid or empty path" });
       continue;
     }
-
     // Skip if this is already a static root
     if (staticRoots.includes(resolved)) continue;
-
     // Must be absolute
     if (!resolved.startsWith("/")) {
       errors.push({ path: rawPath, resolved, error: "Path must be absolute" });
       continue;
     }
-
     // Must exist on disk
     try {
       const st = await stat(resolved);
@@ -199,12 +176,10 @@ router.put("/config/workspaces", async (req, res) => {
       errors.push({ path: rawPath, resolved, error: "Directory does not exist" });
       continue;
     }
-
     if (!validRoots.includes(resolved)) {
       validRoots.push(resolved);
     }
   }
-
   // Persist to MongoDB
   const db = getDB();
   const collection = db.collection(WORKSPACE_COLLECTION);
@@ -222,10 +197,8 @@ router.put("/config/workspaces", async (req, res) => {
     },
     { upsert: true },
   );
-
   // Refresh in-memory ALLOWED_ROOTS
   refreshAllowedRoots(validRoots);
-
   res.json({
     workspaceRoots: ALLOWED_ROOTS,
     staticRoots: staticRoots,
@@ -233,7 +206,6 @@ router.put("/config/workspaces", async (req, res) => {
     errors: errors.length > 0 ? errors : undefined,
   });
 });
-
 /**
  * POST /admin/config/workspaces/validate
  * Validate a single workspace path without persisting.
@@ -246,21 +218,16 @@ router.post("/config/workspaces/validate", async (req, res) => {
   if (!rawPath || typeof rawPath !== "string") {
     return res.status(400).json({ error: "'path' is required (string)" });
   }
-
   const isWindows = isWindowsPath(rawPath.trim());
   const resolved = resolveWorkspacePath(rawPath);
-
   if (!resolved) {
     return res.json({ valid: false, error: "Could not resolve path", originalPath: rawPath });
   }
-
   if (!resolved.startsWith("/")) {
     return res.json({ valid: false, error: "Path must be absolute", resolvedPath: resolved, originalPath: rawPath, isWsl: isWindows });
   }
-
   // Check if already registered
   const alreadyRegistered = ALLOWED_ROOTS.includes(resolved);
-
   // Check disk existence
   let exists = false;
   let isDirectory = false;
@@ -271,7 +238,6 @@ router.post("/config/workspaces/validate", async (req, res) => {
   } catch {
     // does not exist
   }
-
   res.json({
     valid: exists && isDirectory && !alreadyRegistered,
     resolvedPath: resolved,
@@ -283,7 +249,6 @@ router.post("/config/workspaces/validate", async (req, res) => {
     error: !exists ? "Directory does not exist" : !isDirectory ? "Path is not a directory" : alreadyRegistered ? "Already registered as a workspace" : undefined,
   });
 });
-
 /**
  * Load user-configured workspace roots from MongoDB and merge into ALLOWED_ROOTS.
  * Called at boot time from server.js.
@@ -301,6 +266,4 @@ export async function loadUserWorkspaceRoots() {
     console.warn(`   ⚠️  Could not load user workspace roots: ${err.message}`);
   }
 }
-
 export default router;
-

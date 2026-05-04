@@ -1,14 +1,12 @@
+import { stripHtml } from "@rodrigo-barraza/utilities";
 import { OPEN_LIBRARY_BASE_URL } from "../../constants.js";
-import { stripHtml } from "../../utilities.js";
-
+import {  } from "../../utilities.js";
 /**
  * Open Library API fetcher.
  * https://openlibrary.org/developers/api — no auth, fully open.
  * Returns book metadata, author info, cover images, edition data.
  */
-
 // ─── Search Books ──────────────────────────────────────────────────
-
 /**
  * Search for books by title, author, or general query.
  * @param {string} query - Search query
@@ -24,13 +22,10 @@ export async function searchBooks(query, limit = 10) {
   });
   const url = `${OPEN_LIBRARY_BASE_URL}/search.json?${params}`;
   const res = await fetch(url);
-
   if (!res.ok) {
     throw new Error(`Open Library search → ${res.status} ${res.statusText}`);
   }
-
   const data = await res.json();
-
   return {
     totalResults: data.numFound || 0,
     books: (data.docs || []).slice(0, limit).map((doc) => ({
@@ -52,9 +47,7 @@ export async function searchBooks(query, limit = 10) {
     })),
   };
 }
-
 // ─── Get Book Details ──────────────────────────────────────────────
-
 /**
  * Get detailed book info by Open Library work key (e.g., "/works/OL45883W").
  * @param {string} workKey - e.g. "OL45883W"
@@ -64,19 +57,16 @@ export async function getBookDetails(workKey) {
   const key = workKey.startsWith("/works/") ? workKey : `/works/${workKey}`;
   const url = `${OPEN_LIBRARY_BASE_URL}${key}.json`;
   const res = await fetch(url);
-
   if (!res.ok) {
     throw new Error(
       `Open Library work detail → ${res.status} ${res.statusText}`,
     );
   }
-
   const data = await res.json();
   const description =
     typeof data.description === "string"
       ? data.description
       : data.description?.value || null;
-
   return {
     key: data.key,
     title: data.title,
@@ -92,9 +82,7 @@ export async function getBookDetails(workKey) {
     })),
   };
 }
-
 // ─── Get Author Info ───────────────────────────────────────────────
-
 /**
  * Get author info by Open Library author key (e.g., "OL23919A").
  * @param {string} authorKey
@@ -106,16 +94,13 @@ export async function getAuthorInfo(authorKey) {
     : `/authors/${authorKey}`;
   const url = `${OPEN_LIBRARY_BASE_URL}${key}.json`;
   const res = await fetch(url);
-
   if (!res.ok) {
     throw new Error(
       `Open Library author detail → ${res.status} ${res.statusText}`,
     );
   }
-
   const data = await res.json();
   const bio = typeof data.bio === "string" ? data.bio : data.bio?.value || null;
-
   return {
     key: data.key,
     name: data.name,

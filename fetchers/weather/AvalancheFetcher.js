@@ -1,7 +1,6 @@
-import { stripHtml } from "../../utilities.js";
-
+import { stripHtml } from "@rodrigo-barraza/utilities";
+import {  } from "../../utilities.js";
 const AVCAN_PRODUCTS_URL = "https://api.avalanche.ca/forecasts/en/products";
-
 /**
  * Fetch avalanche forecasts from Avalanche Canada.
  * Free, no key required. Fetches all current product metadata
@@ -15,19 +14,15 @@ export async function fetchAvalancheForecast() {
         "Mozilla/5.0 (compatible; Sun/Nimbus; github.com/rodrigo-barraza)",
     },
   });
-
   if (!res.ok) {
     throw new Error(
       `Avalanche Canada API returned ${res.status}: ${res.statusText}`,
     );
   }
-
   const products = await res.json();
-
   if (!Array.isArray(products)) {
     throw new Error("Avalanche Canada returned unexpected data format");
   }
-
   // Filter for BC regions relevant to Vancouver area
   const bcKeywords = [
     "sea-to-sky",
@@ -37,9 +32,7 @@ export async function fetchAvalancheForecast() {
     "squamish",
     "howe sound",
   ];
-
   const forecasts = [];
-
   for (const product of products) {
     const title = (
       product.report?.title ||
@@ -48,11 +41,9 @@ export async function fetchAvalancheForecast() {
       ""
     ).toLowerCase();
     const areaId = (product.area?.id || product.id || "").toLowerCase();
-
     const isRelevant = bcKeywords.some(
       (kw) => title.includes(kw) || areaId.includes(kw),
     );
-
     if (isRelevant) {
       const report = product.report || {};
       forecasts.push({
@@ -78,7 +69,6 @@ export async function fetchAvalancheForecast() {
       });
     }
   }
-
   // If no matching regions, return a summary of all available
   if (forecasts.length === 0 && products.length > 0) {
     for (const product of products.slice(0, 5)) {
@@ -105,6 +95,5 @@ export async function fetchAvalancheForecast() {
       });
     }
   }
-
   return forecasts;
 }

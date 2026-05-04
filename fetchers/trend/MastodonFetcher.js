@@ -1,9 +1,9 @@
+import { stripHtml } from "@rodrigo-barraza/utilities";
 import {
   TREND_SOURCES as SOURCES,
   MASTODON_INSTANCES,
 } from "../../constants.js";
-import { normalizeName, stripHtml } from "../../utilities.js";
-
+import { normalizeName } from "../../utilities.js";
 /**
  * Fetches trending tags from a single Mastodon instance.
  * @param {string} instance - Instance base URL (e.g. "https://mastodon.social")
@@ -16,7 +16,6 @@ async function fetchTrendingTags(instance) {
   if (!res.ok) return [];
   return res.json();
 }
-
 /**
  * Fetches trending statuses (posts) from a single Mastodon instance.
  * @param {string} instance - Instance base URL
@@ -29,7 +28,6 @@ async function fetchTrendingStatuses(instance) {
   if (!res.ok) return [];
   return res.json();
 }
-
 /**
  * Fetches trending content from Mastodon instances.
  * Aggregates both trending hashtags and trending statuses from
@@ -41,7 +39,6 @@ export async function fetchMastodonTrends() {
   const allTrends = [];
   const seenTags = new Set();
   const seenStatuses = new Set();
-
   for (const instance of MASTODON_INSTANCES) {
     // ── Trending Tags ──
     try {
@@ -51,16 +48,13 @@ export async function fetchMastodonTrends() {
         const key = tag.name.toLowerCase();
         if (seenTags.has(key)) continue;
         seenTags.add(key);
-
         // Calculate total recent usage from the history array
         const recentUses = (tag.history || [])
           .slice(0, 2)
           .reduce((sum, day) => sum + parseInt(day.uses || 0, 10), 0);
-
         const recentAccounts = (tag.history || [])
           .slice(0, 2)
           .reduce((sum, day) => sum + parseInt(day.accounts || 0, 10), 0);
-
         allTrends.push({
           name,
           normalizedName: tag.name.toLowerCase(),
@@ -81,25 +75,20 @@ export async function fetchMastodonTrends() {
         `[Mastodon] ⚠️ Tags from ${instance} failed: ${error.message}`,
       );
     }
-
     // ── Trending Statuses ──
     try {
       const statuses = await fetchTrendingStatuses(instance);
       for (const status of statuses) {
         if (seenStatuses.has(status.id)) continue;
         seenStatuses.add(status.id);
-
         const plainText = stripHtml(status.content || "");
         const name =
           plainText.length > 120 ? plainText.slice(0, 117) + "..." : plainText;
-
         if (!name) continue;
-
         const engagement =
           (status.favourites_count || 0) +
           (status.reblogs_count || 0) +
           (status.replies_count || 0);
-
         allTrends.push({
           name,
           normalizedName: normalizeName(name),
@@ -125,6 +114,5 @@ export async function fetchMastodonTrends() {
       );
     }
   }
-
   return allTrends.sort((a, b) => (b.volume || 0) - (a.volume || 0));
 }

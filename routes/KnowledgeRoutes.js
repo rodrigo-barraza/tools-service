@@ -1,3 +1,5 @@
+import { asyncHandler } from "@rodrigo-barraza/utilities/node";
+import { parseIntParam } from "@rodrigo-barraza/utilities";
 import { Router } from "express";
 import { fetchDefinition } from "../fetchers/knowledge/DictionaryFetcher.js";
 import {
@@ -77,19 +79,14 @@ import {
   getSnapshot as getWaybackSnapshot,
   getSnapshotHistory,
 } from "../fetchers/web/WaybackFetcher.js";
-import { parseIntParam, asyncHandler } from "../utilities.js";
-
+import {  } from "../utilities.js";
 const router = Router();
-
 // ─── Dictionary ────────────────────────────────────────────────────
-
 router.get("/dictionary/:word", asyncHandler(
   (req) => fetchDefinition(req.params.word),
   "Dictionary lookup",
 ));
-
 // ─── Books ─────────────────────────────────────────────────────────
-
 router.get("/books/search", async (req, res) => {
   const { q, limit } = req.query;
   if (!q) {
@@ -97,31 +94,24 @@ router.get("/books/search", async (req, res) => {
   }
   res.json(await searchBooks(q, parseIntParam(limit, 10)));
 });
-
 router.get("/books/work/:workKey", asyncHandler(
   (req) => getBookDetails(req.params.workKey),
   "Book details",
 ));
-
 router.get("/books/author/:authorKey", asyncHandler(
   (req) => getAuthorInfo(req.params.authorKey),
   "Author info",
 ));
-
 // ─── Countries ─────────────────────────────────────────────────────
-
 router.get("/countries/search/:name", asyncHandler(
   (req) => searchCountries(req.params.name),
   "Country search",
 ));
-
 router.get("/countries/code/:code", asyncHandler(
   (req) => getCountryByCode(req.params.code),
   "Country lookup",
 ));
-
 // ─── Papers (arXiv) ────────────────────────────────────────────────
-
 router.get("/papers/search", async (req, res) => {
   const { q, category, limit, sortBy } = req.query;
   if (!q) {
@@ -133,14 +123,11 @@ router.get("/papers/search", async (req, res) => {
     sortBy: sortBy || "relevance",
   }));
 });
-
 // ─── Wikipedia Summaries ───────────────────────────────────────────
-
 router.get("/wikipedia/summary/:title", asyncHandler(
   (req) => getArticleSummary(req.params.title),
   "Wikipedia summary",
 ));
-
 router.get("/wikipedia/onthisday", asyncHandler(
   (req) => getOnThisDay(
     req.query.type || "selected",
@@ -149,9 +136,7 @@ router.get("/wikipedia/onthisday", asyncHandler(
   ),
   "On This Day",
 ));
-
 // ─── Anime (Jikan / MyAnimeList) ───────────────────────────────────
-
 router.get("/anime/search", async (req, res) => {
   const { q, limit } = req.query;
   if (!q) {
@@ -159,24 +144,19 @@ router.get("/anime/search", async (req, res) => {
   }
   res.json(await searchAnime(q, parseIntParam(limit, 10)));
 });
-
 router.get("/anime/top", asyncHandler(
   (req) => getTopAnime(parseIntParam(req.query.limit, 10)),
   "Top anime fetch",
 ));
-
 router.get("/anime/season/now", asyncHandler(
   (req) => getCurrentSeasonAnime(parseIntParam(req.query.limit, 10)),
   "Seasonal anime fetch",
 ));
-
 router.get("/anime/:id", asyncHandler(
   (req) => getAnimeDetails(req.params.id),
   "Anime details",
 ));
-
 // ─── Movies (TMDb) ─────────────────────────────────────────────────
-
 router.get("/movies/search", async (req, res) => {
   const { q, page, year } = req.query;
   if (!q) {
@@ -187,7 +167,6 @@ router.get("/movies/search", async (req, res) => {
     year: year ? parseInt(year, 10) : undefined,
   }));
 });
-
 router.get("/movies/trending", asyncHandler(
   (req) => getTrendingMovies(
     req.query.timeWindow || "day",
@@ -195,7 +174,6 @@ router.get("/movies/trending", asyncHandler(
   ),
   "Trending movies",
 ));
-
 router.get("/movies/discover", asyncHandler(
   (req) => {
     const { genreId, year, sortBy, page, minVoteAverage, minVoteCount } = req.query;
@@ -210,24 +188,19 @@ router.get("/movies/discover", asyncHandler(
   },
   "Discover movies",
 ));
-
 router.get("/movies/genres", asyncHandler(
   () => getMovieGenres(),
   "Movie genres",
 ));
-
 router.get("/movies/:id/credits", asyncHandler(
   (req) => getMovieCredits(req.params.id),
   "Movie credits",
 ));
-
 router.get("/movies/:id", asyncHandler(
   (req) => getMovieDetails(req.params.id),
   "Movie details",
 ));
-
 // ─── TV Series (TMDb) ──────────────────────────────────────────────
-
 router.get("/tv/search", async (req, res) => {
   const { q, page, firstAirDateYear } = req.query;
   if (!q) {
@@ -240,7 +213,6 @@ router.get("/tv/search", async (req, res) => {
       : undefined,
   }));
 });
-
 router.get("/tv/trending", asyncHandler(
   (req) => getTrendingTvShows(
     req.query.timeWindow || "day",
@@ -248,7 +220,6 @@ router.get("/tv/trending", asyncHandler(
   ),
   "Trending TV shows",
 ));
-
 router.get("/tv/discover", asyncHandler(
   (req) => {
     const { genreId, firstAirDateYear, sortBy, page, minVoteAverage, minVoteCount } = req.query;
@@ -265,17 +236,14 @@ router.get("/tv/discover", asyncHandler(
   },
   "Discover TV shows",
 ));
-
 router.get("/tv/genres", asyncHandler(
   () => getTvGenres(),
   "TV genres",
 ));
-
 router.get("/tv/:id/credits", asyncHandler(
   (req) => getTvShowCredits(req.params.id),
   "TV credits",
 ));
-
 router.get("/tv/:id/season/:seasonNumber", asyncHandler(
   (req) => getTvSeasonDetails(
     req.params.id,
@@ -283,14 +251,11 @@ router.get("/tv/:id/season/:seasonNumber", asyncHandler(
   ),
   "TV season details",
 ));
-
 router.get("/tv/:id", asyncHandler(
   (req) => getTvShowDetails(req.params.id),
   "TV show details",
 ));
-
 // ─── Periodic Table (in-memory) ────────────────────────────────────
-
 router.get("/elements/search", (req, res) => {
   const { q, limit, category, block } = req.query;
   if (!q) {
@@ -302,7 +267,6 @@ router.get("/elements/search", (req, res) => {
     block,
   }));
 });
-
 router.get("/elements/rank", (req, res) => {
   const { property, limit, order, category, block } = req.query;
   if (!property) {
@@ -321,13 +285,11 @@ router.get("/elements/rank", (req, res) => {
   }
   res.json(result);
 });
-
 router.get("/elements/categories", asyncHandler(
   () => getElementCategories(),
   "Element categories",
   500,
 ));
-
 router.get("/elements/:symbol", (req, res) => {
   const result = getElementBySymbol(req.params.symbol);
   if (!result) {
@@ -337,9 +299,7 @@ router.get("/elements/:symbol", (req, res) => {
   }
   res.json(result);
 });
-
 // ─── World Bank Indicators (in-memory) ─────────────────────────────
-
 router.get("/indicators/country/:code", (req, res) => {
   const result = getCountryIndicators(req.params.code);
   if (!result) {
@@ -349,7 +309,6 @@ router.get("/indicators/country/:code", (req, res) => {
   }
   res.json(result);
 });
-
 router.get("/indicators/rank", (req, res) => {
   const { indicator, limit, order } = req.query;
   if (!indicator) {
@@ -366,7 +325,6 @@ router.get("/indicators/rank", (req, res) => {
   }
   res.json(result);
 });
-
 router.get("/indicators/compare", (req, res) => {
   const { countries, indicator } = req.query;
   if (!countries) {
@@ -390,15 +348,12 @@ router.get("/indicators/compare", (req, res) => {
   }
   res.json(result);
 });
-
 router.get("/indicators/list", asyncHandler(
   () => getAvailableIndicators(),
   "Indicator list",
   500,
 ));
-
 // ─── Exoplanets ────────────────────────────────────────────────────
-
 router.get("/exoplanets/search", (req, res) => {
   const { q, limit, method } = req.query;
   if (!q) {
@@ -409,7 +364,6 @@ router.get("/exoplanets/search", (req, res) => {
     method,
   }));
 });
-
 router.get("/exoplanets/lookup/:name", (req, res) => {
   const result = getExoplanetByName(req.params.name);
   if (!result) {
@@ -417,7 +371,6 @@ router.get("/exoplanets/lookup/:name", (req, res) => {
   }
   res.json(result);
 });
-
 router.get("/exoplanets/rank", (req, res) => {
   const { field, limit, order } = req.query;
   if (!field) {
@@ -428,13 +381,11 @@ router.get("/exoplanets/rank", (req, res) => {
     order: order || "desc",
   }));
 });
-
 router.get("/exoplanets/stats", asyncHandler(
   () => getDiscoveryStats(),
   "Exoplanet stats",
   500,
 ));
-
 router.get("/exoplanets/habitable", asyncHandler(
   (req) => getHabitableZonePlanets({
     limit: parseIntParam(req.query.limit, 20),
@@ -442,9 +393,7 @@ router.get("/exoplanets/habitable", asyncHandler(
   "Habitable zone query",
   500,
 ));
-
 // ─── YouTube ───────────────────────────────────────────────────────
-
 router.get("/youtube/video", async (req, res) => {
   const { url, lang, transcript, timestamps } = req.query;
   if (!url) {
@@ -460,9 +409,7 @@ router.get("/youtube/video", async (req, res) => {
   }
   res.json(result);
 });
-
 // ─── GitHub ────────────────────────────────────────────────────────
-
 router.get("/github/repo", async (req, res) => {
   const { url, readme, languages } = req.query;
   if (!url) {
@@ -477,9 +424,7 @@ router.get("/github/repo", async (req, res) => {
   }
   res.json(result);
 });
-
 // ─── Reddit ────────────────────────────────────────────────────────
-
 router.get("/reddit/thread", async (req, res) => {
   const { url, commentLimit } = req.query;
   if (!url) {
@@ -493,9 +438,7 @@ router.get("/reddit/thread", async (req, res) => {
   }
   res.json(result);
 });
-
 // ─── NPM ───────────────────────────────────────────────────────────
-
 router.get("/npm/package", async (req, res) => {
   const { name, readme } = req.query;
   if (!name) {
@@ -509,16 +452,12 @@ router.get("/npm/package", async (req, res) => {
   }
   res.json(result);
 });
-
 // ─── PyPI ──────────────────────────────────────────────────────────
-
 router.get("/pypi/package", asyncHandler(
   (req) => getPyPiPackage(req.query.name),
   "PyPI lookup",
 ));
-
 // ─── PDF ───────────────────────────────────────────────────────────
-
 router.get("/pdf/read", async (req, res) => {
   const { url, maxPages } = req.query;
   if (!url) {
@@ -530,9 +469,7 @@ router.get("/pdf/read", async (req, res) => {
   }
   res.json(result);
 });
-
 // ─── RSS ───────────────────────────────────────────────────────────
-
 router.get("/rss/feed", async (req, res) => {
   const { url, limit } = req.query;
   if (!url) {
@@ -546,9 +483,7 @@ router.get("/rss/feed", async (req, res) => {
   }
   res.json(result);
 });
-
 // ─── Twitter/X ─────────────────────────────────────────────────────
-
 router.get("/twitter/post", async (req, res) => {
   const { url } = req.query;
   if (!url) {
@@ -560,9 +495,7 @@ router.get("/twitter/post", async (req, res) => {
   }
   res.json(result);
 });
-
 // ─── Hacker News ───────────────────────────────────────────────────
-
 router.get("/hackernews/thread", async (req, res) => {
   const { url, commentLimit } = req.query;
   if (!url) {
@@ -576,9 +509,7 @@ router.get("/hackernews/thread", async (req, res) => {
   }
   res.json(result);
 });
-
 // ─── Stack Overflow ────────────────────────────────────────────────
-
 router.get("/stackoverflow/question", async (req, res) => {
   const { url, answerLimit } = req.query;
   if (!url) {
@@ -592,9 +523,7 @@ router.get("/stackoverflow/question", async (req, res) => {
   }
   res.json(result);
 });
-
 // ─── Unified: Web Content (YouTube/Reddit/Twitter/HN/SO/GitHub) ───
-
 router.get("/web/content", async (req, res) => {
   const { url, commentLimit, answerLimit, transcript, lang, readme, languages, maxChars } = req.query;
   if (!url) {
@@ -608,9 +537,7 @@ router.get("/web/content", async (req, res) => {
   }
   res.json(result);
 });
-
 // ─── Unified: Package Info (NPM/PyPI) ─────────────────────────────
-
 router.get("/package/info", async (req, res) => {
   const { name, registry, readme } = req.query;
   if (!name) {
@@ -625,39 +552,31 @@ router.get("/package/info", async (req, res) => {
   }
   res.json(result);
 });
-
 // ─── Music (MusicBrainz) ───────────────────────────────────────────
-
 router.get("/music/artists/search", async (req, res) => {
   const { q, limit } = req.query;
   if (!q) return res.status(400).json({ error: "Query parameter 'q' is required" });
   res.json(await searchArtists(q, parseIntParam(limit, 10)));
 });
-
 router.get("/music/artists/:mbid", asyncHandler(
   (req) => getArtist(req.params.mbid),
   "Artist details",
 ));
-
 router.get("/music/albums/search", async (req, res) => {
   const { q, artist, limit } = req.query;
   if (!q) return res.status(400).json({ error: "Query parameter 'q' is required" });
   res.json(await searchAlbums(q, artist, parseIntParam(limit, 10)));
 });
-
 router.get("/music/albums/:mbid", asyncHandler(
   (req) => getAlbum(req.params.mbid),
   "Album details",
 ));
-
 router.get("/music/tracks/search", async (req, res) => {
   const { q, artist, limit } = req.query;
   if (!q) return res.status(400).json({ error: "Query parameter 'q' is required" });
   res.json(await searchTracks(q, artist, parseIntParam(limit, 10)));
 });
-
 // ─── Wayback Machine ───────────────────────────────────────────────
-
 router.get("/wayback/snapshot", async (req, res) => {
   const { url, timestamp } = req.query;
   if (!url) return res.status(400).json({ error: "Query parameter 'url' is required" });
@@ -667,7 +586,6 @@ router.get("/wayback/snapshot", async (req, res) => {
     res.status(500).json({ error: `Wayback lookup failed: ${err.message}` });
   }
 });
-
 router.get("/wayback/history", async (req, res) => {
   const { url, limit, from, to } = req.query;
   if (!url) return res.status(400).json({ error: "Query parameter 'url' is required" });
@@ -681,9 +599,7 @@ router.get("/wayback/history", async (req, res) => {
     res.status(500).json({ error: `Wayback history failed: ${err.message}` });
   }
 });
-
 // ─── Health ────────────────────────────────────────────────────────
-
 export function getKnowledgeHealth() {
   return {
     dictionary: "on-demand",
@@ -713,18 +629,13 @@ export function getKnowledgeHealth() {
     waybackMachine: "on-demand (Internet Archive)",
   };
 }
-
-
 // ═══════════════════════════════════════════════════════════════════
 // UNIFIED DISPATCHERS
 // ═══════════════════════════════════════════════════════════════════
-
 // ── Unified Book Lookup ────────────────────────────────────────────
-
 router.get("/books/lookup", async (req, res) => {
   const { action, q, workKey, authorKey, limit } = req.query;
   if (!action) return res.status(400).json({ error: "'action' is required", actions: ["search", "work", "author"] });
-
   switch (action) {
     case "search":
       req.url = `/books/search?q=${q || ""}&limit=${limit || 10}`;
@@ -741,13 +652,10 @@ router.get("/books/lookup", async (req, res) => {
       return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["search", "work", "author"] });
   }
 });
-
 // ── Unified Country Data ───────────────────────────────────────────
-
 router.get("/countries/data", async (req, res) => {
   const { action, name, code, indicator, countries, limit, order } = req.query;
   if (!action) return res.status(400).json({ error: "'action' is required", actions: ["info", "code", "indicators", "rank", "compare"] });
-
   switch (action) {
     case "info":
       req.url = `/countries/search/${encodeURIComponent(name || "")}`;
@@ -771,13 +679,10 @@ router.get("/countries/data", async (req, res) => {
       return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["info", "code", "indicators", "rank", "compare"] });
   }
 });
-
 // ── Unified Element Data ───────────────────────────────────────────
-
 router.get("/elements/data", async (req, res) => {
   const { action, q, symbol, property, limit, order, category, block } = req.query;
   if (!action) return res.status(400).json({ error: "'action' is required", actions: ["search", "lookup", "rank", "categories"] });
-
   switch (action) {
     case "search":
       req.url = `/elements/search?q=${q || ""}&limit=${limit || 10}&category=${category || ""}&block=${block || ""}`;
@@ -796,13 +701,10 @@ router.get("/elements/data", async (req, res) => {
       return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["search", "lookup", "rank", "categories"] });
   }
 });
-
 // ── Unified Exoplanet Data ─────────────────────────────────────────
-
 router.get("/exoplanets/data", async (req, res) => {
   const { action, q, name, field, limit, order, method } = req.query;
   if (!action) return res.status(400).json({ error: "'action' is required", actions: ["search", "lookup", "rank", "stats", "habitable"] });
-
   switch (action) {
     case "search":
       req.url = `/exoplanets/search?q=${q || ""}&limit=${limit || 10}&method=${method || ""}`;
@@ -823,13 +725,10 @@ router.get("/exoplanets/data", async (req, res) => {
       return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["search", "lookup", "rank", "stats", "habitable"] });
   }
 });
-
 // ── Unified Anime Data ─────────────────────────────────────────────
-
 router.get("/anime/data", async (req, res) => {
   const { action, q, id, limit } = req.query;
   if (!action) return res.status(400).json({ error: "'action' is required", actions: ["search", "top", "season", "details"] });
-
   switch (action) {
     case "search":
       req.url = `/anime/search?q=${q || ""}&limit=${limit || 10}`;
@@ -848,23 +747,19 @@ router.get("/anime/data", async (req, res) => {
       return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["search", "top", "season", "details"] });
   }
 });
-
 // ── Unified Media (Movies & TV) ────────────────────────────────────
-
 router.get("/media/search", async (req, res) => {
   const { type, q, year, page } = req.query;
   if (!type || !q) return res.status(400).json({ error: "'type' and 'q' are required" });
   req.url = `/${type === "tv" ? "tv" : "movies"}/search?q=${q}&year=${year || ""}&page=${page || 1}${type === "tv" ? "&firstAirDateYear=" + (year || "") : ""}`;
   return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
 });
-
 router.get("/media/trending", async (req, res) => {
   const { type, timeWindow, limit } = req.query;
   if (!type) return res.status(400).json({ error: "'type' is required" });
   req.url = `/${type === "tv" ? "tv" : "movies"}/trending?timeWindow=${timeWindow || "week"}&limit=${limit || 10}`;
   return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
 });
-
 router.get("/media/discover", async (req, res) => {
   const { type, genreId, year, sortBy, page, minVoteAverage, minVoteCount } = req.query;
   if (!type) return res.status(400).json({ error: "'type' is required" });
@@ -872,34 +767,28 @@ router.get("/media/discover", async (req, res) => {
   req.url = `/${type === "tv" ? "tv" : "movies"}/discover?${yearParam}&genreId=${genreId || ""}&sortBy=${sortBy || ""}&page=${page || 1}&minVoteAverage=${minVoteAverage || ""}&minVoteCount=${minVoteCount || ""}`;
   return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
 });
-
 router.get("/media/genres", async (req, res) => {
   const { type } = req.query;
   if (!type) return res.status(400).json({ error: "'type' is required" });
   req.url = `/${type === "tv" ? "tv" : "movies"}/genres`;
   return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
 });
-
 router.get("/media/:id/credits", async (req, res) => {
   const { type } = req.query;
   if (!type) return res.status(400).json({ error: "'type' is required" });
   req.url = `/${type === "tv" ? "tv" : "movies"}/${req.params.id}/credits`;
   return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
 });
-
 router.get("/media/:id", async (req, res) => {
   const { type } = req.query;
   if (!type) return res.status(400).json({ error: "'type' is required" });
   req.url = `/${type === "tv" ? "tv" : "movies"}/${req.params.id}`;
   return router.handle(req, res, () => res.status(404).json({ error: "Route not found" }));
 });
-
 // ── Unified Music Data ─────────────────────────────────────────────
-
 router.get("/music", async (req, res) => {
   const { action, q, mbid, artist, limit } = req.query;
   if (!action) return res.status(400).json({ error: "'action' is required", actions: ["search_artists", "artist", "search_albums", "album", "search_tracks"] });
-
   switch (action) {
     case "search_artists":
       if (!q) return res.status(400).json({ error: "'q' is required for action=search_artists" });
@@ -927,14 +816,11 @@ router.get("/music", async (req, res) => {
       return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["search_artists", "artist", "search_albums", "album", "search_tracks"] });
   }
 });
-
 // ── Unified Wayback Machine ────────────────────────────────────────
-
 router.get("/wayback", async (req, res) => {
   const { action, url, timestamp, limit, from, to } = req.query;
   if (!action) return res.status(400).json({ error: "'action' is required", actions: ["snapshot", "history"] });
   if (!url) return res.status(400).json({ error: "'url' is required" });
-
   switch (action) {
     case "snapshot":
       req.url = `/wayback/snapshot?url=${encodeURIComponent(url)}${timestamp ? "&timestamp=" + timestamp : ""}`;
@@ -946,5 +832,4 @@ router.get("/wayback", async (req, res) => {
       return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["snapshot", "history"] });
   }
 });
-
 export default router;

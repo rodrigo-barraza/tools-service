@@ -1,3 +1,5 @@
+import { asyncHandler } from "@rodrigo-barraza/utilities/node";
+import { parseIntParam } from "@rodrigo-barraza/utilities";
 import { Router } from "express";
 import CONFIG from "../config.js";
 import {
@@ -6,12 +8,9 @@ import {
   findStopsNearby,
   getRouteInfo,
 } from "../fetchers/transit/TransLinkFetcher.js";
-import { parseIntParam, asyncHandler } from "../utilities.js";
-
+import {  } from "../utilities.js";
 const router = Router();
-
 // ─── Next Bus ──────────────────────────────────────────────────────
-
 router.get("/nextbus/:stopNo", async (req, res) => {
   const stopNo = parseInt(req.params.stopNo, 10);
   if (isNaN(stopNo)) {
@@ -19,9 +18,7 @@ router.get("/nextbus/:stopNo", async (req, res) => {
   }
   res.json(await getNextBus(stopNo, req.query.route));
 });
-
 // ─── Stop Info ─────────────────────────────────────────────────────
-
 router.get("/stops/:stopNo", async (req, res) => {
   const stopNo = parseInt(req.params.stopNo, 10);
   if (isNaN(stopNo)) {
@@ -29,9 +26,7 @@ router.get("/stops/:stopNo", async (req, res) => {
   }
   res.json(await getStopInfo(stopNo));
 });
-
 // ─── Find Nearby Stops ────────────────────────────────────────────
-
 router.get("/stops/nearby", asyncHandler(
   (req) => {
     const lat = parseFloat(req.query.lat || CONFIG.LATITUDE);
@@ -41,20 +36,15 @@ router.get("/stops/nearby", asyncHandler(
   },
   "Nearby stops",
 ));
-
 // ─── Route Info ────────────────────────────────────────────────────
-
 router.get("/routes/:routeNo", asyncHandler(
   (req) => getRouteInfo(req.params.routeNo),
   "Route info",
 ));
-
 // ─── Health ────────────────────────────────────────────────────────
-
 export function getTransitHealth() {
   return {
     translink: CONFIG.TRANSLINK_API_KEY ? "ready" : "no-api-key",
   };
 }
-
 export default router;

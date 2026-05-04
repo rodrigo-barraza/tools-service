@@ -1,10 +1,10 @@
+import { chunk } from "@rodrigo-barraza/utilities";
 import {
   BESTBUY_CA_AVAILABILITY_BASE_URL,
   BESTBUY_CA_MAX_SKUS_PER_REQUEST,
 } from "../../constants.js";
-import { randomUserAgent, chunk } from "../../utilities.js";
+import { randomUserAgent } from "../../utilities.js";
 import rateLimiter from "../../services/RateLimiterService.js";
-
 /**
  * Build the Best Buy CA availability URL for a batch of SKUs.
  * SKUs are pipe-delimited and URL-encoded.
@@ -13,7 +13,6 @@ function buildAvailabilityUrl(skus) {
   const skuParam = skus.join("%7C"); // pipe = %7C
   return `${BESTBUY_CA_AVAILABILITY_BASE_URL}?accept=application%2Fvnd.bestbuy.standardproduct.v1%2Bjson&skus=${skuParam}`;
 }
-
 /**
  * Normalize a single availability entry from the Best Buy CA API.
  * @param {object} availability - Raw availability object from the API
@@ -49,7 +48,6 @@ function normalizeAvailability(availability, metadata = null) {
     checkedAt: new Date(),
   };
 }
-
 /**
  * Fetch availability for an array of SKUs from Best Buy Canada.
  * Automatically batches to stay within URL / request limits.
@@ -59,17 +57,13 @@ function normalizeAvailability(availability, metadata = null) {
  */
 export async function fetchBestBuyCAAvailability(skus, skuMetadata = {}) {
   if (!skus.length) return { results: [], errors: [] };
-
   const batches = chunk(skus, BESTBUY_CA_MAX_SKUS_PER_REQUEST);
   const allResults = [];
   const errors = [];
-
   for (let i = 0; i < batches.length; i++) {
     if (i > 0) await rateLimiter.wait("BESTBUY_CA");
-
     const batch = batches[i];
     const url = buildAvailabilityUrl(batch);
-
     try {
       const response = await fetch(url, {
         headers: {
@@ -77,7 +71,6 @@ export async function fetchBestBuyCAAvailability(skus, skuMetadata = {}) {
           Accept: "application/json",
         },
       });
-
       if (!response.ok) {
         const text = await response.text();
         errors.push(
@@ -85,10 +78,8 @@ export async function fetchBestBuyCAAvailability(skus, skuMetadata = {}) {
         );
         continue;
       }
-
       const data = await response.json();
       const availabilities = data.availabilities || [];
-
       for (const avail of availabilities) {
         allResults.push(normalizeAvailability(avail, skuMetadata[avail.sku]));
       }
@@ -96,6 +87,5 @@ export async function fetchBestBuyCAAvailability(skus, skuMetadata = {}) {
       errors.push(`Batch ${i + 1}/${batches.length}: ${error.message}`);
     }
   }
-
   return { results: allResults, errors };
 }

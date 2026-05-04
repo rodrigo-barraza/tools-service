@@ -1,3 +1,4 @@
+import { parseIntParam } from "@rodrigo-barraza/utilities";
 import { Router } from "express";
 import { getHistory } from "../models/CommoditySnapshot.js";
 import {
@@ -8,22 +9,17 @@ import {
   getCommodityHealth,
 } from "../caches/CommodityCache.js";
 import { ASSET_CATEGORIES } from "../constants.js";
-import { parseIntParam } from "../utilities.js";
-
+import {  } from "../utilities.js";
 const router = Router();
-
 router.get("/commodities", (_req, res) => {
   res.json(getAllCommodities());
 });
-
 router.get("/commodities/summary", (_req, res) => {
   res.json(getCommoditySummary());
 });
-
 router.get("/commodities/categories", (_req, res) => {
   res.json(Object.values(ASSET_CATEGORIES));
 });
-
 router.get("/commodities/category/:category", (req, res) => {
   const category = req.params.category.toLowerCase();
   const valid = Object.values(ASSET_CATEGORIES);
@@ -34,7 +30,6 @@ router.get("/commodities/category/:category", (req, res) => {
   }
   res.json(getCommoditiesByCategory(category));
 });
-
 router.get("/commodities/ticker/:ticker", (req, res) => {
   const ticker = req.params.ticker.toUpperCase();
   const commodity = getCommodityByTicker(ticker);
@@ -43,25 +38,19 @@ router.get("/commodities/ticker/:ticker", (req, res) => {
   }
   res.json(commodity);
 });
-
 router.get("/commodities/history/:ticker", async (req, res) => {
   const ticker = req.params.ticker.toUpperCase();
   const hours = parseIntParam(req.query.hours, 24);
   const history = await getHistory(ticker, hours);
   res.json({ ticker, hours, count: history.length, snapshots: history });
 });
-
 export function getMarketHealth() {
   return { commodities: getCommodityHealth() };
 }
-
-
 // ── Unified Commodities Dispatcher ─────────────────────────────────
-
 router.get("/commodities/data", async (req, res) => {
   const { action, category, ticker, hours: rawHours } = req.query;
   if (!action) return res.status(400).json({ error: "'action' is required", actions: ["summary", "category", "ticker", "categories", "history"] });
-
   switch (action) {
     case "summary":
       return res.json({ action, ...getCommoditySummary() });
@@ -88,5 +77,4 @@ router.get("/commodities/data", async (req, res) => {
       return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["summary", "category", "ticker", "categories", "history"] });
   }
 });
-
 export default router;

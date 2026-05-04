@@ -1,3 +1,5 @@
+import { asyncHandler, HealthTracker } from "@rodrigo-barraza/utilities/node";
+import { parseIntParam } from "@rodrigo-barraza/utilities";
 import { Router } from "express";
 import {
   getNewgroundsScrapeStats,
@@ -7,58 +9,43 @@ import {
   getContentByUser,
 } from "../models/NewgroundsProfile.js";
 import { getClockCrewDB } from "../models/ClockCrewPost.js";
-import { asyncHandler, parseIntParam, HealthTracker } from "../utilities.js";
-
+import {  } from "../utilities.js";
 const router = Router();
-
 // ─── Health ─────────────────────────────────────────────────────
-
 const health = new HealthTracker();
-
 export function getNewgroundsHealth() {
   return health.getHealth();
 }
-
 const opts = { errorStatus: 500, health };
-
 // ─── GET /stats ─────────────────────────────────────────────────
 // Returns scrape progress stats.
-
 router.get(
   "/stats",
   asyncHandler(() => getNewgroundsScrapeStats(), "Newgrounds stats", opts),
 );
-
 // ─── GET /profiles ──────────────────────────────────────────────
 // List all scraped profiles.
 // Query: ?q=clock&limit=50
-
 router.get(
   "/profiles",
   asyncHandler(async (req) => {
     const q = req.query.q;
     const limit = parseIntParam(req.query.limit, 50, 500);
-
     const profiles = q
       ? await searchProfiles({ q, limit })
       : await getAllProfiles(limit);
-
     return { count: profiles.length, profiles };
   }, "Profile listing", 500),
 );
-
 // ─── GET /profiles/:username ────────────────────────────────────
 // Get a specific profile by username.
-
 router.get("/profiles/:username", async (req, res) => {
   const profile = await getProfile(req.params.username);
   if (!profile) return res.status(404).json({ error: "Profile not found" });
   res.json(profile);
 });
-
 // ─── Content Endpoints ──────────────────────────────────────────
 // Each content type gets a by-user endpoint.
-
 const CONTENT_COLLECTIONS = [
   { path: "fans", collection: "NewgroundsFans" },
   { path: "news", collection: "NewgroundsNews" },
@@ -69,7 +56,6 @@ const CONTENT_COLLECTIONS = [
   { path: "reviews", collection: "NewgroundsReviews" },
   { path: "posts", collection: "NewgroundsPosts" },
 ];
-
 for (const { path, collection } of CONTENT_COLLECTIONS) {
   // GET /fans/:username, /news/:username, etc.
   router.get(
@@ -85,17 +71,14 @@ for (const { path, collection } of CONTENT_COLLECTIONS) {
     }, `Newgrounds ${path}`, 500),
   );
 }
-
 // ─── GET /top ───────────────────────────────────────────────────
 // Top users by a given metric.
 // Query: ?sort=fans.count|movies.count|level&limit=50
-
 router.get(
   "/top",
   asyncHandler(async (req) => {
     const sortField = req.query.sort || "fans.count";
     const limit = parseIntParam(req.query.limit, 50, 500);
-
     const db = getClockCrewDB();
     const profiles = await db
       .collection("NewgroundsProfiles")
@@ -103,7 +86,6 @@ router.get(
       .sort({ [sortField]: -1 })
       .limit(limit)
       .toArray();
-
     return {
       count: profiles.length,
       sortedBy: sortField,
@@ -111,22 +93,18 @@ router.get(
     };
   }, "Top users", 500),
 );
-
 // ─── GET /portal/years ──────────────────────────────────────────
 // Returns the distinct available years from content collections
 // for building the year filter dropdown in the frontend.
-
 router.get(
   "/portal/years",
   asyncHandler(async () => {
     const db = getClockCrewDB();
-
     const TYPE_COLLECTIONS = [
       "NewgroundsMovies",
       "NewgroundsGames",
       "NewgroundsAudio",
     ];
-
     // Extract distinct years from publishedDate across all content collections
     const yearSets = await Promise.all(
       TYPE_COLLECTIONS.map(async (colName) => {
@@ -140,7 +118,6 @@ router.get(
         return docs.map((d) => d._id).filter((y) => /^\d{4}$/.test(y));
       }),
     );
-
     // Also get years from Clocks (joinDate)
     const clockYears = await db
       .collection("NewgroundsProfiles")
@@ -149,21 +126,17 @@ router.get(
         { $group: { _id: { $substr: ["$joinDate", 0, 4] } } },
       ])
       .toArray();
-
     const contentYears = [...new Set(yearSets.flat())].sort();
     const profileYears = clockYears
       .map((d) => d._id)
       .filter((y) => /^\d{4}$/.test(y))
       .sort();
-
     return { contentYears, profileYears };
   }, "Portal years", 500),
 );
-
 // ─── GET /portal ────────────────────────────────────────────────
 // Browse all content with search, type filter, and sorting.
 // Query: ?q=clock&type=movie|game|audio|all&sort=score|title|newest&limit=50&skip=0&username=strawberry&year=2005
-
 router.get(
   "/portal",
   asyncHandler(async (req) => {
@@ -175,7 +148,6 @@ router.get(
     const year = req.query.year?.trim();
     const limit = parseIntParam(req.query.limit, 50, 200);
     const skip = parseIntParam(req.query.skip, 0);
-
     // Build filter — q searches title+username via regex, username is exact match.
     // When both are provided, unify as $or to avoid AND conflict.
     const filter = {};
@@ -193,7 +165,6 @@ router.get(
     } else if (username) {
       filter.usernameLower = username.toLowerCase();
     }
-
     // Year filter — publishedDate is stored as "YYYY-MM-DD" string
     if (year && /^\d{4}$/.test(year)) {
       filter.publishedDate = {
@@ -201,7 +172,6 @@ router.get(
         $lte: `${year}-12-31`,
       };
     }
-
     // Sort mapping
     const sortMap = {
       score: { score: -1 },
@@ -209,14 +179,12 @@ router.get(
       newest: { publishedDate: -1, firstScrapedAt: -1 },
     };
     const sortSpec = sortMap[sort] || sortMap.score;
-
     // Type → collection mapping
     const TYPE_COLLECTIONS = {
       movie: "NewgroundsMovies",
       game: "NewgroundsGames",
       audio: "NewgroundsAudio",
     };
-
     // Which collections to query
     const collections = [];
     if (type === "all") {
@@ -224,7 +192,6 @@ router.get(
     } else if (TYPE_COLLECTIONS[type]) {
       collections.push(TYPE_COLLECTIONS[type]);
     }
-
     // Query each collection and merge
     const results = await Promise.all(
       collections.map(async (colName) => {
@@ -238,7 +205,6 @@ router.get(
         return items;
       }),
     );
-
     // Merge and re-sort
     let items = results.flat();
     if (sort === "score") {
@@ -252,17 +218,14 @@ router.get(
         return new Date(da) - new Date(db2);
       });
     }
-
     // Trim to limit after merge
     items = items.slice(0, limit);
-
     // Get total counts for UI display
     const [movieCount, gameCount, audioCount] = await Promise.all([
       db.collection("NewgroundsMovies").countDocuments(filter),
       db.collection("NewgroundsGames").countDocuments(filter),
       db.collection("NewgroundsAudio").countDocuments(filter),
     ]);
-
     return {
       count: items.length,
       totalMovies: movieCount,
@@ -272,11 +235,9 @@ router.get(
     };
   }, "Portal browse", 500),
 );
-
 // ─── GET /portal/clocks ─────────────────────────────────────────
 // Browse Clock Crew user profiles.
 // Query: ?q=clock&sort=fans|level|newest&limit=50&skip=0&year=2004
-
 router.get(
   "/portal/clocks",
   asyncHandler(async (req) => {
@@ -286,7 +247,6 @@ router.get(
     const year = req.query.year?.trim();
     const limit = parseIntParam(req.query.limit, 50, 200);
     const skip = parseIntParam(req.query.skip, 0);
-
     const filter = {};
     if (q) {
       filter.$or = [
@@ -295,26 +255,22 @@ router.get(
         { description: { $regex: q, $options: "i" } },
       ];
     }
-
     // Year filter — joinDate is stored as a string like "1/1/04" or "Jan 1, 2004"
     // Use regex prefix match on the 4-digit year
     if (year && /^\d{4}$/.test(year)) {
       filter.joinDate = { $regex: year };
     }
-
     const sortMap = {
       fans: { "fans.count": -1 },
       level: { level: -1 },
       newest: { joinDate: -1, firstScrapedAt: -1 },
     };
     const sortSpec = sortMap[sort] || sortMap.fans;
-
     const col = db.collection("NewgroundsProfiles");
     const [profiles, totalCount] = await Promise.all([
       col.find(filter).sort(sortSpec).skip(skip).limit(limit).toArray(),
       col.countDocuments(filter),
     ]);
-
     // ── Enrich with CC forum avatar via UserProfileLink ──────────
     const usernameLowers = profiles.map((p) => p.usernameLower).filter(Boolean);
     if (usernameLowers.length > 0) {
@@ -323,7 +279,6 @@ router.get(
         .find({ ngUsernameLower: { $in: usernameLowers } })
         .toArray();
       const ccUserIds = links.map((l) => l.ccUserId).filter(Boolean);
-
       if (ccUserIds.length > 0) {
         const ccUsers = await db
           .collection("ClockCrewNetUsers")
@@ -332,11 +287,9 @@ router.get(
             { projection: { userId: 1, avatarUrl: 1 } },
           )
           .toArray();
-
         // Build lookup: ngUsernameLower → ccAvatarUrl
         const ccUserMap = new Map(ccUsers.map((u) => [u.userId, u.avatarUrl]));
         const linkMap = new Map(links.map((l) => [l.ngUsernameLower, l.ccUserId]));
-
         for (const p of profiles) {
           const ccUserId = linkMap.get(p.usernameLower);
           if (ccUserId && ccUserMap.has(ccUserId)) {
@@ -345,7 +298,6 @@ router.get(
         }
       }
     }
-
     return {
       count: profiles.length,
       totalClocks: totalCount,
@@ -353,49 +305,40 @@ router.get(
     };
   }, "Portal clocks", 500),
 );
-
 // ─── GET /portal/:username/card ─────────────────────────────────
 // Enriched profile card: NG profile + CC forum user + content counts.
-
 router.get(
   "/portal/:username/card",
   asyncHandler(async (req) => {
     const db = getClockCrewDB();
     const usernameLower = req.params.username.toLowerCase();
-
     // ── Fetch NG profile ────────────────────────────────────────
     const profile = await db
       .collection("NewgroundsProfiles")
       .findOne({ usernameLower });
-
     if (!profile) {
       return { error: "Profile not found", profile: null, ccUser: null };
     }
-
     // ── Fetch UserProfileLink → ClockCrewNetUser ────────────────
     let ccUser = null;
     const link = await db
       .collection("UserProfileLink")
       .findOne({ ngUsernameLower: usernameLower });
-
     if (link?.ccUserId) {
       ccUser = await db
         .collection("ClockCrewNetUsers")
         .findOne({ userId: link.ccUserId });
     }
-
     // ── Fetch a random forum post by this CC user ─────────────────
     let randomPost = null;
     if (ccUser) {
       const postFilter = ccUser.userId
         ? { authorUserId: ccUser.userId }
         : { author: new RegExp(`^${ccUser.username}$`, "i") };
-
       const [post] = await db
         .collection("ClockCrewNetPosts")
         .aggregate([{ $match: postFilter }, { $sample: { size: 1 } }])
         .toArray();
-
       if (post) {
         // Fetch thread title for context
         const thread = post.topicId
@@ -404,7 +347,6 @@ router.get(
               { projection: { title: 1 } },
             )
           : null;
-
         randomPost = {
           body: post.body,
           date: post.date,
@@ -413,14 +355,12 @@ router.get(
         };
       }
     }
-
     // ── Fetch content counts directly (more accurate than profile) ─
     const [movieCount, gameCount, audioCount] = await Promise.all([
       db.collection("NewgroundsMovies").countDocuments({ usernameLower }),
       db.collection("NewgroundsGames").countDocuments({ usernameLower }),
       db.collection("NewgroundsAudio").countDocuments({ usernameLower }),
     ]);
-
     // ── Fetch top-scored submissions ────────────────────────────
     const [topMovies, topGames, topAudio] = await Promise.all([
       db.collection("NewgroundsMovies")
@@ -439,7 +379,6 @@ router.get(
         .limit(5)
         .toArray(),
     ]);
-
     return {
       profile: {
         username: profile.username,
@@ -505,5 +444,4 @@ router.get(
     };
   }, "Portal card", 500),
 );
-
 export default router;

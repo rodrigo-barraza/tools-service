@@ -1,3 +1,4 @@
+import { toISODate } from "@rodrigo-barraza/utilities";
 import {
   FINNHUB_NEWS_INTERVAL_MS,
   FINNHUB_EARNINGS_INTERVAL_MS,
@@ -13,10 +14,8 @@ import {
   setEarningsError,
 } from "../caches/FinnhubCache.js";
 import { saveState, startCollectorLoop } from "../services/FreshnessService.js";
-import { toISODate } from "../utilities.js";
-
+import {  } from "../utilities.js";
 // ─── News Collector ────────────────────────────────────────────────
-
 async function collectMarketNews() {
   try {
     const articles = await fetchMarketNews("general");
@@ -29,9 +28,7 @@ async function collectMarketNews() {
     console.error(`[Finnhub/News] ❌ ${error.message}`);
   }
 }
-
 // ─── Earnings Calendar Collector ───────────────────────────────────
-
 async function collectEarnings() {
   try {
     const now = new Date();
@@ -49,9 +46,7 @@ async function collectEarnings() {
     console.error(`[Finnhub/Earnings] ❌ ${error.message}`);
   }
 }
-
 // ─── Startup Definitions ──────────────────────────────────────────
-
 const STARTUP_TASKS = [
   {
     label: "Finnhub/News",
@@ -70,9 +65,7 @@ const STARTUP_TASKS = [
     delay: 2_000,
   },
 ];
-
 // ─── Start Finance Collectors ──────────────────────────────────────
-
 export function startFinanceCollectors() {
   startCollectorLoop(STARTUP_TASKS);
   console.log("📈 Finance collectors started (Finnhub — on-demand quotes)");

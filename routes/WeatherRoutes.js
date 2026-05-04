@@ -1,3 +1,4 @@
+import { parseIntParam } from "@rodrigo-barraza/utilities";
 import { Router } from "express";
 import { fetchLiveWeather } from "../fetchers/weather/LiveWeatherFetcher.js";
 import {
@@ -78,20 +79,15 @@ import {
   getWarningHealth,
 } from "../caches/EnvironmentCanadaCache.js";
 import { getAvalanche, getAvalancheHealth } from "../caches/AvalancheCache.js";
-import { parseIntParam } from "../utilities.js";
-
+import {  } from "../utilities.js";
 const router = Router();
-
 // ─── Weather ───────────────────────────────────────────────────────
-
 router.get("/weather", (_req, res) => res.json(getLatest()));
 router.get("/weather/current", (_req, res) => res.json(getCurrent()));
 router.get("/weather/forecast", (_req, res) => res.json(getForecasts()));
 router.get("/weather/air", (_req, res) => res.json(getAirQuality()));
 router.get("/weather/daylight", (_req, res) => res.json(getDaylight()));
-
 // ─── Earthquakes ───────────────────────────────────────────────────
-
 router.get("/earthquakes", (_req, res) => res.json(getLatestEarthquakes()));
 router.get("/earthquakes/summary", (_req, res) =>
   res.json(getEarthquakeSummary()),
@@ -107,9 +103,7 @@ router.get("/earthquakes/:id", async (req, res) => {
   if (!event) return res.status(404).json({ error: "Earthquake not found" });
   res.json(event);
 });
-
 // ─── NEO ───────────────────────────────────────────────────────────
-
 router.get("/neo", (_req, res) => res.json(getLatestNeos()));
 router.get("/neo/summary", (_req, res) => res.json(getNeoSummary()));
 router.get("/neo/recent", async (req, res) => {
@@ -118,9 +112,7 @@ router.get("/neo/recent", async (req, res) => {
   const limit = parseIntParam(req.query.limit, 100);
   res.json(await getRecentNeos(days, hazardousOnly, limit));
 });
-
 // ─── Space Weather ─────────────────────────────────────────────────
-
 router.get("/space-weather", (_req, res) => res.json(getLatestSpaceWeather()));
 router.get("/space-weather/flares", (_req, res) => res.json(getLatestFlares()));
 router.get("/space-weather/flares/recent", async (req, res) => {
@@ -144,65 +136,41 @@ router.get("/space-weather/storms/recent", async (req, res) => {
 router.get("/space-weather/summary", (_req, res) =>
   res.json(getSpaceWeatherSummary()),
 );
-
 // ─── ISS ───────────────────────────────────────────────────────────
-
 router.get("/iss", (_req, res) => res.json(getIssData()));
 router.get("/iss/trajectory", (_req, res) => res.json(getIssTrajectory()));
-
 // ─── Kp Index ──────────────────────────────────────────────────────
-
 router.get("/kp", (_req, res) => res.json(getKpHistory()));
 router.get("/kp/current", (_req, res) => res.json(getCurrentKp()));
-
 // ─── Wildfires ─────────────────────────────────────────────────────
-
 router.get("/wildfires", (_req, res) => res.json(getWildfires()));
 router.get("/wildfires/summary", (_req, res) => res.json(getWildfireSummary()));
-
 // ─── Tides ─────────────────────────────────────────────────────────
-
 router.get("/tides", (_req, res) => res.json(getTides()));
 router.get("/tides/next", (_req, res) => res.json(getNextTide()));
-
 // ─── Solar Wind ────────────────────────────────────────────────────
-
 router.get("/solar-wind", (_req, res) => res.json(getSolarWind()));
 router.get("/solar-wind/latest", (_req, res) => res.json(getSolarWindLatest()));
-
 // ─── Air Quality & Pollen ──────────────────────────────────────────
-
 router.get("/airquality/google", (_req, res) =>
   res.json(getGoogleAirQuality()),
 );
 router.get("/pollen", (_req, res) => res.json(getPollen()));
 router.get("/pollen/today", (_req, res) => res.json(getPollenToday()));
-
 // ─── APOD ──────────────────────────────────────────────────────────
-
 router.get("/apod", (_req, res) => res.json(getApod()));
-
 // ─── Launches ──────────────────────────────────────────────────────
-
 router.get("/launches", (_req, res) => res.json(getLaunches()));
 router.get("/launches/next", (_req, res) => res.json(getNextLaunch()));
 router.get("/launches/summary", (_req, res) => res.json(getLaunchSummary()));
-
 // ─── Twilight ──────────────────────────────────────────────────────
-
 router.get("/twilight", (_req, res) => res.json(getTwilight()));
-
 // ─── Environment Canada ────────────────────────────────────────────
-
 router.get("/warnings", (_req, res) => res.json(getWarnings()));
 router.get("/warnings/count", (_req, res) => res.json(getWarningCount()));
-
 // ─── Avalanche ─────────────────────────────────────────────────────
-
 router.get("/avalanche", (_req, res) => res.json(getAvalanche()));
-
 // ── Live Weather (on-demand, any location) ────────────────────────
-
 router.get("/live", async (req, res) => {
   const { location, latitude, longitude, units } = req.query;
   if (!location && (latitude == null || longitude == null)) {
@@ -216,7 +184,6 @@ router.get("/live", async (req, res) => {
       ],
     });
   }
-
   try {
     const result = await fetchLiveWeather({
       location,
@@ -224,7 +191,6 @@ router.get("/live", async (req, res) => {
       longitude: longitude != null ? parseFloat(longitude) : undefined,
       units: units || "metric",
     });
-
     if (result.error) {
       return res.status(404).json(result);
     }
@@ -233,9 +199,7 @@ router.get("/live", async (req, res) => {
     res.status(500).json({ error: `Weather fetch failed: ${err.message}` });
   }
 });
-
 // ── Unified Environment Dispatcher ─────────────────────────────────
-
 const SOURCE_MAP = {
   current_weather: () => getCurrent(),
   air_quality: () => getAirQuality(),
@@ -254,7 +218,6 @@ const SOURCE_MAP = {
   warnings: () => getWarnings(),
   air_quality_google: () => getGoogleAirQuality(),
 };
-
 router.get("/environment", (req, res) => {
   const { source } = req.query;
   if (!source) {
@@ -273,9 +236,7 @@ router.get("/environment", (req, res) => {
   const data = handler();
   res.json({ source, ...data });
 });
-
 // ─── Domain Health ─────────────────────────────────────────────────
-
 export function getWeatherHealth() {
   return {
     weather: getWeatherCacheHealth(),
@@ -296,5 +257,4 @@ export function getWeatherHealth() {
     avalanche: getAvalancheHealth(),
   };
 }
-
 export default router;

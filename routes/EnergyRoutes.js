@@ -1,3 +1,4 @@
+import { asyncHandler } from "@rodrigo-barraza/utilities/node";
 import { Router } from "express";
 import {
   browseRoute,
@@ -5,26 +6,19 @@ import {
   getData,
   getEnergyIndicators,
 } from "../fetchers/energy/EiaFetcher.js";
-import { asyncHandler } from "../utilities.js";
-
+import {  } from "../utilities.js";
 const router = Router();
-
 // ─── Key Energy Indicators (curated snapshot) ──────────────────────
-
 router.get(
   "/indicators",
   asyncHandler(() => getEnergyIndicators(), "Energy indicators fetch"),
 );
-
 // ─── Browse Data Tree ──────────────────────────────────────────────
-
 router.get("/browse", asyncHandler((req) => {
   const route = req.query.route || "";
   return browseRoute(route);
 }, "EIA browse"));
-
 // ─── Facet Values ──────────────────────────────────────────────────
-
 router.get("/facets", async (req, res) => {
   const { route, facetId } = req.query;
   if (!route || !facetId) {
@@ -40,17 +34,13 @@ router.get("/facets", async (req, res) => {
       .json({ error: `Facet fetch failed: ${err.message}` });
   }
 });
-
 // ─── Data Query ────────────────────────────────────────────────────
-
 router.get("/data", asyncHandler(async (req) => {
   const { route, frequency, start, end, sort, length, offset, ...rest } =
     req.query;
-
   if (!route) {
     return { error: "Parameter 'route' is required" };
   }
-
   // Parse data[] columns from query string
   const dataColumns = req.query["data[]"]
     ? Array.isArray(req.query["data[]"])
@@ -61,7 +51,6 @@ router.get("/data", asyncHandler(async (req) => {
         ? req.query.data
         : [req.query.data]
       : undefined;
-
   // Parse facets from query string — facets[stateid][]=CO format
   const facets = {};
   for (const key of Object.keys(rest)) {
@@ -71,7 +60,6 @@ router.get("/data", asyncHandler(async (req) => {
       facets[facetId] = Array.isArray(rest[key]) ? rest[key] : [rest[key]];
     }
   }
-
   return getData(route, {
     data: dataColumns,
     facets: Object.keys(facets).length > 0 ? facets : undefined,
@@ -83,9 +71,7 @@ router.get("/data", asyncHandler(async (req) => {
     offset: parseInt(offset, 10) || 0,
   });
 }, "EIA data"));
-
 // ─── Convenience: Electricity ──────────────────────────────────────
-
 router.get(
   "/electricity/retail-sales",
   asyncHandler((req) => {
@@ -104,9 +90,7 @@ router.get(
     });
   }, "Electricity retail sales fetch"),
 );
-
 // ─── Convenience: Petroleum Prices ─────────────────────────────────
-
 router.get(
   "/petroleum/prices",
   asyncHandler((req) => {
@@ -125,9 +109,7 @@ router.get(
     });
   }, "Petroleum prices fetch"),
 );
-
 // ─── Convenience: Natural Gas Prices ───────────────────────────────
-
 router.get(
   "/natural-gas/prices",
   asyncHandler((req) => {
@@ -146,13 +128,10 @@ router.get(
     });
   }, "Natural gas prices fetch"),
 );
-
 // ─── Health ────────────────────────────────────────────────────────
-
 export function getEnergyHealth() {
   return {
     eia: "on-demand",
   };
 }
-
 export default router;

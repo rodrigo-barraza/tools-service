@@ -1,17 +1,16 @@
+import { TokenManager } from "@rodrigo-barraza/utilities/node";
 import CONFIG from "../../config.js";
 import {
   TREND_SOURCES as SOURCES,
   REDDIT_SUBREDDITS,
   REDDIT_POSTS_PER_SUBREDDIT,
 } from "../../constants.js";
-import { normalizeName, TokenManager } from "../../utilities.js";
+import { normalizeName } from "../../utilities.js";
 import rateLimiter from "../../services/RateLimiterService.js";
-
 const redditTokenManager = new TokenManager(async () => {
   const credentials = Buffer.from(
     `${CONFIG.REDDIT_CLIENT_ID}:${CONFIG.REDDIT_CLIENT_SECRET}`,
   ).toString("base64");
-
   const res = await fetch("https://www.reddit.com/api/v1/access_token", {
     method: "POST",
     headers: {
@@ -21,18 +20,15 @@ const redditTokenManager = new TokenManager(async () => {
     },
     body: "grant_type=client_credentials",
   });
-
   if (!res.ok) {
     throw new Error(`Reddit auth failed: ${res.status} ${res.statusText}`);
   }
-
   const data = await res.json();
   return {
     token: data.access_token,
     expiresInMs: (data.expires_in - 60) * 1000,
   };
 });
-
 /**
  * Fetches hot posts from a given subreddit.
  * @param {string} subreddit - Subreddit name (without r/)
@@ -48,15 +44,12 @@ async function fetchSubreddit(subreddit, token, limit) {
       "User-Agent": CONFIG.REDDIT_USER_AGENT,
     },
   });
-
   if (!res.ok) {
     throw new Error(`Reddit /r/${subreddit}: ${res.status} ${res.statusText}`);
   }
-
   const data = await res.json();
   return data?.data?.children || [];
 }
-
 /**
  * Normalizes a Reddit post into a trend object.
  * @param {object} post - Reddit post data
@@ -86,7 +79,6 @@ function normalizeTrend(post, defaultCategory) {
     timestamp: new Date().toISOString(),
   };
 }
-
 /**
  * Fetches trending posts from all configured subreddits.
  * Requires REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET to be configured.
@@ -96,10 +88,8 @@ export async function fetchRedditTrends() {
   if (!CONFIG.REDDIT_CLIENT_ID || !CONFIG.REDDIT_CLIENT_SECRET) {
     throw new Error("REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not configured");
   }
-
   const token = await redditTokenManager.getToken();
   const allTrends = [];
-
   for (const sub of REDDIT_SUBREDDITS) {
     await rateLimiter.wait("REDDIT");
     try {
@@ -116,6 +106,5 @@ export async function fetchRedditTrends() {
       console.error(`[Reddit] ❌ /r/${sub.name}: ${error.message}`);
     }
   }
-
   return allTrends;
 }

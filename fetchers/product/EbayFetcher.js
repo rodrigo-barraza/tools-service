@@ -1,17 +1,14 @@
+import { TokenManager } from "@rodrigo-barraza/utilities/node";
 import CONFIG from "../../config.js";
 import { PRODUCT_SOURCES, EBAY_CATEGORIES } from "../../constants.js";
-import { computeTrendingScore, TokenManager } from "../../utilities.js";
+import { computeTrendingScore } from "../../utilities.js";
 import rateLimiter from "../../services/RateLimiterService.js";
-
 const BASE_URL = "https://api.ebay.com/buy/browse/v1";
-
 // ─── OAuth2 Token Management ──────────────────────────────────────
-
 const ebayTokenManager = new TokenManager(async () => {
   const credentials = Buffer.from(
     `${CONFIG.EBAY_CLIENT_ID}:${CONFIG.EBAY_CLIENT_SECRET}`,
   ).toString("base64");
-
   const response = await fetch(
     "https://api.ebay.com/identity/v1/oauth2/token",
     {
@@ -23,18 +20,15 @@ const ebayTokenManager = new TokenManager(async () => {
       body: "grant_type=client_credentials&scope=https%3A%2F%2Fapi.ebay.com%2Foauth%2Fapi_scope",
     },
   );
-
   if (!response.ok) {
     throw new Error(`eBay OAuth failed: ${response.status}`);
   }
-
   const data = await response.json();
   return {
     token: data.access_token,
     expiresInMs: 7_000_000, // ~2 hours (eBay tokens last ~2hrs)
   };
 });
-
 /**
  * Search eBay for popular items in a category, sorted by most watched.
  */
@@ -45,7 +39,6 @@ async function fetchEbayCategoryTrending(token, category) {
     limit: "20",
     filter: "buyingOptions:{FIXED_PRICE},conditionIds:{1000}",
   });
-
   const response = await fetch(`${BASE_URL}/item_summary/search?${params}`, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -53,16 +46,13 @@ async function fetchEbayCategoryTrending(token, category) {
       "Content-Type": "application/json",
     },
   });
-
   if (!response.ok) {
     throw new Error(
       `eBay Browse API returned ${response.status} for ${category.name}`,
     );
   }
-
   const data = await response.json();
   const items = data.itemSummaries || [];
-
   return items.slice(0, 15).map((item, index) => {
     const product = {
       sourceId: item.itemId,
@@ -86,7 +76,6 @@ async function fetchEbayCategoryTrending(token, category) {
     return product;
   });
 }
-
 /**
  * Fetch trending products across all eBay categories.
  */
@@ -94,10 +83,8 @@ export async function fetchAllEbayTrending() {
   if (!CONFIG.EBAY_CLIENT_ID || !CONFIG.EBAY_CLIENT_SECRET) {
     throw new Error("EBAY_CLIENT_ID and EBAY_CLIENT_SECRET not configured");
   }
-
   const token = await ebayTokenManager.getToken();
   const allProducts = [];
-
   for (const cat of EBAY_CATEGORIES) {
     await rateLimiter.wait("EBAY");
     try {
@@ -108,6 +95,5 @@ export async function fetchAllEbayTrending() {
       console.error(`[eBay] ❌ ${cat.name}: ${error.message}`);
     }
   }
-
   return allProducts;
 }

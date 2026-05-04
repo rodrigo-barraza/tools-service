@@ -1,7 +1,6 @@
+import { sleep } from "@rodrigo-barraza/utilities";
 import * as cheerio from "cheerio";
-import { sleep } from "../../utilities.js";
-
-
+import {  } from "../../utilities.js";
 // ═══════════════════════════════════════════════════════════════
 //  Clock Crew Forum Fetcher — clockcrew.net SMF 2.1 Scraper
 // ═══════════════════════════════════════════════════════════════
@@ -9,9 +8,7 @@ import { sleep } from "../../utilities.js";
 //  forum. Uses cheerio for HTML parsing (no headless browser).
 //  Designed for idempotent, resumable operation.
 // ═══════════════════════════════════════════════════════════════
-
 const BASE_URL = "https://clockcrew.net/talk/index.php";
-
 const HEADERS = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
@@ -19,12 +16,8 @@ const HEADERS = {
   Accept: "text/html,application/xhtml+xml",
   "Accept-Language": "en-US,en;q=0.9",
 };
-
 // Polite delay between requests to avoid hammering the forum
 const REQUEST_DELAY_MS = 800;
-
-
-
 /**
  * Fetch a URL and return the HTML body as a string.
  */
@@ -35,9 +28,7 @@ async function fetchPage(url) {
   }
   return await response.text();
 }
-
 // ─── Board Discovery ────────────────────────────────────────────
-
 /**
  * Discover all boards from the forum index page.
  * Returns an array of { boardId, name }.
@@ -47,7 +38,6 @@ export async function fetchBoardList() {
   const $ = cheerio.load(html);
   const boards = [];
   const seen = new Set();
-
   $('a[href*="board="]').each((_i, el) => {
     const href = $(el).attr("href") || "";
     const match = href.match(/board=(\d+)/);
@@ -59,12 +49,9 @@ export async function fetchBoardList() {
       });
     }
   });
-
   return boards;
 }
-
 // ─── Thread Listing ─────────────────────────────────────────────
-
 /**
  * Fetch all topic IDs from a single board page at the given offset.
  * Returns { topics: [{ topicId, title, author, replies, views }], hasMore }.
@@ -74,7 +61,6 @@ export async function fetchBoardPage(boardId, offset = 0) {
   const html = await fetchPage(url);
   const $ = cheerio.load(html);
   const topics = [];
-
   // Extract board name from page title (e.g. "General Discussion")
   let boardName = "";
   const $title = $("title");
@@ -82,7 +68,6 @@ export async function fetchBoardPage(boardId, offset = 0) {
     // SMF titles are like "Board Name - Forum Name" or just "Board Name"
     boardName = $title.text().split(" - ")[0].trim();
   }
-
   // SMF topic rows live inside <span id="msg_NNNNN">
   $('span[id^="msg_"]').each((_i, el) => {
     const $span = $(el);
@@ -90,15 +75,12 @@ export async function fetchBoardPage(boardId, offset = 0) {
     const href = $link.attr("href") || "";
     const topicMatch = href.match(/topic=(\d+)/);
     if (!topicMatch) return;
-
     const topicId = parseInt(topicMatch[1], 10);
     const title = $link.text().trim();
-
     // Walk up to the parent row to find the author
     const $row =
       $span.closest("td").parent() || $span.closest("tr") || $span.parent();
     let author = "";
-
     // SMF puts the author in a "Farted by <a>..." or "Started by <a>..."
     const rowHtml = $row.html() || "";
     const authorMatch = rowHtml.match(
@@ -107,7 +89,6 @@ export async function fetchBoardPage(boardId, offset = 0) {
     if (authorMatch) {
       author = authorMatch[1].trim();
     }
-
     topics.push({
       topicId,
       title,
@@ -115,7 +96,6 @@ export async function fetchBoardPage(boardId, offset = 0) {
       boardId,
     });
   });
-
   // Check if there's a next page
   const maxOffset = Math.max(
     0,
@@ -124,7 +104,6 @@ export async function fetchBoardPage(boardId, offset = 0) {
       (m) => parseInt(m[1], 10),
     ),
   );
-
   return {
     topics,
     boardName,
@@ -132,7 +111,6 @@ export async function fetchBoardPage(boardId, offset = 0) {
     maxOffset,
   };
 }
-
 /**
  * Fetch ALL topic IDs from a board (all pages).
  * Yields progress callbacks.
@@ -146,7 +124,6 @@ export async function fetchAllThreadsForBoard(
   let hasMore = true;
   let pageCount = 0;
   let boardName = "";
-
   while (hasMore) {
     const result = await fetchBoardPage(boardId, offset);
     allTopics.push(...result.topics);
@@ -158,17 +135,13 @@ export async function fetchAllThreadsForBoard(
       topicsFound: allTopics.length,
       pageCount,
     });
-
     hasMore = result.hasMore;
     offset += 20;
     if (hasMore) await sleep(REQUEST_DELAY_MS);
   }
-
   return { topics: allTopics, boardName };
 }
-
 // ─── Post Scraping ──────────────────────────────────────────────
-
 /**
  * Parse a single SMF post element into a structured object.
  */
@@ -176,12 +149,10 @@ function parsePost($, $postWrapper, topicId, boardId) {
   // Each post is wrapped in a <div class="windowbg"> or <div class="windowbg2">
   // The message ID is in a link like <a id="msg1234567"> or href="...msg=1234567"
   const wrapperHtml = $postWrapper.html() || "";
-
   // Extract message ID
   const msgIdMatch = wrapperHtml.match(/msg[=_]?(\d{4,})/);
   if (!msgIdMatch) return null;
   const messageId = parseInt(msgIdMatch[1], 10);
-
   // Extract author — in the poster_info or from the profile link
   let author = "";
   const $authorLink = $postWrapper.find(
@@ -196,7 +167,6 @@ function parsePost($, $postWrapper, topicId, boardId) {
       author = $guestH4.first().text().trim();
     }
   }
-
   // Extract author's profile URL (for userId)
   let authorProfileUrl = "";
   let authorUserId = null;
@@ -206,7 +176,6 @@ function parsePost($, $postWrapper, topicId, boardId) {
     const uidMatch = authorProfileUrl.match(/u=(\d+)/);
     if (uidMatch) authorUserId = parseInt(uidMatch[1], 10);
   }
-
   // Extract post date — look for the timestamp link near the message anchor
   let date = null;
   // SMF 2.1 puts dates in links like: <a href="...msg=NNNNN">November 10, 2019, 03:56:49 PM</a>
@@ -217,7 +186,6 @@ function parsePost($, $postWrapper, topicId, boardId) {
     date = new Date(dateMatch[1]);
     if (isNaN(date.getTime())) date = null;
   }
-
   // Extract post body
   const $body = $postWrapper.find(".post, .inner");
   let body = "";
@@ -226,7 +194,6 @@ function parsePost($, $postWrapper, topicId, boardId) {
     bodyHtml = $body.first().html() || "";
     body = $body.first().text().trim();
   }
-
   // Extract quoted content
   const quotes = [];
   $postWrapper.find(".quoteheader, blockquote").each((_i, el) => {
@@ -240,7 +207,6 @@ function parsePost($, $postWrapper, topicId, boardId) {
       quotes.push({ header: "", text: $q.text().trim() });
     }
   });
-
   // Extract image links
   const images = [];
   $postWrapper
@@ -257,7 +223,6 @@ function parsePost($, $postWrapper, topicId, boardId) {
         images.push(src);
       }
     });
-
   // Extract outbound links
   const links = [];
   $postWrapper
@@ -275,14 +240,12 @@ function parsePost($, $postWrapper, topicId, boardId) {
         });
       }
     });
-
   // Extract the poster's custom title / blurb
   let posterTitle = "";
   const $blurb = $postWrapper.find(".blurb, .custom_title");
   if ($blurb.length) {
     posterTitle = $blurb.first().text().trim();
   }
-
   return {
     messageId,
     topicId,
@@ -299,7 +262,6 @@ function parsePost($, $postWrapper, topicId, boardId) {
     links,
   };
 }
-
 /**
  * Fetch and parse all posts from a single topic page.
  * Returns { posts, threadTitle, threadAuthor, hasMore, totalPages }.
@@ -308,14 +270,12 @@ export async function fetchTopicPage(topicId, offset = 0) {
   const url = `${BASE_URL}?topic=${topicId}.${offset}`;
   const html = await fetchPage(url);
   const $ = cheerio.load(html);
-
   // Extract thread title from breadcrumb or page title
   let threadTitle = "";
   const $title = $("title");
   if ($title.length) {
     threadTitle = $title.text().trim();
   }
-
   // Determine the board from breadcrumb
   let boardId = null;
   $('a[href*="board="]').each((_i, el) => {
@@ -323,7 +283,6 @@ export async function fetchTopicPage(topicId, offset = 0) {
     const m = href.match(/board=(\d+)/);
     if (m) boardId = parseInt(m[1], 10);
   });
-
   // Parse the "Farted by Author, Date" line
   let threadAuthor = "";
   let threadDate = null;
@@ -336,7 +295,6 @@ export async function fetchTopicPage(topicId, offset = 0) {
     threadDate = new Date(fartedMatch[2]);
     if (isNaN(threadDate.getTime())) threadDate = null;
   }
-
   // Parse individual posts
   const posts = [];
   // SMF 2.1 wraps each post in <div class="windowbg"> or <div class="windowbg2">
@@ -344,7 +302,6 @@ export async function fetchTopicPage(topicId, offset = 0) {
     const post = parsePost($, $(el), topicId, boardId);
     if (post) posts.push(post);
   });
-
   // If the above didn't work, try the SMF 2.1 structure with #msg_NNNNN wrappers
   if (posts.length === 0) {
     $('[id^="msg_"]').each((_i, el) => {
@@ -355,7 +312,6 @@ export async function fetchTopicPage(topicId, offset = 0) {
       }
     });
   }
-
   // Determine pagination
   const maxTopicOffset = Math.max(
     0,
@@ -364,7 +320,6 @@ export async function fetchTopicPage(topicId, offset = 0) {
       (m) => parseInt(m[1], 10),
     ),
   );
-
   return {
     posts,
     threadTitle,
@@ -375,7 +330,6 @@ export async function fetchTopicPage(topicId, offset = 0) {
     maxOffset: maxTopicOffset,
   };
 }
-
 /**
  * Fetch ALL posts from a topic (all pages).
  */
@@ -384,10 +338,8 @@ export async function fetchAllPostsForTopic(topicId) {
   let offset = 0;
   let hasMore = true;
   let threadMeta = null;
-
   while (hasMore) {
     const result = await fetchTopicPage(topicId, offset);
-
     if (!threadMeta) {
       threadMeta = {
         topicId,
@@ -397,40 +349,31 @@ export async function fetchAllPostsForTopic(topicId) {
         boardId: result.boardId,
       };
     }
-
     allPosts.push(...result.posts);
     hasMore = result.hasMore;
     offset += 20;
     if (hasMore) await sleep(REQUEST_DELAY_MS);
   }
-
   return { posts: allPosts, thread: threadMeta };
 }
-
 // ─── User Profile Scraping ──────────────────────────────────────
-
 /**
  * Fetch and parse a user's profile page by their SMF userId.
  * Returns a structured user object or null if the profile is inaccessible.
  */
 export async function fetchUserProfile(userId) {
   const url = `${BASE_URL}?action=profile;u=${userId}`;
-
   let html;
   try {
     html = await fetchPage(url);
   } catch {
     return null;
   }
-
   const $ = cheerio.load(html);
-
   // Validate we're on a real profile page
   const pageTitle = $("title").text().trim();
   if (!pageTitle.startsWith("Profile of ")) return null;
-
   const username = pageTitle.replace("Profile of ", "").trim();
-
   // ─── Parse dt/dd field pairs ──────────────────────────────────
   const fields = {};
   $("dt").each((_i, el) => {
@@ -440,7 +383,6 @@ export async function fetchUserProfile(userId) {
       fields[label] = $dd.text().trim();
     }
   });
-
   // ─── Post count ───────────────────────────────────────────────
   let postCount = 0;
   const postsRaw = fields["Posts"] || "";
@@ -448,7 +390,6 @@ export async function fetchUserProfile(userId) {
   if (postMatch) {
     postCount = parseInt(postMatch[0].replace(/,/g, ""), 10);
   }
-
   // ─── Dates ────────────────────────────────────────────────────
   const dateRegisteredRaw = fields["Date registered"] || "";
   let dateRegistered = null;
@@ -456,9 +397,7 @@ export async function fetchUserProfile(userId) {
     dateRegistered = new Date(dateRegisteredRaw);
     if (isNaN(dateRegistered.getTime())) dateRegistered = null;
   }
-
   const lastActiveRaw = fields["Last active"] || "";
-
   // ─── Timezone extraction from Local Time ──────────────────────
   let timezone = null;
   const localTimeRaw = fields["Local Time"] || "";
@@ -474,7 +413,6 @@ export async function fetchUserProfile(userId) {
       }
     }
   }
-
   // ─── Age ──────────────────────────────────────────────────────
   let age = null;
   const ageRaw = fields["Age"] || "";
@@ -482,14 +420,12 @@ export async function fetchUserProfile(userId) {
     const ageMatch = ageRaw.match(/\d+/);
     if (ageMatch) age = parseInt(ageMatch[0], 10);
   }
-
   // ─── Position / Group ─────────────────────────────────────────
   let position = "";
   const $position = $(".position");
   if ($position.length) {
     position = $position.text().trim();
   }
-
   // ─── Online status ────────────────────────────────────────────
   let onlineStatus = "Unknown";
   const statusText = $(".smalltext")
@@ -498,7 +434,6 @@ export async function fetchUserProfile(userId) {
     .text()
     .trim();
   if (statusText) onlineStatus = statusText;
-
   // ─── Gender / Sex ─────────────────────────────────────────────
   // SMF uses class="main_icons gender_N" with title="Male"/"Female"/"None"
   let gender = "";
@@ -507,7 +442,6 @@ export async function fetchUserProfile(userId) {
     gender = $gender.attr("title") || "";
     if (gender === "None") gender = "";
   }
-
   // ─── Avatar ───────────────────────────────────────────────────
   let avatarUrl = "";
   $("img").each((_i, el) => {
@@ -519,7 +453,6 @@ export async function fetchUserProfile(userId) {
       avatarUrl = src;
     }
   });
-
   // ─── Signature ────────────────────────────────────────────────
   let signature = "";
   const sigDd = fields["Signature"];
@@ -531,32 +464,27 @@ export async function fetchUserProfile(userId) {
       signature = $sig.text().trim();
     }
   }
-
   // ─── Icon-based links (Newgrounds, Skype, ICQ, etc) ───────────
   let newgroundsUrl = "";
   let newgroundsUsername = "";
   let skype = "";
   let icq = "";
   let website = "";
-
   $("a").each((_i, el) => {
     const href = $(el).attr("href") || "";
     const $img = $(el).find("img");
     const alt = $img.attr("alt") || "";
-
     // Newgrounds: alt="Newgrounds: USERNAME"
     if (alt.startsWith("Newgrounds:")) {
       newgroundsUrl = href;
       newgroundsUsername = alt.replace("Newgrounds:", "").trim();
       return;
     }
-
     // Skype: href="skype:EMAIL?call"
     if (href.startsWith("skype:")) {
       skype = href.replace("skype:", "").replace("?call", "").trim();
       return;
     }
-
     // ICQ: href contains "icq" or img src contains "icq"
     const imgSrc = $img.attr("src") || "";
     if (href.includes("icq") || imgSrc.includes("icq")) {
@@ -564,14 +492,12 @@ export async function fetchUserProfile(userId) {
       return;
     }
   });
-
   // Website from dt/dd fields
   const websiteField = fields["Website"] || fields["website"] || "";
   if (websiteField) {
     const urlMatch = websiteField.match(/https?:\/\/[^\s]+/);
     if (urlMatch) website = urlMatch[0];
   }
-
   return {
     userId,
     username,
@@ -598,4 +524,3 @@ export async function fetchUserProfile(userId) {
     profileUrl: url,
   };
 }
-

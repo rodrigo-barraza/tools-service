@@ -1,3 +1,4 @@
+import { parseIntParam } from "@rodrigo-barraza/utilities";
 import { Router } from "express";
 import {
   getRecentTrends,
@@ -12,26 +13,20 @@ import {
   searchTrends,
   getHealth,
 } from "../caches/TrendCache.js";
-import { parseIntParam } from "../utilities.js";
-
+import {  } from "../utilities.js";
 const router = Router();
-
 router.get("/trends", (_req, res) => {
   res.json(getAll());
 });
-
 router.get("/trends/hot", (_req, res) => {
   res.json(getCorrelatedTrends());
 });
-
 router.get("/trends/source/:source", (req, res) => {
   res.json(getBySource(req.params.source));
 });
-
 router.get("/trends/category/:category", (req, res) => {
   res.json(getByCategory(req.params.category));
 });
-
 router.get("/trends/search", (req, res) => {
   const query = req.query.q;
   if (!query) {
@@ -39,7 +34,6 @@ router.get("/trends/search", (req, res) => {
   }
   res.json(searchTrends(query));
 });
-
 router.get("/trends/recent", async (req, res) => {
   const hours = parseIntParam(req.query.hours, 24);
   const category = req.query.category || null;
@@ -47,13 +41,11 @@ router.get("/trends/recent", async (req, res) => {
   const limit = parseIntParam(req.query.limit, 50);
   res.json(await getRecentTrends(hours, category, source, limit));
 });
-
 router.get("/trends/top", async (req, res) => {
   const hours = parseIntParam(req.query.hours, 24);
   const limit = parseIntParam(req.query.limit, 20);
   res.json(await getTopTrends(hours, limit));
 });
-
 router.get("/trends/db/search", async (req, res) => {
   const query = req.query.q;
   if (!query) {
@@ -62,19 +54,14 @@ router.get("/trends/db/search", async (req, res) => {
   const limit = parseIntParam(req.query.limit, 50);
   res.json(await searchTrendsDB(query, limit));
 });
-
 export function getTrendHealth() {
   return getHealth();
 }
-
-
 // ── Unified Trends Dispatcher ──────────────────────────────────────
-
 router.get("/data", async (req, res) => {
   const { action, source, hours, limit: rawLimit } = req.query;
   if (!action) return res.status(400).json({ error: "'action' is required", actions: ["current", "hot", "top"] });
   const limit = parseIntParam(rawLimit, undefined);
-
   switch (action) {
     case "current": {
       const trends = source ? getBySource(source) : getAll();
@@ -90,5 +77,4 @@ router.get("/data", async (req, res) => {
       return res.status(400).json({ error: `Unknown action: ${action}`, actions: ["current", "hot", "top"] });
   }
 });
-
 export default router;
