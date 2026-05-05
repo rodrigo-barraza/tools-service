@@ -1,6 +1,6 @@
 import { sleep } from "@rodrigo-barraza/utilities";
 import * as cheerio from "cheerio";
-import {  } from "../../utilities.js";
+
 // ═══════════════════════════════════════════════════════════════
 //  Clock Crew Forum Fetcher — clockcrew.net SMF 2.1 Scraper
 // ═══════════════════════════════════════════════════════════════

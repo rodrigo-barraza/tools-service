@@ -1,6 +1,6 @@
 import { sleep } from "@rodrigo-barraza/utilities";
 import * as cheerio from "cheerio";
-import {  } from "../../utilities.js";
+
 // ═══════════════════════════════════════════════════════════════
 //  Newgrounds Profile Fetcher — newgrounds.com User Scraper
 // ═══════════════════════════════════════════════════════════════

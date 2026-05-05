@@ -15,7 +15,7 @@ import { sleep } from "@rodrigo-barraza/utilities";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createLspClient } from "./LspClient.js";
-import {  } from "../../utilities.js";
+
 // ── Constants ────────────────────────────────────────────────
 /** LSP error code for "content modified" — transient, safe to retry */
 const LSP_ERROR_CONTENT_MODIFIED = -32801;

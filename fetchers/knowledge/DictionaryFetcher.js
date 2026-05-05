@@ -1,6 +1,6 @@
 import { stripHtml } from "@rodrigo-barraza/utilities";
 import { DICTIONARY_BASE_URL } from "../../constants.js";
-import {  } from "../../utilities.js";
+
 /**
  * Free Dictionary API fetcher.
  * https://dictionaryapi.dev/ — no auth, fully open.

@@ -1,9 +1,9 @@
+import { normalizeName } from "@rodrigo-barraza/utilities";
 import {
   TREND_SOURCES as SOURCES,
   HACKERNEWS_TOP_STORY_LIMIT,
   TREND_CATEGORIES,
 } from "../../constants.js";
-import { normalizeName } from "../../utilities.js";
 
 const HN_API_BASE = "https://hacker-news.firebaseio.com/v0";
 

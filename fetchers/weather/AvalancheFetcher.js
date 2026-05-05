@@ -1,5 +1,5 @@
 import { stripHtml } from "@rodrigo-barraza/utilities";
-import {  } from "../../utilities.js";
+
 const AVCAN_PRODUCTS_URL = "https://api.avalanche.ca/forecasts/en/products";
 /**
  * Fetch avalanche forecasts from Avalanche Canada.

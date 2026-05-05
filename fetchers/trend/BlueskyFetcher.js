@@ -1,5 +1,5 @@
+import { normalizeName } from "@rodrigo-barraza/utilities";
 import { TREND_SOURCES as SOURCES, TREND_CATEGORIES } from "../../constants.js";
-import { normalizeName } from "../../utilities.js";
 
 const BLUESKY_API = "https://public.api.bsky.app/xrpc";
 

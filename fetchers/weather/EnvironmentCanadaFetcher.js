@@ -5,7 +5,7 @@ import { stripHtml } from "@rodrigo-barraza/utilities";
  * are currently unreliable (404/500).
  * Free, no key required.
  */
-import {  } from "../../utilities.js";
+
 const EC_WARNINGS_PAGE = "https://weather.gc.ca/warnings/report_e.html?bc74";
 // Backup: the city forecast page which includes warning banners
 const EC_CITY_PAGE = "https://weather.gc.ca/city/pages/bc-74_metric_e.html";

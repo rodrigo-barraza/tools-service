@@ -1,6 +1,6 @@
 import { stripHtml } from "@rodrigo-barraza/utilities";
 import { OPEN_LIBRARY_BASE_URL } from "../../constants.js";
-import {  } from "../../utilities.js";
+
 /**
  * Open Library API fetcher.
  * https://openlibrary.org/developers/api — no auth, fully open.
