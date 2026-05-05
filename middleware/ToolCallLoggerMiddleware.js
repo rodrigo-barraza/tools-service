@@ -153,7 +153,7 @@ export function toolCallLoggerMiddleware(req, res, next) {
     const tool = resolveToolFromRequest(method, path);
     if (!tool) return;
 
-    // Extract caller context from headers (sent by Prism/Retina)
+    // Extract caller context from headers (sent by Prism/Prism Client)
     const callerProject = req.headers["x-project"] || null;
     const callerUsername = req.headers["x-username"] || null;
     const callerAgent = req.headers["x-agent"] || null;

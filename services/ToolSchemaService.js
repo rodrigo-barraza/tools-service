@@ -16,7 +16,7 @@
 // CRITICAL CONVENTION:
 //   Property keys in parameters.properties MUST exactly match
 //   the names in endpoint.queryParams / endpoint.pathParams.
-//   Retina sends the AI's parameter names directly as URL
+//   Prism Client sends the AI's parameter names directly as URL
 //   query params — e.g. if the property is "q", the URL gets
 //   ?q=value. A mismatch (e.g. "query" vs "q") causes 400s.
 // ============================================================
@@ -7959,7 +7959,7 @@ export { TOOL_DOMAINS, TOOL_LABELS, TOOL_DEFINITIONS };
 
 /**
  * Get all tool schemas with endpoint metadata.
- * Used by clients (like Retina) to build dynamic executors.
+ * Used by clients (like Prism Client) to build dynamic executors.
  * Filters out tools whose required API keys are not configured.
  * @returns {Array} Full tool definitions including endpoint info
  */

@@ -5,7 +5,7 @@
 // and prefixed enabledTools entry builders.
 //
 // Used by: ToolSchemaService, AgentPersonaRegistry, tests,
-// and the Retina CustomAgentsPanel UI.
+// and the Prism Client CustomAgentsPanel UI.
 // ────────────────────────────────────────────────────────────
 
 // ── Label Names ─────────────────────────────────────────────
