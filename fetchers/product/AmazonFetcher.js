@@ -4,9 +4,9 @@ import {
   PRODUCT_SOURCES,
   AMAZON_MAX_PRODUCTS_PER_CATEGORY,
 } from "../../constants.js";
+import { parsePrice } from "@rodrigo-barraza/utilities";
 import {
   randomUserAgent,
-  parsePrice,
   computeTrendingScore,
 } from "../../utilities.js";
 import rateLimiter from "../../services/RateLimiterService.js";

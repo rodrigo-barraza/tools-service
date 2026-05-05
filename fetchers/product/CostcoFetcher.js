@@ -5,8 +5,8 @@ import {
   PRODUCT_SOURCES,
   COSTCO_MAX_PRODUCTS_PER_CATEGORY,
 } from "../../constants.js";
+import { parsePrice } from "@rodrigo-barraza/utilities";
 import {
-  parsePrice,
   computeTrendingScore,
   buildScraperHeaders,
 } from "../../utilities.js";
