@@ -11,22 +11,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.js\"",
     "format:check": "prettier --check \"**/*.js\"",
-    "test": "node --test tests/**/*.test.js",
-    "test:nutrition": "node --test tests/NutritionFetcher.test.js",
-    "test:projection": "node --test tests/FieldProjectionMiddleware.test.js",
-    "test:endpoints": "node --test tests/NutritionEndpoints.test.js",
-    "test:weather": "node --test tests/WeatherEndpoints.test.js",
-    "test:events": "node --test tests/EventEndpoints.test.js",
-    "test:finance": "node --test tests/FinanceEndpoints.test.js",
-    "test:market": "node --test tests/MarketEndpoints.test.js",
-    "test:products": "node --test tests/ProductEndpoints.test.js",
-    "test:trends": "node --test tests/TrendEndpoints.test.js",
-    "test:knowledge": "node --test tests/KnowledgeEndpoints.test.js",
-    "test:drugs": "node --test tests/HealthDrugEndpoints.test.js",
-    "test:utility": "node --test tests/UtilityEndpoints.test.js",
-    "test:transit": "node --test tests/TransitAndHealthEndpoints.test.js",
-    "test:static": "node --test tests/StaticDatasetEndpoints.test.js",
-    "test:taxonomy": "node --test tests/ToolTaxonomy.test.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "deploy": "bash deploy.sh",
     "deploy:dry": "bash deploy.sh --dry-run"
   },
@@ -69,6 +55,8 @@
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.4.0",
     "nodemon": "^3.1.14",
-    "prettier": "^3.8.1"
+    "prettier": "^3.8.1",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.5"
   }
 }

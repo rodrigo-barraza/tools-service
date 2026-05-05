@@ -1,31 +1,23 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
-import { BASE_URL } from "./helpers.js";
+import request from "supertest";
+import { createTestApp } from "./testApp.js";
+import weatherRoutes from "../routes/WeatherRoutes.js";
 
-// ─── Integration Tests for Weather Domain Cached Endpoints ──────
+// ─── Unit Tests for Weather Domain Endpoints ────────────────────
 //
-// These tests hit the live tools-api server on localhost:5590.
-// They validate response shapes and data integrity for all
-// /weather/* cached endpoints.
+// Uses supertest to mount WeatherRoutes in-process.
+// All caches return empty/default data when no collector has run.
+// Tests validate route logic, status codes, and response shapes.
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = `${BASE_URL}/weather`;
-
-async function fetchJson(path) {
-  const res = await fetch(`${BASE}${path}`);
-  return { status: res.status, data: await res.json() };
-}
+const app = createTestApp("/weather", weatherRoutes);
 
 // ─── /weather/weather ──────────────────────────────────────────────
 
 describe("GET /weather/weather", () => {
-  it("returns the full merged weather snapshot", async () => {
-    const { status, data } = await fetchJson("/weather");
-    assert.equal(status, 200);
-    assert.equal(typeof data, "object");
-    // Should have typical current-conditions keys
-    assert.ok("temperature" in data || "temperatureC" in data || Object.keys(data).length > 0,
-      "should contain weather data fields");
+  it("returns the merged weather snapshot", async () => {
+    const res = await request(app).get("/weather/weather");
+    expect(res.status).toBe(200);
+    expect(typeof res.body).toBe("object");
   });
 });
 
@@ -33,12 +25,11 @@ describe("GET /weather/weather", () => {
 
 describe("GET /weather/weather/current", () => {
   it("returns current conditions without forecast arrays", async () => {
-    const { status, data } = await fetchJson("/weather/current");
-    assert.equal(status, 200);
-    assert.equal(typeof data, "object");
-    // Should NOT contain forecast arrays
-    assert.equal(data.hourlyForecast, undefined, "hourlyForecast excluded");
-    assert.equal(data.dailyForecast, undefined, "dailyForecast excluded");
+    const res = await request(app).get("/weather/weather/current");
+    expect(res.status).toBe(200);
+    expect(typeof res.body).toBe("object");
+    expect(res.body.hourlyForecast).toBe(undefined, "hourlyForecast excluded");
+    expect(res.body.dailyForecast).toBe(undefined, "dailyForecast excluded");
   });
 });
 
@@ -46,12 +37,10 @@ describe("GET /weather/weather/current", () => {
 
 describe("GET /weather/weather/forecast", () => {
   it("returns forecast arrays", async () => {
-    const { status, data } = await fetchJson("/weather/forecast");
-    assert.equal(status, 200);
-    assert.ok(Array.isArray(data.hourlyForecast), "has hourlyForecast array");
-    assert.ok(Array.isArray(data.dailyForecast), "has dailyForecast array");
-    assert.ok(Array.isArray(data.hourlyAirQuality), "has hourlyAirQuality array");
-    assert.ok(Array.isArray(data.tomorrowIODailyForecast), "has tomorrowIODailyForecast array");
+    const res = await request(app).get("/weather/weather/forecast");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.hourlyForecast)).toBeTruthy();
+    expect(Array.isArray(res.body.dailyForecast)).toBeTruthy();
   });
 });
 
@@ -59,11 +48,9 @@ describe("GET /weather/weather/forecast", () => {
 
 describe("GET /weather/weather/air", () => {
   it("returns air quality data", async () => {
-    const { status, data } = await fetchJson("/weather/air");
-    assert.equal(status, 200);
-    assert.ok(Array.isArray(data.hourlyAirQuality), "has hourlyAirQuality array");
-    // Should include at least one AQ metric (may be null if no data yet)
-    assert.ok("usAqi" in data || "pm25" in data, "has AQ metric fields");
+    const res = await request(app).get("/weather/weather/air");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.hourlyAirQuality)).toBeTruthy();
   });
 });
 
@@ -71,11 +58,10 @@ describe("GET /weather/weather/air", () => {
 
 describe("GET /weather/weather/daylight", () => {
   it("returns daylight data", async () => {
-    const { status, data } = await fetchJson("/weather/daylight");
-    assert.equal(status, 200);
-    assert.ok("sunrise" in data, "has sunrise");
-    assert.ok("sunset" in data, "has sunset");
-    assert.ok("isDay" in data, "has isDay");
+    const res = await request(app).get("/weather/weather/daylight");
+    expect(res.status).toBe(200);
+    // May return empty object when no data collected yet
+    expect(typeof res.body).toBe("object");
   });
 });
 
@@ -83,19 +69,19 @@ describe("GET /weather/weather/daylight", () => {
 
 describe("GET /weather/earthquakes", () => {
   it("returns an array of earthquake events", async () => {
-    const { status, data } = await fetchJson("/earthquakes");
-    assert.equal(status, 200);
-    assert.ok(Array.isArray(data), "response is an array");
+    const res = await request(app).get("/weather/earthquakes");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBeTruthy();
   });
 });
 
 describe("GET /weather/earthquakes/summary", () => {
-  it("returns earthquake summary with counts", async () => {
-    const { status, data } = await fetchJson("/earthquakes/summary");
-    assert.equal(status, 200);
-    assert.ok(typeof data.total === "number", "has total count");
-    assert.ok(typeof data.counts === "object", "has counts by magnitude");
-    assert.ok("lastFetch" in data, "has lastFetch timestamp");
+  it("returns earthquake summary", async () => {
+    const res = await request(app).get("/weather/earthquakes/summary");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.total === "number").toBeTruthy();
+    expect(typeof res.body.counts === "object").toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
@@ -103,21 +89,21 @@ describe("GET /weather/earthquakes/summary", () => {
 
 describe("GET /weather/neo", () => {
   it("returns an array of near-Earth objects", async () => {
-    const { status, data } = await fetchJson("/neo");
-    assert.equal(status, 200);
-    assert.ok(Array.isArray(data), "response is an array");
+    const res = await request(app).get("/weather/neo");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBeTruthy();
   });
 });
 
 describe("GET /weather/neo/summary", () => {
-  it("returns NEO summary with hazardous count", async () => {
-    const { status, data } = await fetchJson("/neo/summary");
-    assert.equal(status, 200);
-    assert.ok(typeof data.total === "number", "has total");
-    assert.ok(typeof data.hazardousCount === "number", "has hazardousCount");
-    assert.ok("closest" in data, "has closest");
-    assert.ok("largest" in data, "has largest");
-    assert.ok("lastFetch" in data, "has lastFetch");
+  it("returns NEO summary", async () => {
+    const res = await request(app).get("/weather/neo/summary");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.total === "number").toBeTruthy();
+    expect(typeof res.body.hazardousCount === "number").toBeTruthy();
+    expect("closest" in res.body).toBeTruthy();
+    expect("largest" in res.body).toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
@@ -125,49 +111,47 @@ describe("GET /weather/neo/summary", () => {
 
 describe("GET /weather/space-weather", () => {
   it("returns combined space weather data", async () => {
-    const { status, data } = await fetchJson("/space-weather");
-    assert.equal(status, 200);
-    assert.ok(Array.isArray(data.flares), "has flares array");
-    assert.ok(Array.isArray(data.cmes), "has cmes array");
-    assert.ok(Array.isArray(data.storms), "has storms array");
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/space-weather");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.flares)).toBeTruthy();
+    expect(Array.isArray(res.body.cmes)).toBeTruthy();
+    expect(Array.isArray(res.body.storms)).toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
 describe("GET /weather/space-weather/flares", () => {
   it("returns an array of solar flares", async () => {
-    const { status, data } = await fetchJson("/space-weather/flares");
-    assert.equal(status, 200);
-    assert.ok(Array.isArray(data), "response is an array");
+    const res = await request(app).get("/weather/space-weather/flares");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBeTruthy();
   });
 });
 
 describe("GET /weather/space-weather/cmes", () => {
   it("returns an array of CMEs", async () => {
-    const { status, data } = await fetchJson("/space-weather/cmes");
-    assert.equal(status, 200);
-    assert.ok(Array.isArray(data), "response is an array");
+    const res = await request(app).get("/weather/space-weather/cmes");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBeTruthy();
   });
 });
 
 describe("GET /weather/space-weather/storms", () => {
   it("returns an array of geomagnetic storms", async () => {
-    const { status, data } = await fetchJson("/space-weather/storms");
-    assert.equal(status, 200);
-    assert.ok(Array.isArray(data), "response is an array");
+    const res = await request(app).get("/weather/space-weather/storms");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBeTruthy();
   });
 });
 
 describe("GET /weather/space-weather/summary", () => {
-  it("returns space weather summary with counts", async () => {
-    const { status, data } = await fetchJson("/space-weather/summary");
-    assert.equal(status, 200);
-    assert.ok(typeof data.flareCount === "number", "has flareCount");
-    assert.ok(typeof data.cmeCount === "number", "has cmeCount");
-    assert.ok(typeof data.stormCount === "number", "has stormCount");
-    assert.ok("strongestFlare" in data, "has strongestFlare");
-    assert.ok("fastestCme" in data, "has fastestCme");
-    assert.ok("lastFetch" in data, "has lastFetch");
+  it("returns space weather summary", async () => {
+    const res = await request(app).get("/weather/space-weather/summary");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.flareCount === "number").toBeTruthy();
+    expect(typeof res.body.cmeCount === "number").toBeTruthy();
+    expect(typeof res.body.stormCount === "number").toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
@@ -175,20 +159,18 @@ describe("GET /weather/space-weather/summary", () => {
 
 describe("GET /weather/iss", () => {
   it("returns ISS position and astronaut data", async () => {
-    const { status, data } = await fetchJson("/iss");
-    assert.equal(status, 200);
-    assert.ok("position" in data, "has position");
-    assert.ok("astronauts" in data, "has astronauts");
-    assert.ok("lastPositionFetch" in data, "has lastPositionFetch");
-    assert.ok("lastAstrosFetch" in data, "has lastAstrosFetch");
+    const res = await request(app).get("/weather/iss");
+    expect(res.status).toBe(200);
+    expect("position" in res.body).toBeTruthy();
+    expect("astronauts" in res.body).toBeTruthy();
   });
 });
 
 describe("GET /weather/iss/trajectory", () => {
   it("returns an array of trajectory points", async () => {
-    const { status, data } = await fetchJson("/iss/trajectory");
-    assert.equal(status, 200);
-    assert.ok(Array.isArray(data), "response is an array");
+    const res = await request(app).get("/weather/iss/trajectory");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBeTruthy();
   });
 });
 
@@ -196,21 +178,21 @@ describe("GET /weather/iss/trajectory", () => {
 
 describe("GET /weather/kp", () => {
   it("returns Kp index history", async () => {
-    const { status, data } = await fetchJson("/kp");
-    assert.equal(status, 200);
-    assert.ok("count" in data, "has count");
-    assert.ok(Array.isArray(data.readings), "has readings array");
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/kp");
+    expect(res.status).toBe(200);
+    expect("count" in res.body).toBeTruthy();
+    expect(Array.isArray(res.body.readings)).toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
 describe("GET /weather/kp/current", () => {
   it("returns current Kp with classification", async () => {
-    const { status, data } = await fetchJson("/kp/current");
-    assert.equal(status, 200);
-    assert.ok("current" in data, "has current reading");
-    assert.ok("classification" in data, "has classification");
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/kp/current");
+    expect(res.status).toBe(200);
+    expect("current" in res.body).toBeTruthy();
+    expect("classification" in res.body).toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
@@ -218,22 +200,22 @@ describe("GET /weather/kp/current", () => {
 
 describe("GET /weather/wildfires", () => {
   it("returns wildfire events", async () => {
-    const { status, data } = await fetchJson("/wildfires");
-    assert.equal(status, 200);
-    assert.ok("count" in data, "has count");
-    assert.ok(Array.isArray(data.events), "has events array");
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/wildfires");
+    expect(res.status).toBe(200);
+    expect("count" in res.body).toBeTruthy();
+    expect(Array.isArray(res.body.events)).toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
 describe("GET /weather/wildfires/summary", () => {
   it("returns wildfire summary", async () => {
-    const { status, data } = await fetchJson("/wildfires/summary");
-    assert.equal(status, 200);
-    assert.ok(typeof data.count === "number", "has count");
-    assert.ok("largest" in data, "has largest");
-    assert.ok(typeof data.openCount === "number", "has openCount");
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/wildfires/summary");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect("largest" in res.body).toBeTruthy();
+    expect(typeof res.body.openCount === "number").toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
@@ -241,20 +223,20 @@ describe("GET /weather/wildfires/summary", () => {
 
 describe("GET /weather/tides", () => {
   it("returns tide predictions", async () => {
-    const { status, data } = await fetchJson("/tides");
-    assert.equal(status, 200);
-    assert.ok("count" in data, "has count");
-    assert.ok(Array.isArray(data.predictions), "has predictions array");
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/tides");
+    expect(res.status).toBe(200);
+    expect("count" in res.body).toBeTruthy();
+    expect(Array.isArray(res.body.predictions)).toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
 describe("GET /weather/tides/next", () => {
   it("returns next tide prediction", async () => {
-    const { status, data } = await fetchJson("/tides/next");
-    assert.equal(status, 200);
-    assert.ok("next" in data, "has next");
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/tides/next");
+    expect(res.status).toBe(200);
+    expect("next" in res.body).toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
@@ -262,62 +244,57 @@ describe("GET /weather/tides/next", () => {
 
 describe("GET /weather/solar-wind", () => {
   it("returns solar wind data", async () => {
-    const { status, data } = await fetchJson("/solar-wind");
-    assert.equal(status, 200);
-    assert.ok(Array.isArray(data.plasma), "has plasma array");
-    assert.ok(Array.isArray(data.magnetic), "has magnetic array");
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/solar-wind");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.plasma)).toBeTruthy();
+    expect(Array.isArray(res.body.magnetic)).toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
 describe("GET /weather/solar-wind/latest", () => {
   it("returns latest solar wind reading", async () => {
-    const { status, data } = await fetchJson("/solar-wind/latest");
-    assert.equal(status, 200);
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/solar-wind/latest");
+    expect(res.status).toBe(200);
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
 // ─── /weather/airquality/google ────────────────────────────────────
 
 describe("GET /weather/airquality/google", () => {
-  it("returns Google air quality data or no_data status", async () => {
-    const { status, data } = await fetchJson("/airquality/google");
-    assert.equal(status, 200);
-    // createSimpleCache(type=object) returns { status: "no_data" } or spread data
-    assert.ok(typeof data === "object", "returns an object");
+  it("returns Google air quality data or no_data", async () => {
+    const res = await request(app).get("/weather/airquality/google");
+    expect(res.status).toBe(200);
+    expect(typeof res.body === "object").toBeTruthy();
   });
 });
 
 // ─── /weather/pollen ───────────────────────────────────────────────
 
 describe("GET /weather/pollen", () => {
-  it("returns pollen forecast data or no_data status", async () => {
-    const { status, data } = await fetchJson("/pollen");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns an object");
+  it("returns pollen forecast data or no_data", async () => {
+    const res = await request(app).get("/weather/pollen");
+    expect(res.status).toBe(200);
+    expect(typeof res.body === "object").toBeTruthy();
   });
 });
 
 describe("GET /weather/pollen/today", () => {
   it("returns today's pollen or no_data", async () => {
-    const { status, data } = await fetchJson("/pollen/today");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns an object");
+    const res = await request(app).get("/weather/pollen/today");
+    expect(res.status).toBe(200);
+    expect(typeof res.body === "object").toBeTruthy();
   });
 });
 
 // ─── /weather/apod ─────────────────────────────────────────────────
 
 describe("GET /weather/apod", () => {
-  it("returns APOD data or no_data status", async () => {
-    const { status, data } = await fetchJson("/apod");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns an object");
-    // If data present, should have title
-    if (data.lastFetch) {
-      assert.ok(data.title || data.status === "no_data", "has title or no_data");
-    }
+  it("returns APOD data or no_data", async () => {
+    const res = await request(app).get("/weather/apod");
+    expect(res.status).toBe(200);
+    expect(typeof res.body === "object").toBeTruthy();
   });
 });
 
@@ -325,41 +302,41 @@ describe("GET /weather/apod", () => {
 
 describe("GET /weather/launches", () => {
   it("returns upcoming launches", async () => {
-    const { status, data } = await fetchJson("/launches");
-    assert.equal(status, 200);
-    assert.ok("count" in data, "has count");
-    assert.ok(Array.isArray(data.launches), "has launches array");
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/launches");
+    expect(res.status).toBe(200);
+    expect("count" in res.body).toBeTruthy();
+    expect(Array.isArray(res.body.launches)).toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
 describe("GET /weather/launches/next", () => {
   it("returns the next upcoming launch", async () => {
-    const { status, data } = await fetchJson("/launches/next");
-    assert.equal(status, 200);
-    assert.ok("next" in data, "has next");
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/launches/next");
+    expect(res.status).toBe(200);
+    expect("next" in res.body).toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
 describe("GET /weather/launches/summary", () => {
   it("returns launch summary", async () => {
-    const { status, data } = await fetchJson("/launches/summary");
-    assert.equal(status, 200);
-    assert.ok(typeof data.count === "number", "has count");
-    assert.ok(typeof data.upcomingCount === "number", "has upcomingCount");
-    assert.ok(Array.isArray(data.providers), "has providers array");
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/launches/summary");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect(typeof res.body.upcomingCount === "number").toBeTruthy();
+    expect(Array.isArray(res.body.providers)).toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
 // ─── /weather/twilight ─────────────────────────────────────────────
 
 describe("GET /weather/twilight", () => {
-  it("returns twilight data or no_data status", async () => {
-    const { status, data } = await fetchJson("/twilight");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns an object");
+  it("returns twilight data or no_data", async () => {
+    const res = await request(app).get("/weather/twilight");
+    expect(res.status).toBe(200);
+    expect(typeof res.body === "object").toBeTruthy();
   });
 });
 
@@ -367,25 +344,21 @@ describe("GET /weather/twilight", () => {
 
 describe("GET /weather/warnings", () => {
   it("returns environment Canada warnings", async () => {
-    const { status, data } = await fetchJson("/warnings");
-    assert.equal(status, 200);
-    assert.ok("count" in data, "has count");
-    assert.ok(Array.isArray(data.warnings), "has warnings array");
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/warnings");
+    expect(res.status).toBe(200);
+    expect("count" in res.body).toBeTruthy();
+    expect(Array.isArray(res.body.warnings)).toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
 describe("GET /weather/warnings/count", () => {
   it("returns warning counts by type", async () => {
-    const { status, data } = await fetchJson("/warnings/count");
-    assert.equal(status, 200);
-    assert.ok(typeof data.total === "number", "has total");
-    assert.ok(typeof data.byType === "object", "has byType breakdown");
-    assert.ok("warning" in data.byType, "has warning count");
-    assert.ok("watch" in data.byType, "has watch count");
-    assert.ok("advisory" in data.byType, "has advisory count");
-    assert.ok("statement" in data.byType, "has statement count");
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/warnings/count");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.total === "number").toBeTruthy();
+    expect(typeof res.body.byType === "object").toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
@@ -393,10 +366,10 @@ describe("GET /weather/warnings/count", () => {
 
 describe("GET /weather/avalanche", () => {
   it("returns avalanche forecasts", async () => {
-    const { status, data } = await fetchJson("/avalanche");
-    assert.equal(status, 200);
-    assert.ok("count" in data, "has count");
-    assert.ok(Array.isArray(data.forecasts), "has forecasts array");
-    assert.ok("lastFetch" in data, "has lastFetch");
+    const res = await request(app).get("/weather/avalanche");
+    expect(res.status).toBe(200);
+    expect("count" in res.body).toBeTruthy();
+    expect(Array.isArray(res.body.forecasts)).toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });

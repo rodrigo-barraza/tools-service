@@ -1,338 +1,383 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
-import { BASE_URL } from "./helpers.js";
+import request from "supertest";
+import { createTestApp } from "./testApp.js";
+import knowledgeRoutes from "../routes/KnowledgeRoutes.js";
 
-// ─── Integration Tests for Knowledge Domain Endpoints ───────────
+// ─── Unit Tests for Knowledge Domain Endpoints ──────────────────
 //
-// These tests hit the live tools-api server on localhost:5590.
-// They validate response shapes for all /knowledge/* endpoints
-// (on-demand fetchers + in-memory datasets).
+// Uses supertest to mount KnowledgeRoutes in-process.
+// Only tests in-memory dataset endpoints (elements, indicators,
+// exoplanets) that load from CSV at import time.
+// External API endpoints (dictionary, books, countries, papers,
+// wikipedia, anime, movies, TV, web extraction) are excluded —
+// they live in tests/live/ as integration tests.
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = `${BASE_URL}/knowledge`;
+const app = createTestApp("/knowledge", knowledgeRoutes);
 
-async function fetchJson(path) {
-  const res = await fetch(`${BASE}${path}`);
-  return { status: res.status, data: await res.json() };
-}
-
-// ─── Dictionary ────────────────────────────────────────────────────
-
-describe("GET /knowledge/dictionary/:word", () => {
-  it("returns a definition for a known word", async () => {
-    const { status, data } = await fetchJson("/dictionary/hello");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-// ─── Books (OpenLibrary) ───────────────────────────────────────────
-
-describe("GET /knowledge/books/search", () => {
-  it("returns 400 when q is missing", async () => {
-    const { status, data } = await fetchJson("/books/search");
-    assert.equal(status, 400);
-    assert.ok(data.error);
-  });
-
-  it("returns book search results", async () => {
-    const { status, data } = await fetchJson("/books/search?q=dune&limit=3");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-// ─── Countries (RestCountries) ─────────────────────────────────────
-
-describe("GET /knowledge/countries/search/:name", () => {
-  it("returns country data for Canada", async () => {
-    const { status, data } = await fetchJson("/countries/search/Canada");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-describe("GET /knowledge/countries/code/:code", () => {
-  it("returns country data by ISO code", async () => {
-    const { status, data } = await fetchJson("/countries/code/CAN");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-// ─── Papers (arXiv) ────────────────────────────────────────────────
-
-describe("GET /knowledge/papers/search", () => {
-  it("returns 400 when q is missing", async () => {
-    const { status, data } = await fetchJson("/papers/search");
-    assert.equal(status, 400);
-    assert.ok(data.error);
-  });
-
-  it("returns arXiv paper results (tolerates upstream failures)", async () => {
-    const res = await fetch(`${BASE}/papers/search?q=transformer&limit=3`);
-    // arXiv API can be unreliable — accept any response as long as the server doesn't crash
-    assert.ok(typeof res.status === "number", "returns an HTTP status");
-    if (res.status === 200) {
-      const contentType = res.headers.get("content-type") || "";
-      if (contentType.includes("application/json")) {
-        const data = await res.json();
-        assert.ok(typeof data === "object", "returns data");
-      }
-    }
-  });
-});
-
-// ─── Wikipedia ─────────────────────────────────────────────────────
-
-describe("GET /knowledge/wikipedia/summary/:title", () => {
-  it("returns a Wikipedia summary", async () => {
-    const { status, data } = await fetchJson("/wikipedia/summary/JavaScript");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-describe("GET /knowledge/wikipedia/onthisday", () => {
-  it("returns On This Day events", async () => {
-    const { status, data } = await fetchJson("/wikipedia/onthisday");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-// ─── Anime (Jikan) ─────────────────────────────────────────────────
-
-describe("GET /knowledge/anime/search", () => {
-  it("returns 400 when q is missing", async () => {
-    const { status, data } = await fetchJson("/anime/search");
-    assert.equal(status, 400);
-    assert.ok(data.error);
-  });
-
-  it("returns anime search results", async () => {
-    const { status, data } = await fetchJson("/anime/search?q=naruto&limit=3");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-describe("GET /knowledge/anime/top", () => {
-  it("returns top-ranked anime", async () => {
-    const { status, data } = await fetchJson("/anime/top?limit=5");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-// ─── Movies (TMDb) ─────────────────────────────────────────────────
-
-describe("GET /knowledge/movies/search", () => {
-  it("returns 400 when q is missing", async () => {
-    const { status, data } = await fetchJson("/movies/search");
-    assert.equal(status, 400);
-    assert.ok(data.error);
-  });
-
-  it("returns movie search results", async () => {
-    const { status, data } = await fetchJson("/movies/search?q=inception");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-describe("GET /knowledge/movies/trending", () => {
-  it("returns trending movies", async () => {
-    const { status, data } = await fetchJson("/movies/trending?limit=5");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-describe("GET /knowledge/movies/genres", () => {
-  it("returns movie genre list", async () => {
-    const { status, data } = await fetchJson("/movies/genres");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-// ─── TV Series (TMDb) ──────────────────────────────────────────────
-
-describe("GET /knowledge/tv/search", () => {
-  it("returns 400 when q is missing", async () => {
-    const { status, data } = await fetchJson("/tv/search");
-    assert.equal(status, 400);
-    assert.ok(data.error);
-  });
-
-  it("returns TV show search results", async () => {
-    const { status, data } = await fetchJson("/tv/search?q=breaking+bad");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-describe("GET /knowledge/tv/trending", () => {
-  it("returns trending TV shows", async () => {
-    const { status, data } = await fetchJson("/tv/trending?limit=5");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-describe("GET /knowledge/tv/genres", () => {
-  it("returns TV genre list", async () => {
-    const { status, data } = await fetchJson("/tv/genres");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-// ─── Periodic Table (in-memory) ────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+//  Periodic Table — /knowledge/elements/*
+// ═══════════════════════════════════════════════════════════════════
 
 describe("GET /knowledge/elements/search", () => {
   it("returns 400 when q is missing", async () => {
-    const { status, data } = await fetchJson("/elements/search");
-    assert.equal(status, 400);
-    assert.ok(data.error);
+    const res = await request(app).get("/knowledge/elements/search");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 
   it("returns elements matching query", async () => {
-    const { status, data } = await fetchJson("/elements/search?q=hydrogen");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/knowledge/elements/search?q=hydrogen");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect(res.body.count > 0).toBeTruthy();
+    expect(Array.isArray(res.body.elements)).toBeTruthy();
+    expect(res.body.elements[0].name).toBeTruthy();
+    expect(res.body.elements[0].symbol).toBeTruthy();
+    expect(typeof res.body.elements[0].atomicNumber === "number").toBeTruthy();
   });
 });
 
 describe("GET /knowledge/elements/:symbol", () => {
   it("returns element data for H", async () => {
-    const { status, data } = await fetchJson("/elements/H");
-    assert.equal(status, 200);
-    assert.ok(data.symbol || data.name, "has element data");
+    const res = await request(app).get("/knowledge/elements/H");
+    expect(res.status).toBe(200);
+    expect(res.body.symbol).toBe("H");
+    expect(res.body.name).toBe("Hydrogen");
+    expect(res.body.atomicNumber).toBe(1);
   });
 
   it("returns 404 for nonexistent element", async () => {
-    const { status } = await fetchJson("/elements/Zz");
-    assert.equal(status, 404);
+    const res = await request(app).get("/knowledge/elements/Zz");
+    expect(res.status).toBe(404);
   });
 });
 
 describe("GET /knowledge/elements/rank", () => {
   it("returns 400 when property is missing", async () => {
-    const { status, data } = await fetchJson("/elements/rank");
-    assert.equal(status, 400);
-    assert.ok(data.error);
+    const res = await request(app).get("/knowledge/elements/rank");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 
   it("ranks elements by atomic mass", async () => {
-    const { status, data } = await fetchJson("/elements/rank?property=atomic_mass&limit=5");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/knowledge/elements/rank?property=atomic_mass&limit=5");
+    expect(res.status).toBe(200);
+    expect(res.body.property).toBe("atomic_mass");
+    expect(Array.isArray(res.body.elements)).toBeTruthy();
+    expect(res.body.elements.length <= 5).toBeTruthy();
+  });
+
+  it("returns 400 for invalid property", async () => {
+    const res = await request(app).get("/knowledge/elements/rank?property=invalid_xyz");
+    expect(res.status).toBe(400);
+    expect(res.body.error.includes("Unknown property")).toBeTruthy();
+    expect(Array.isArray(res.body.availableProperties)).toBeTruthy();
   });
 });
 
 describe("GET /knowledge/elements/categories", () => {
   it("returns element category list", async () => {
-    const { status, data } = await fetchJson("/elements/categories");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/knowledge/elements/categories");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.totalElements === "number").toBeTruthy();
+    expect(res.body.totalElements >= 118).toBeTruthy();
+    expect(Array.isArray(res.body.categories)).toBeTruthy();
+    expect(Array.isArray(res.body.blocks)).toBeTruthy();
+    expect(Array.isArray(res.body.phases)).toBeTruthy();
   });
 });
 
-// ─── World Bank Indicators (in-memory) ─────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+//  World Bank Indicators — /knowledge/indicators/*
+// ═══════════════════════════════════════════════════════════════════
 
 describe("GET /knowledge/indicators/country/:code", () => {
   it("returns indicators for Canada", async () => {
-    const { status, data } = await fetchJson("/indicators/country/CAN");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/knowledge/indicators/country/CAN");
+    expect(res.status).toBe(200);
+    expect(res.body.countryCode).toBe("CAN");
+    expect(res.body.countryName).toBe("Canada");
+    expect(typeof res.body.indicators === "object").toBeTruthy();
   });
 
   it("returns 404 for nonexistent country", async () => {
-    const { status } = await fetchJson("/indicators/country/ZZZ");
-    assert.equal(status, 404);
+    const res = await request(app).get("/knowledge/indicators/country/ZZZ");
+    expect(res.status).toBe(404);
   });
 });
 
 describe("GET /knowledge/indicators/rank", () => {
   it("returns 400 when indicator is missing", async () => {
-    const { status, data } = await fetchJson("/indicators/rank");
-    assert.equal(status, 400);
-    assert.ok(data.error);
+    const res = await request(app).get("/knowledge/indicators/rank");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 
-  it("ranks countries by an indicator", async () => {
-    const { status, data } = await fetchJson("/indicators/rank?indicator=population&limit=5");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+  it("ranks countries by population", async () => {
+    const res = await request(app).get("/knowledge/indicators/rank?indicator=population&limit=5&order=desc");
+    expect(res.status).toBe(200);
+    expect(res.body.indicator).toBe("population");
+    expect(Array.isArray(res.body.countries)).toBeTruthy();
+    // Verify descending order
+    for (let i = 1; i < res.body.countries.length; i++) {
+      expect(res.body.countries[i - 1].value >= res.body.countries[i].value).toBeTruthy();
+    }
+  });
+
+  it("returns 400 for invalid indicator", async () => {
+    const res = await request(app).get("/knowledge/indicators/rank?indicator=invalid_xyz");
+    expect(res.status).toBe(400);
+    expect(res.body.error.includes("Unknown indicator")).toBeTruthy();
+    expect(Array.isArray(res.body.availableIndicators)).toBeTruthy();
   });
 });
 
 describe("GET /knowledge/indicators/compare", () => {
   it("returns 400 when countries is missing", async () => {
-    const { status, data } = await fetchJson("/indicators/compare");
-    assert.equal(status, 400);
-    assert.ok(data.error);
+    const res = await request(app).get("/knowledge/indicators/compare");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 
   it("returns 400 with only one country", async () => {
-    const { status, data } = await fetchJson("/indicators/compare?countries=USA");
-    assert.equal(status, 400);
-    assert.ok(data.error);
+    const res = await request(app).get("/knowledge/indicators/compare?countries=USA");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 
   it("compares two countries", async () => {
-    const { status, data } = await fetchJson("/indicators/compare?countries=USA,CAN");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/knowledge/indicators/compare?countries=USA,CAN");
+    expect(res.status).toBe(200);
+    expect(res.body.count).toBe(2);
+    expect(Array.isArray(res.body.comparison)).toBeTruthy();
+    expect(res.body.comparison.length).toBe(2);
   });
 });
 
 describe("GET /knowledge/indicators/list", () => {
   it("returns available indicators", async () => {
-    const { status, data } = await fetchJson("/indicators/list");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/knowledge/indicators/list");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.totalCountries === "number").toBeTruthy();
+    expect(res.body.totalCountries > 200).toBeTruthy();
+    expect(Array.isArray(res.body.indicators)).toBeTruthy();
+    expect(res.body.indicators.length >= 15).toBeTruthy();
   });
 });
 
-// ─── Exoplanets (in-memory) ────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+//  NASA Exoplanets — /knowledge/exoplanets/*
+// ═══════════════════════════════════════════════════════════════════
 
 describe("GET /knowledge/exoplanets/search", () => {
   it("returns 400 when q is missing", async () => {
-    const { status, data } = await fetchJson("/exoplanets/search");
-    assert.equal(status, 400);
-    assert.ok(data.error);
+    const res = await request(app).get("/knowledge/exoplanets/search");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 
   it("returns exoplanet search results", async () => {
-    const { status, data } = await fetchJson("/exoplanets/search?q=kepler&limit=5");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/knowledge/exoplanets/search?q=kepler&limit=5");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect(res.body.count > 0).toBeTruthy();
+    expect(Array.isArray(res.body.planets)).toBeTruthy();
+    expect(res.body.planets[0].name).toBeTruthy();
+    expect(res.body.planets[0].hostStar).toBeTruthy();
   });
 });
 
 describe("GET /knowledge/exoplanets/rank", () => {
   it("returns 400 when field is missing", async () => {
-    const { status, data } = await fetchJson("/exoplanets/rank");
-    assert.equal(status, 400);
-    assert.ok(data.error);
+    const res = await request(app).get("/knowledge/exoplanets/rank");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+
+  it("ranks by planet mass", async () => {
+    const res = await request(app).get("/knowledge/exoplanets/rank?field=pl_bmasse&limit=5&order=desc");
+    expect(res.status).toBe(200);
+    expect(res.body.field).toBe("pl_bmasse");
+    expect(Array.isArray(res.body.planets)).toBeTruthy();
+    // Verify descending order
+    for (let i = 1; i < res.body.planets.length; i++) {
+      expect(res.body.planets[i - 1].value >= res.body.planets[i].value).toBeTruthy();
+    }
   });
 });
 
 describe("GET /knowledge/exoplanets/stats", () => {
   it("returns discovery statistics", async () => {
-    const { status, data } = await fetchJson("/exoplanets/stats");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/knowledge/exoplanets/stats");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.totalPlanets === "number").toBeTruthy();
+    expect(res.body.totalPlanets > 5000).toBeTruthy();
+    expect(typeof res.body.yearRange === "object").toBeTruthy();
+    expect(Array.isArray(res.body.discoveryMethods)).toBeTruthy();
   });
 });
 
 describe("GET /knowledge/exoplanets/habitable", () => {
   it("returns habitable-zone planets", async () => {
-    const { status, data } = await fetchJson("/exoplanets/habitable?limit=5");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/knowledge/exoplanets/habitable?limit=5");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect(typeof res.body.criteria === "string").toBeTruthy();
+    expect(Array.isArray(res.body.planets)).toBeTruthy();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  Validation-only tests for external API endpoints
+//  (tests that the 400 validation works, no live calls)
+// ═══════════════════════════════════════════════════════════════════
+
+describe("GET /knowledge/books/search (validation)", () => {
+  it("returns 400 when q is missing", async () => {
+    const res = await request(app).get("/knowledge/books/search");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/papers/search (validation)", () => {
+  it("returns 400 when q is missing", async () => {
+    const res = await request(app).get("/knowledge/papers/search");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/anime/search (validation)", () => {
+  it("returns 400 when q is missing", async () => {
+    const res = await request(app).get("/knowledge/anime/search");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/movies/search (validation)", () => {
+  it("returns 400 when q is missing", async () => {
+    const res = await request(app).get("/knowledge/movies/search");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/tv/search (validation)", () => {
+  it("returns 400 when q is missing", async () => {
+    const res = await request(app).get("/knowledge/tv/search");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/youtube/video (validation)", () => {
+  it("returns 400 when url is missing", async () => {
+    const res = await request(app).get("/knowledge/youtube/video");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/github/repo (validation)", () => {
+  it("returns 400 when url is missing", async () => {
+    const res = await request(app).get("/knowledge/github/repo");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/reddit/thread (validation)", () => {
+  it("returns 400 when url is missing", async () => {
+    const res = await request(app).get("/knowledge/reddit/thread");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/npm/package (validation)", () => {
+  it("returns 400 when name is missing", async () => {
+    const res = await request(app).get("/knowledge/npm/package");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/twitter/post (validation)", () => {
+  it("returns 400 when url is missing", async () => {
+    const res = await request(app).get("/knowledge/twitter/post");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/hackernews/thread (validation)", () => {
+  it("returns 400 when url is missing", async () => {
+    const res = await request(app).get("/knowledge/hackernews/thread");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/stackoverflow/question (validation)", () => {
+  it("returns 400 when url is missing", async () => {
+    const res = await request(app).get("/knowledge/stackoverflow/question");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/web/content (validation)", () => {
+  it("returns 400 when url is missing", async () => {
+    const res = await request(app).get("/knowledge/web/content");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/package/info (validation)", () => {
+  it("returns 400 when name is missing", async () => {
+    const res = await request(app).get("/knowledge/package/info?registry=npm");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+
+  it("returns 400 when registry is missing", async () => {
+    const res = await request(app).get("/knowledge/package/info?name=express");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/pdf/read (validation)", () => {
+  it("returns 400 when url is missing", async () => {
+    const res = await request(app).get("/knowledge/pdf/read");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/rss/feed (validation)", () => {
+  it("returns 400 when url is missing", async () => {
+    const res = await request(app).get("/knowledge/rss/feed");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/music/artists/search (validation)", () => {
+  it("returns 400 when q is missing", async () => {
+    const res = await request(app).get("/knowledge/music/artists/search");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+describe("GET /knowledge/wayback/snapshot (validation)", () => {
+  it("returns 400 when url is missing", async () => {
+    const res = await request(app).get("/knowledge/wayback/snapshot");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 });

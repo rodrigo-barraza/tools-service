@@ -1,0 +1,14 @@
+/home/rodrigo/development/sun/tools-service/tests/EventEndpoints.test.js
+/home/rodrigo/development/sun/tools-service/tests/FieldProjectionMiddleware.test.js
+/home/rodrigo/development/sun/tools-service/tests/FinanceEndpoints.test.js
+/home/rodrigo/development/sun/tools-service/tests/HealthDrugEndpoints.test.js
+/home/rodrigo/development/sun/tools-service/tests/KnowledgeEndpoints.test.js
+/home/rodrigo/development/sun/tools-service/tests/MarketEndpoints.test.js
+/home/rodrigo/development/sun/tools-service/tests/NutritionEndpoints.test.js
+/home/rodrigo/development/sun/tools-service/tests/ProductEndpoints.test.js
+/home/rodrigo/development/sun/tools-service/tests/StaticDatasetEndpoints.test.js
+/home/rodrigo/development/sun/tools-service/tests/TransitAndHealthEndpoints.test.js
+/home/rodrigo/development/sun/tools-service/tests/TrendEndpoints.test.js
+/home/rodrigo/development/sun/tools-service/tests/UtilityEndpoints.test.js
+/home/rodrigo/development/sun/tools-service/tests/WeatherEndpoints.test.js
+/home/rodrigo/development/sun/tools-service/tests/WebExtractionEndpoints.test.js

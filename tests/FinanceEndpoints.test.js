@@ -1,108 +1,78 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
-import { BASE_URL } from "./helpers.js";
+import request from "supertest";
+import { createTestApp } from "./testApp.js";
+import financeRoutes from "../routes/FinanceRoutes.js";
 
-// ─── Integration Tests for Finance Domain Cached Endpoints ──────
+// ─── Unit Tests for Finance Domain Endpoints ────────────────────
 //
-// These tests hit the live tools-api server on localhost:5590.
-// They validate response shapes for /finance/* endpoints
-// including polled (market news, earnings) and on-demand
-// (quote, profile, recommendation, financials, FRED macro).
+// Uses supertest to mount FinanceRoutes in-process.
+// Cache-backed endpoints return empty defaults. Tests validate
+// route logic, validation, and response shapes.
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = `${BASE_URL}/finance`;
+const app = createTestApp("/finance", financeRoutes);
 
-async function fetchJson(path) {
-  const res = await fetch(`${BASE}${path}`);
-  return { status: res.status, data: await res.json() };
-}
-
-// ─── /finance/news (polled cache) ──────────────────────────────────
+// ─── /finance/news (cached poll) ──────────────────────────────────
 
 describe("GET /finance/news", () => {
   it("returns cached market news articles", async () => {
-    const { status, data } = await fetchJson("/news");
-    assert.equal(status, 200);
-    assert.ok(typeof data.count === "number", "has count");
-    assert.ok(Array.isArray(data.articles), "has articles array");
+    const res = await request(app).get("/finance/news");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect(Array.isArray(res.body.articles)).toBeTruthy();
   });
 });
 
-// ─── /finance/earnings (polled cache) ──────────────────────────────
+// ─── /finance/earnings (cached poll) ──────────────────────────────
 
 describe("GET /finance/earnings", () => {
   it("returns cached earnings calendar", async () => {
-    const { status, data } = await fetchJson("/earnings");
-    assert.equal(status, 200);
-    assert.ok(typeof data.count === "number", "has count");
-    assert.ok(Array.isArray(data.earnings), "has earnings array");
+    const res = await request(app).get("/finance/earnings");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect(Array.isArray(res.body.earnings)).toBeTruthy();
   });
 });
 
-// ─── /finance/quote/:symbol (on-demand + TTL cache) ────────────────
-
-describe("GET /finance/quote/:symbol", () => {
-  it("returns a stock quote for AAPL", async () => {
-    const { status, data } = await fetchJson("/quote/AAPL");
-    assert.equal(status, 200);
-    assert.equal(data.symbol, "AAPL");
-    // Should have quote data fields
-    assert.ok("cached" in data, "indicates cache hit/miss");
-  });
-});
-
-// ─── /finance/profile/:symbol (on-demand + TTL cache) ──────────────
-
-describe("GET /finance/profile/:symbol", () => {
-  it("returns a company profile for AAPL", async () => {
-    const { status, data } = await fetchJson("/profile/AAPL");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns an object");
-  });
-});
-
-// ─── /finance/recommendation/:symbol (on-demand + TTL cache) ───────
-
-describe("GET /finance/recommendation/:symbol", () => {
-  it("returns analyst recommendations for AAPL", async () => {
-    const { status, data } = await fetchJson("/recommendation/AAPL");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-// ─── /finance/financials/:symbol (on-demand + TTL cache) ───────────
-
-describe("GET /finance/financials/:symbol", () => {
-  it("returns basic financials for AAPL", async () => {
-    const { status, data } = await fetchJson("/financials/AAPL");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-// ─── /finance/macro/indicators (FRED on-demand) ────────────────────
-
-describe("GET /finance/macro/indicators", () => {
-  it("returns key macroeconomic indicators", async () => {
-    const { status, data } = await fetchJson("/macro/indicators");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-// ─── /finance/macro/search (FRED on-demand) ────────────────────────
+// ─── /finance/macro/search ────────────────────────────────────────
 
 describe("GET /finance/macro/search", () => {
   it("returns 400 when q is missing", async () => {
-    const { status, data } = await fetchJson("/macro/search");
-    assert.equal(status, 400);
-    assert.ok(data.error, "has error message");
+    const res = await request(app).get("/finance/macro/search");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+// ─── /finance/stock/data (unified dispatcher) ──────────────────────
+
+describe("GET /finance/stock/data", () => {
+  it("returns 400 when action/symbol are missing", async () => {
+    const res = await request(app).get("/finance/stock/data");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+    expect(Array.isArray(res.body.actions)).toBeTruthy();
   });
 
-  it("returns FRED series results for GDP", async () => {
-    const { status, data } = await fetchJson("/macro/search?q=GDP&limit=3");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+  it("returns 400 for unknown action", async () => {
+    const res = await request(app).get("/finance/stock/data?action=invalid_xyz&symbol=AAPL");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+// ─── /finance/macro/data (unified dispatcher) ──────────────────────
+
+describe("GET /finance/macro/data", () => {
+  it("returns 400 when action is missing", async () => {
+    const res = await request(app).get("/finance/macro/data");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+    expect(Array.isArray(res.body.actions)).toBeTruthy();
+  });
+
+  it("returns 400 for unknown action", async () => {
+    const res = await request(app).get("/finance/macro/data?action=invalid_xyz");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 });

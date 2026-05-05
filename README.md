@@ -584,6 +584,3 @@ tools-api/
 | `npm run format`       | Format all files with Prettier           |
 | `npm run format:check` | Check formatting                         |
 
-## ☀️ Part of [Sun](https://github.com/rodrigo-barraza)
-
-Tools API is one service in a collection of composable backend services and frontends by Rodrigo Barraza.

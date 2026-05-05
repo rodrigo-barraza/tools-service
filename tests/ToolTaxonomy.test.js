@@ -1,6 +1,3 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
-
 // ────────────────────────────────────────────────────────────
 // Tool Taxonomy Integrity Tests
 // ────────────────────────────────────────────────────────────
@@ -29,47 +26,33 @@ const labelKeys = new Set(Object.keys(TOOL_LABELS));
 describe("Tool Schema — structural integrity", () => {
   it("every schema has a non-empty name", () => {
     for (const s of TOOL_DEFINITIONS) {
-      assert.ok(
-        s.name && typeof s.name === "string",
-        `Schema missing name: ${JSON.stringify(s).slice(0, 80)}`,
-      );
+              expect(s.name && typeof s.name === "string").toBeTruthy();
     }
   });
 
   it("every schema has a non-empty description", () => {
     for (const s of TOOL_DEFINITIONS) {
-      assert.ok(
-        s.description && typeof s.description === "string",
-        `Tool "${s.name}" missing description`,
-      );
+              expect(s.description && typeof s.description === "string").toBeTruthy();
     }
   });
 
   it("every schema has a parameters object with type 'object'", () => {
     for (const s of TOOL_DEFINITIONS) {
-      assert.ok(s.parameters, `Tool "${s.name}" missing parameters`);
-      assert.equal(
-        s.parameters.type,
-        "object",
-        `Tool "${s.name}" parameters.type should be "object"`,
-      );
+      expect(s.parameters, `Tool "${s.name}" missing parameters`).toBeTruthy();
+              expect(s.parameters.type).toBe("object");
     }
   });
 
   it("every schema has a properties object in parameters", () => {
     for (const s of TOOL_DEFINITIONS) {
-      assert.ok(
-        s.parameters.properties &&
-          typeof s.parameters.properties === "object",
-        `Tool "${s.name}" missing parameters.properties`,
-      );
+              expect(s.parameters.properties && typeof s.parameters.properties === "object").toBeTruthy();
     }
   });
 
   it("schema names are unique (no duplicates)", () => {
     const seen = new Set();
     for (const s of TOOL_DEFINITIONS) {
-      assert.ok(!seen.has(s.name), `Duplicate schema name: "${s.name}"`);
+      expect(seen.has(s.name)).toBe(false);
       seen.add(s.name);
     }
   });
@@ -83,11 +66,7 @@ describe("Tool Taxonomy — domain coverage", () => {
     for (const name of schemaNames) {
       if (!domainKeys.has(name)) missing.push(name);
     }
-    assert.equal(
-      missing.length,
-      0,
-      `Tools missing from TOOL_DOMAINS:\n  ${missing.join("\n  ")}`,
-    );
+          expect(missing.length).toBe(0);
   });
 
   it("TOOL_DOMAINS has no orphan entries without a matching schema (diagnostic)", () => {
@@ -101,15 +80,12 @@ describe("Tool Taxonomy — domain coverage", () => {
         `  ⚠  ${orphans.length} TOOL_DOMAINS entries without schemas (likely API-gated): ${orphans.join(", ")}`,
       );
     }
-    assert.ok(true, "Orphan domains are informational only");
+    expect(true).toBeTruthy();
   });
 
   it("every domain value is a non-empty string", () => {
     for (const [tool, domain] of Object.entries(TOOL_DOMAINS)) {
-      assert.ok(
-        domain && typeof domain === "string",
-        `Tool "${tool}" has invalid domain: ${domain}`,
-      );
+              expect(domain && typeof domain === "string").toBeTruthy();
     }
   });
 });
@@ -122,11 +98,7 @@ describe("Tool Taxonomy — label coverage", () => {
     for (const name of schemaNames) {
       if (!labelKeys.has(name)) missing.push(name);
     }
-    assert.equal(
-      missing.length,
-      0,
-      `Tools missing from TOOL_LABELS:\n  ${missing.join("\n  ")}`,
-    );
+          expect(missing.length).toBe(0);
   });
 
   it("TOOL_LABELS has no orphan entries without a matching schema (diagnostic)", () => {
@@ -140,20 +112,14 @@ describe("Tool Taxonomy — label coverage", () => {
         `  ⚠  ${orphans.length} TOOL_LABELS entries without schemas (likely API-gated): ${orphans.join(", ")}`,
       );
     }
-    assert.ok(true, "Orphan labels are informational only");
+    expect(true).toBeTruthy();
   });
 
   it("every label value is a non-empty array of strings", () => {
     for (const [tool, labels] of Object.entries(TOOL_LABELS)) {
-      assert.ok(
-        Array.isArray(labels) && labels.length > 0,
-        `Tool "${tool}" has invalid labels: ${JSON.stringify(labels)}`,
-      );
+              expect(Array.isArray(labels) && labels.length > 0).toBeTruthy();
       for (const l of labels) {
-        assert.ok(
-          typeof l === "string" && l.length > 0,
-          `Tool "${tool}" has non-string label: ${l}`,
-        );
+                  expect(typeof l === "string" && l.length > 0).toBeTruthy();
       }
     }
   });
@@ -177,7 +143,7 @@ describe("Tool Taxonomy — bidirectional consistency", () => {
         `In TOOL_LABELS but not TOOL_DOMAINS:\n  ${onlyInLabels.join("\n  ")}`,
       );
     }
-    assert.equal(messages.length, 0, messages.join("\n\n"));
+    expect(messages.length).toBe(0, messages.join("\n\n"));
   });
 
   it("every schema key exists in both TOOL_DOMAINS and TOOL_LABELS", () => {
@@ -195,7 +161,7 @@ describe("Tool Taxonomy — bidirectional consistency", () => {
         `Schemas missing from TOOL_LABELS:\n  ${missingLabels.join("\n  ")}`,
       );
     }
-    assert.equal(messages.length, 0, messages.join("\n\n"));
+    expect(messages.length).toBe(0, messages.join("\n\n"));
   });
 });
 
@@ -207,10 +173,7 @@ describe("Tool Schema — parameter validation", () => {
       const required = s.parameters.required || [];
       const props = Object.keys(s.parameters.properties || {});
       for (const r of required) {
-        assert.ok(
-          props.includes(r),
-          `Tool "${s.name}" requires "${r}" but it's not in properties: [${props.join(", ")}]`,
-        );
+                  expect(props.includes(r)).toBeTruthy();
       }
     }
   });
@@ -221,10 +184,7 @@ describe("Tool Schema — parameter validation", () => {
         s.parameters.properties || {},
       )) {
         const hasType = propDef.type || propDef.enum;
-        assert.ok(
-          hasType,
-          `Tool "${s.name}" property "${propName}" missing type and enum`,
-        );
+                  expect(hasType).toBeTruthy();
       }
     }
   });
@@ -252,7 +212,7 @@ describe("ToolTaxonomyConstants — registry alignment", () => {
         `  ⚠  ${missing.length} LABELS constants not used in any TOOL_LABELS entry: ${missing.join(", ")}`,
       );
     }
-    assert.ok(true, "Unused LABELS constants are informational");
+    expect(true).toBeTruthy();
   });
 
   it("every DOMAINS constant appears in at least one TOOL_DOMAINS entry", () => {
@@ -265,26 +225,18 @@ describe("ToolTaxonomyConstants — registry alignment", () => {
         `  ⚠  ${missing.length} DOMAINS constants not used in any TOOL_DOMAINS entry: ${missing.join(", ")}`,
       );
     }
-    assert.ok(true, "Unused DOMAINS constants are informational");
+    expect(true).toBeTruthy();
   });
 
   it("every label value used in TOOL_LABELS has a LABELS constant", () => {
     const constantValues = new Set(Object.values(LABELS));
     const missing = [...usedLabels].filter((l) => !constantValues.has(l));
-    assert.equal(
-      missing.length,
-      0,
-      `Label values in TOOL_LABELS missing from LABELS constants:\n  ${missing.join("\n  ")}`,
-    );
+          expect(missing.length).toBe(0);
   });
 
   it("every domain value used in TOOL_DOMAINS has a DOMAINS constant", () => {
     const constantValues = new Set(Object.values(DOMAINS));
     const missing = [...usedDomains].filter((d) => !constantValues.has(d));
-    assert.equal(
-      missing.length,
-      0,
-      `Domain values in TOOL_DOMAINS missing from DOMAINS constants:\n  ${missing.join("\n  ")}`,
-    );
+          expect(missing.length).toBe(0);
   });
 });

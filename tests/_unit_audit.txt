@@ -1,0 +1,3 @@
+/home/rodrigo/development/sun/tools-service/tests/FieldProjectionMiddleware.test.js
+/home/rodrigo/development/sun/tools-service/tests/NutritionFetcher.test.js
+/home/rodrigo/development/sun/tools-service/tests/ToolTaxonomy.test.js

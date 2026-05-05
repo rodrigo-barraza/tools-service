@@ -1,118 +1,94 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
-import { BASE_URL } from "./helpers.js";
+import request from "supertest";
+import { createTestApp } from "./testApp.js";
+import healthRoutes from "../routes/HealthRoutes.js";
 
-// ─── Integration Tests for Health Domain Endpoints ──────────────
+// ─── Unit Tests for Health/Drug Endpoints ───────────────────────
 //
-// These tests hit the live tools-api server on localhost:5590.
-// They validate response shapes for /health/* endpoints
-// EXCLUDING nutrition (covered by NutritionEndpoints.test.js).
-// Covers: openFDA drugs, FDA NDC drugs.
+// Uses supertest to mount HealthRoutes in-process.
+// FDA NDC drug endpoints use in-memory CSV data.
+// openFDA endpoints (drugs/search, drugs/adverse-events,
+// drugs/recalls) hit external APIs — only validation tested.
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = `${BASE_URL}/health`;
+const app = createTestApp("/health", healthRoutes);
 
-async function fetchJson(path) {
-  const res = await fetch(`${BASE}${path}`);
-  return { status: res.status, data: await res.json() };
-}
+// ═══════════════════════════════════════════════════════════════════
+//  openFDA — validation-only (external API)
+// ═══════════════════════════════════════════════════════════════════
 
-// ─── /health/drugs/search (openFDA) ────────────────────────────────
-
-describe("GET /health/drugs/search", () => {
+describe("GET /health/drugs/search (validation)", () => {
   it("returns 400 when q is missing", async () => {
-    const { status, data } = await fetchJson("/drugs/search");
-    assert.equal(status, 400);
-    assert.ok(data.error);
-  });
-
-  it("returns drug label results", async () => {
-    const { status, data } = await fetchJson("/drugs/search?q=aspirin&limit=3");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/health/drugs/search");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 });
 
-// ─── /health/drugs/adverse-events (openFDA) ────────────────────────
-
-describe("GET /health/drugs/adverse-events", () => {
+describe("GET /health/drugs/adverse-events (validation)", () => {
   it("returns 400 when drug is missing", async () => {
-    const { status, data } = await fetchJson("/drugs/adverse-events");
-    assert.equal(status, 400);
-    assert.ok(data.error);
-  });
-
-  it("returns adverse event data", async () => {
-    const { status, data } = await fetchJson("/drugs/adverse-events?drug=aspirin&limit=3");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/health/drugs/adverse-events");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 });
 
-// ─── /health/drugs/recalls (openFDA) ───────────────────────────────
-
-describe("GET /health/drugs/recalls", () => {
-  it("returns drug recall data", async () => {
-    const { status, data } = await fetchJson("/drugs/recalls?limit=3");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
-  });
-});
-
-// ─── /health/drugs/ndc/search (in-memory FDA NDC) ──────────────────
+// ═══════════════════════════════════════════════════════════════════
+//  FDA NDC — in-memory CSV data
+// ═══════════════════════════════════════════════════════════════════
 
 describe("GET /health/drugs/ndc/search", () => {
   it("returns 400 when q is missing", async () => {
-    const { status, data } = await fetchJson("/drugs/ndc/search");
-    assert.equal(status, 400);
-    assert.ok(data.error);
+    const res = await request(app).get("/health/drugs/ndc/search");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 
   it("returns NDC drug search results", async () => {
-    const { status, data } = await fetchJson("/drugs/ndc/search?q=ibuprofen&limit=5");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/health/drugs/ndc/search?q=ibuprofen&limit=5");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect(res.body.count > 0).toBeTruthy();
+    expect(Array.isArray(res.body.drugs)).toBeTruthy();
+    expect(res.body.drugs[0].genericName || res.body.drugs[0].brandName).toBeTruthy();
   });
 });
-
-// ─── /health/drugs/ndc/dosage-forms ────────────────────────────────
 
 describe("GET /health/drugs/ndc/dosage-forms", () => {
   it("returns available dosage forms", async () => {
-    const { status, data } = await fetchJson("/drugs/ndc/dosage-forms");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/health/drugs/ndc/dosage-forms");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.totalProducts === "number").toBeTruthy();
+    expect(res.body.totalProducts > 0).toBeTruthy();
+    expect(Array.isArray(res.body.dosageForms)).toBeTruthy();
   });
 });
-
-// ─── /health/drugs/ndc/ingredient ──────────────────────────────────
 
 describe("GET /health/drugs/ndc/ingredient", () => {
   it("returns 400 when q is missing", async () => {
-    const { status, data } = await fetchJson("/drugs/ndc/ingredient");
-    assert.equal(status, 400);
-    assert.ok(data.error);
+    const res = await request(app).get("/health/drugs/ndc/ingredient");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 
   it("returns drugs by ingredient", async () => {
-    const { status, data } = await fetchJson("/drugs/ndc/ingredient?q=acetaminophen&limit=5");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/health/drugs/ndc/ingredient?q=acetaminophen&limit=5");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect(Array.isArray(res.body.drugs)).toBeTruthy();
   });
 });
 
-// ─── /health/drugs/ndc/pharm-class ─────────────────────────────────
-
 describe("GET /health/drugs/ndc/pharm-class", () => {
   it("returns 400 when q is missing", async () => {
-    const { status, data } = await fetchJson("/drugs/ndc/pharm-class");
-    assert.equal(status, 400);
-    assert.ok(data.error);
+    const res = await request(app).get("/health/drugs/ndc/pharm-class");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 
   it("returns drugs by pharmacological class", async () => {
-    const { status, data } = await fetchJson("/drugs/ndc/pharm-class?q=analgesic&limit=5");
-    assert.equal(status, 200);
-    assert.ok(typeof data === "object", "returns data");
+    const res = await request(app).get("/health/drugs/ndc/pharm-class?q=analgesic&limit=5");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect(Array.isArray(res.body.drugs)).toBeTruthy();
   });
 });

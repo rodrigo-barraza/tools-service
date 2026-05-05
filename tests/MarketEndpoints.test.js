@@ -1,28 +1,24 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
-import { BASE_URL } from "./helpers.js";
+import request from "supertest";
+import { createTestApp } from "./testApp.js";
+import marketRoutes from "../routes/MarketRoutes.js";
 
-// ─── Integration Tests for Market Domain Cached Endpoints ───────
+// ─── Unit Tests for Market Domain Endpoints ─────────────────────
 //
-// These tests hit the live tools-api server on localhost:5590.
-// They validate response shapes for all /market/* commodity
-// endpoints (all cached/polled).
+// Uses supertest to mount the MarketRoutes router in-process.
+// CommodityCache functions return empty/default data when no
+// collector has run — tests validate route logic, status codes,
+// and response shapes without requiring a live server.
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = `${BASE_URL}/market`;
-
-async function fetchJson(path) {
-  const res = await fetch(`${BASE}${path}`);
-  return { status: res.status, data: await res.json() };
-}
+const app = createTestApp("/market", marketRoutes);
 
 // ─── /market/commodities ───────────────────────────────────────────
 
 describe("GET /market/commodities", () => {
-  it("returns all commodity quotes as an array", async () => {
-    const { status, data } = await fetchJson("/commodities");
-    assert.equal(status, 200);
-    assert.ok(Array.isArray(data), "response is an array");
+  it("returns commodity quotes as an array", async () => {
+    const res = await request(app).get("/market/commodities");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBeTruthy();
   });
 });
 
@@ -30,15 +26,10 @@ describe("GET /market/commodities", () => {
 
 describe("GET /market/commodities/summary", () => {
   it("returns commodity market summary", async () => {
-    const { status, data } = await fetchJson("/commodities/summary");
-    assert.equal(status, 200);
-    assert.ok(typeof data.total === "number", "has total");
-    assert.ok("lastFetch" in data, "has lastFetch");
-    if (data.total > 0) {
-      assert.ok(Array.isArray(data.gainers), "has gainers array");
-      assert.ok(Array.isArray(data.losers), "has losers array");
-      assert.ok(typeof data.byCategory === "object", "has byCategory");
-    }
+    const res = await request(app).get("/market/commodities/summary");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.total === "number").toBeTruthy();
+    expect("lastFetch" in res.body).toBeTruthy();
   });
 });
 
@@ -46,52 +37,59 @@ describe("GET /market/commodities/summary", () => {
 
 describe("GET /market/commodities/categories", () => {
   it("returns list of valid categories", async () => {
-    const { status, data } = await fetchJson("/commodities/categories");
-    assert.equal(status, 200);
-    assert.ok(Array.isArray(data), "response is an array");
-    assert.ok(data.length > 0, "has at least one category");
+    const res = await request(app).get("/market/commodities/categories");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBeTruthy();
+    expect(res.body.length > 0).toBeTruthy();
   });
 });
 
 // ─── /market/commodities/category/:category ────────────────────────
 
 describe("GET /market/commodities/category/:category", () => {
-  it("returns commodities filtered by a valid category", async () => {
-    // First get the valid categories
-    const { data: categories } = await fetchJson("/commodities/categories");
-    if (categories.length > 0) {
-      const cat = categories[0];
-      const { status, data } = await fetchJson(`/commodities/category/${cat}`);
-      assert.equal(status, 200);
-      assert.ok(Array.isArray(data), "response is an array");
-    }
-  });
-
   it("returns 400 for invalid category", async () => {
-    const { status, data } = await fetchJson("/commodities/category/invalid_xyz");
-    assert.equal(status, 400);
-    assert.ok(data.error, "has error message");
+    const res = await request(app).get("/market/commodities/category/invalid_xyz");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 });
 
 // ─── /market/commodities/ticker/:ticker ────────────────────────────
 
 describe("GET /market/commodities/ticker/:ticker", () => {
-  it("returns a single commodity by ticker (GC=F for gold)", async () => {
-    const { status, data } = await fetchJson("/commodities/ticker/GC=F");
-    // Could be 200 or 404 depending on whether gold is tracked
-    if (status === 200) {
-      assert.ok(data.ticker, "has ticker");
-      assert.ok(data.name, "has name");
-    } else {
-      assert.equal(status, 404);
-      assert.ok(data.error, "has error message");
-    }
+  it("returns 404 for nonexistent ticker", async () => {
+    const res = await request(app).get("/market/commodities/ticker/NOTREAL99");
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBeTruthy();
+  });
+});
+
+// ─── /market/commodities/data (unified dispatcher) ─────────────────
+
+describe("GET /market/commodities/data", () => {
+  it("returns 400 when action is missing", async () => {
+    const res = await request(app).get("/market/commodities/data");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+    expect(Array.isArray(res.body.actions)).toBeTruthy();
   });
 
-  it("returns 404 for nonexistent ticker", async () => {
-    const { status, data } = await fetchJson("/commodities/ticker/NOTREAL99");
-    assert.equal(status, 404);
-    assert.ok(data.error, "has error message");
+  it("returns summary for action=summary", async () => {
+    const res = await request(app).get("/market/commodities/data?action=summary");
+    expect(res.status).toBe(200);
+    expect(res.body.action).toBe("summary");
+  });
+
+  it("returns categories for action=categories", async () => {
+    const res = await request(app).get("/market/commodities/data?action=categories");
+    expect(res.status).toBe(200);
+    expect(res.body.action).toBe("categories");
+    expect(Array.isArray(res.body.categories)).toBeTruthy();
+  });
+
+  it("returns 400 for unknown action", async () => {
+    const res = await request(app).get("/market/commodities/data?action=invalid_xyz");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 });

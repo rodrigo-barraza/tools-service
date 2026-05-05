@@ -1,30 +1,25 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
-import { BASE_URL } from "./helpers.js";
+import request from "supertest";
+import { createTestApp } from "./testApp.js";
+import trendRoutes from "../routes/TrendRoutes.js";
 
-// ─── Integration Tests for Trend Domain Cached Endpoints ────────
+// ─── Unit Tests for Trend Domain Endpoints ──────────────────────
 //
-// These tests hit the live tools-api server on localhost:5590.
-// They validate response shapes for all /trend/* endpoints
-// (cached trend listings, correlated hot trends, and searches).
+// Uses supertest to mount TrendRoutes in-process.
+// TrendCache returns empty defaults when no collector has run —
+// tests validate route logic, status codes, and response shapes.
 // ─────────────────────────────────────────────────────────────────
 
-const BASE = `${BASE_URL}/trend`;
-
-async function fetchJson(path) {
-  const res = await fetch(`${BASE}${path}`);
-  return { status: res.status, data: await res.json() };
-}
+const app = createTestApp("/trend", trendRoutes);
 
 // ─── /trend/trends ─────────────────────────────────────────────────
 
 describe("GET /trend/trends", () => {
-  it("returns all cached trends across sources", async () => {
-    const { status, data } = await fetchJson("/trends");
-    assert.equal(status, 200);
-    assert.ok(typeof data.count === "number", "has count");
-    assert.ok(typeof data.sources === "object", "has sources summary");
-    assert.ok(Array.isArray(data.trends), "has trends array");
+  it("returns all cached trends", async () => {
+    const res = await request(app).get("/trend/trends");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect(typeof res.body.sources === "object").toBeTruthy();
+    expect(Array.isArray(res.body.trends)).toBeTruthy();
   });
 });
 
@@ -32,33 +27,28 @@ describe("GET /trend/trends", () => {
 
 describe("GET /trend/trends/hot", () => {
   it("returns cross-source correlated trends", async () => {
-    const { status, data } = await fetchJson("/trends/hot");
-    assert.equal(status, 200);
-    assert.ok(typeof data.count === "number", "has count");
-    assert.ok(Array.isArray(data.trends), "has trends array");
-    // Each correlated trend should have sourceCount >= 2
-    for (const t of data.trends) {
-      assert.ok(t.sourceCount >= 2, `sourceCount >= 2 for "${t.name}"`);
-      assert.ok(Array.isArray(t.sources), "has sources array");
-    }
+    const res = await request(app).get("/trend/trends/hot");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect(Array.isArray(res.body.trends)).toBeTruthy();
   });
 });
 
 // ─── /trend/trends/source/:source ──────────────────────────────────
 
 describe("GET /trend/trends/source/:source", () => {
-  it("returns trends for a specific source (reddit)", async () => {
-    const { status, data } = await fetchJson("/trends/source/reddit");
-    assert.equal(status, 200);
-    assert.ok(typeof data.count === "number", "has count");
-    assert.equal(data.source, "reddit", "echoes source");
-    assert.ok(Array.isArray(data.trends), "has trends array");
+  it("returns trends for a specific source", async () => {
+    const res = await request(app).get("/trend/trends/source/reddit");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect(res.body.source).toBe("reddit", "echoes source");
+    expect(Array.isArray(res.body.trends)).toBeTruthy();
   });
 
   it("returns empty for unknown source", async () => {
-    const { data } = await fetchJson("/trends/source/nonexistent_xyz");
-    assert.equal(data.count, 0);
-    assert.deepEqual(data.trends, []);
+    const res = await request(app).get("/trend/trends/source/nonexistent_xyz");
+    expect(res.body.count).toBe(0);
+    expect(res.body.trends).toEqual([]);
   });
 });
 
@@ -66,11 +56,11 @@ describe("GET /trend/trends/source/:source", () => {
 
 describe("GET /trend/trends/category/:category", () => {
   it("returns trends filtered by category", async () => {
-    const { status, data } = await fetchJson("/trends/category/news");
-    assert.equal(status, 200);
-    assert.ok(typeof data.count === "number", "has count");
-    assert.equal(data.category, "news", "echoes category");
-    assert.ok(Array.isArray(data.trends), "has trends array");
+    const res = await request(app).get("/trend/trends/category/news");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect(res.body.category).toBe("news", "echoes category");
+    expect(Array.isArray(res.body.trends)).toBeTruthy();
   });
 });
 
@@ -78,16 +68,45 @@ describe("GET /trend/trends/category/:category", () => {
 
 describe("GET /trend/trends/search", () => {
   it("returns 400 when q is missing", async () => {
-    const { status, data } = await fetchJson("/trends/search");
-    assert.equal(status, 400);
-    assert.ok(data.error, "has error message");
+    const res = await request(app).get("/trend/trends/search");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 
   it("returns search results for a query", async () => {
-    const { status, data } = await fetchJson("/trends/search?q=tech");
-    assert.equal(status, 200);
-    assert.ok(typeof data.count === "number", "has count");
-    assert.equal(data.query, "tech", "echoes query");
-    assert.ok(Array.isArray(data.trends), "has trends array");
+    const res = await request(app).get("/trend/trends/search?q=tech");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.count === "number").toBeTruthy();
+    expect(res.body.query).toBe("tech", "echoes query");
+    expect(Array.isArray(res.body.trends)).toBeTruthy();
+  });
+});
+
+// ─── /trend/data (unified dispatcher) ──────────────────────────────
+
+describe("GET /trend/data", () => {
+  it("returns 400 when action is missing", async () => {
+    const res = await request(app).get("/trend/data");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
+    expect(Array.isArray(res.body.actions)).toBeTruthy();
+  });
+
+  it("returns current for action=current", async () => {
+    const res = await request(app).get("/trend/data?action=current");
+    expect(res.status).toBe(200);
+    expect(res.body.action).toBe("current");
+  });
+
+  it("returns hot for action=hot", async () => {
+    const res = await request(app).get("/trend/data?action=hot");
+    expect(res.status).toBe(200);
+    expect(res.body.action).toBe("hot");
+  });
+
+  it("returns 400 for unknown action", async () => {
+    const res = await request(app).get("/trend/data?action=invalid_xyz");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeTruthy();
   });
 });

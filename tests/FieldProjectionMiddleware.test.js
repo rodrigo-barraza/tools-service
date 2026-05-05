@@ -1,5 +1,3 @@
-import { describe, it, before, after } from "node:test";
-import assert from "node:assert/strict";
 import express from "express";
 import { fieldProjectionMiddleware } from "../middleware/FieldProjectionMiddleware.js";
 
@@ -91,7 +89,7 @@ const MOCK_PRODUCTS = {
 let server;
 let baseUrl;
 
-before(async () => {
+beforeAll(async () => {
   const app = express();
   app.use(fieldProjectionMiddleware);
 
@@ -108,7 +106,7 @@ before(async () => {
   });
 });
 
-after(() => {
+afterAll(() => {
   server?.close();
 });
 
@@ -122,37 +120,37 @@ async function fetchJson(path) {
 describe("FieldProjection — foods wrapper", () => {
   it("returns full response when no fields param is provided", async () => {
     const data = await fetchJson("/nutrition/search");
-    assert.equal(data.count, 2);
-    assert.equal(data.foods.length, 2);
-    assert.ok(data.foods[0].perHundredGrams.macros);
-    assert.ok(data.foods[0].perHundredGrams.minerals);
-    assert.ok(data.foods[0].perHundredGrams.vitamins);
+    expect(data.count).toBe(2);
+    expect(data.foods.length).toBe(2);
+    expect(data.foods[0].perHundredGrams.macros).toBeTruthy();
+    expect(data.foods[0].perHundredGrams.minerals).toBeTruthy();
+    expect(data.foods[0].perHundredGrams.vitamins).toBeTruthy();
   });
 
   it("projects name only from foods array items", async () => {
     const data = await fetchJson("/nutrition/search?fields=name");
-    assert.equal(data.count, 2, "metadata preserved");
-    assert.equal(data.query, "banana", "metadata preserved");
-    assert.equal(data.foods.length, 2);
-    assert.equal(data.foods[0].name, "banana");
-    assert.equal(data.foods[0].description, undefined, "non-requested field stripped");
-    assert.equal(data.foods[0].kingdom, undefined);
-    assert.equal(data.foods[0].perHundredGrams, undefined);
+    expect(data.count).toBe(2, "metadata preserved");
+    expect(data.query).toBe("banana", "metadata preserved");
+    expect(data.foods.length).toBe(2);
+    expect(data.foods[0].name).toBe("banana");
+    expect(data.foods[0].description).toBe(undefined, "non-requested field stripped");
+    expect(data.foods[0].kingdom).toBe(undefined);
+    expect(data.foods[0].perHundredGrams).toBe(undefined);
   });
 
   it("projects name and nested perHundredGrams.macros", async () => {
     const data = await fetchJson(
       "/nutrition/search?fields=name,perHundredGrams.macros",
     );
-    assert.equal(data.foods.length, 2);
+    expect(data.foods.length).toBe(2);
 
     const food = data.foods[0];
-    assert.equal(food.name, "banana");
-    assert.ok(food.perHundredGrams.macros, "macros included");
-    assert.equal(food.perHundredGrams.macros.calories_kcal, 89);
-    assert.equal(food.perHundredGrams.minerals, undefined, "minerals excluded");
-    assert.equal(food.perHundredGrams.vitamins, undefined, "vitamins excluded");
-    assert.equal(food.description, undefined, "description excluded");
+    expect(food.name).toBe("banana");
+    expect(food.perHundredGrams.macros).toBeTruthy();
+    expect(food.perHundredGrams.macros.calories_kcal).toBe(89);
+    expect(food.perHundredGrams.minerals).toBe(undefined, "minerals excluded");
+    expect(food.perHundredGrams.vitamins).toBe(undefined, "vitamins excluded");
+    expect(food.description).toBe(undefined, "description excluded");
   });
 
   it("projects multiple nested paths", async () => {
@@ -160,10 +158,10 @@ describe("FieldProjection — foods wrapper", () => {
       "/nutrition/search?fields=name,perHundredGrams.macros,perHundredGrams.minerals",
     );
     const food = data.foods[0];
-    assert.equal(food.name, "banana");
-    assert.ok(food.perHundredGrams.macros);
-    assert.ok(food.perHundredGrams.minerals);
-    assert.equal(food.perHundredGrams.vitamins, undefined, "vitamins excluded");
+    expect(food.name).toBe("banana");
+    expect(food.perHundredGrams.macros).toBeTruthy();
+    expect(food.perHundredGrams.minerals).toBeTruthy();
+    expect(food.perHundredGrams.vitamins).toBe(undefined, "vitamins excluded");
   });
 
   it("projects name and description together", async () => {
@@ -171,10 +169,10 @@ describe("FieldProjection — foods wrapper", () => {
       "/nutrition/search?fields=name,description",
     );
     const food = data.foods[0];
-    assert.equal(food.name, "banana");
-    assert.equal(food.description, "Bananas, raw");
-    assert.equal(food.kingdom, undefined);
-    assert.equal(food.perHundredGrams, undefined);
+    expect(food.name).toBe("banana");
+    expect(food.description).toBe("Bananas, raw");
+    expect(food.kingdom).toBe(undefined);
+    expect(food.perHundredGrams).toBe(undefined);
   });
 
   it("projects taxonomy nested fields", async () => {
@@ -182,16 +180,16 @@ describe("FieldProjection — foods wrapper", () => {
       "/nutrition/search?fields=name,taxonomy.genus",
     );
     const food = data.foods[0];
-    assert.equal(food.name, "banana");
-    assert.equal(food.taxonomy.genus, "Musa");
-    assert.equal(food.taxonomy.species, undefined, "species not requested");
+    expect(food.name).toBe("banana");
+    expect(food.taxonomy.genus).toBe("Musa");
+    expect(food.taxonomy.species).toBe(undefined, "species not requested");
   });
 
   it("preserves top-level metadata when projecting foods", async () => {
     const data = await fetchJson("/nutrition/search?fields=name");
-    assert.equal(data.count, 2);
-    assert.equal(data.query, "banana");
-    assert.ok(data.note.includes("100g"));
+    expect(data.count).toBe(2);
+    expect(data.query).toBe("banana");
+    expect(data.note.includes("100g")).toBeTruthy();
   });
 });
 
@@ -200,29 +198,29 @@ describe("FieldProjection — foods wrapper", () => {
 describe("FieldProjection — comparison wrapper", () => {
   it("returns full comparison when no fields param", async () => {
     const data = await fetchJson("/nutrition/compare");
-    assert.equal(data.count, 2);
-    assert.equal(data.comparison.length, 2);
-    assert.ok(data.comparison[0].perHundredGrams.macros);
+    expect(data.count).toBe(2);
+    expect(data.comparison.length).toBe(2);
+    expect(data.comparison[0].perHundredGrams.macros).toBeTruthy();
   });
 
   it("projects name and macros from comparison items", async () => {
     const data = await fetchJson(
       "/nutrition/compare?fields=name,query,perHundredGrams.macros",
     );
-    assert.equal(data.comparison.length, 2);
+    expect(data.comparison.length).toBe(2);
 
     const item = data.comparison[0];
-    assert.equal(item.query, "chicken");
-    assert.equal(item.name, "chicken");
-    assert.ok(item.perHundredGrams.macros);
-    assert.equal(item.perHundredGrams.minerals, undefined, "minerals excluded");
-    assert.equal(item.found, undefined, "found excluded");
+    expect(item.query).toBe("chicken");
+    expect(item.name).toBe("chicken");
+    expect(item.perHundredGrams.macros).toBeTruthy();
+    expect(item.perHundredGrams.minerals).toBe(undefined, "minerals excluded");
+    expect(item.found).toBe(undefined, "found excluded");
   });
 
   it("preserves comparison metadata", async () => {
     const data = await fetchJson("/nutrition/compare?fields=name");
-    assert.equal(data.count, 2);
-    assert.ok(data.note);
+    expect(data.count).toBe(2);
+    expect(data.note).toBeTruthy();
   });
 });
 
@@ -231,18 +229,18 @@ describe("FieldProjection — comparison wrapper", () => {
 describe("FieldProjection — ranked foods wrapper", () => {
   it("projects name and value from ranked foods", async () => {
     const data = await fetchJson("/nutrition/rank?fields=name,value");
-    assert.equal(data.foods.length, 2);
+    expect(data.foods.length).toBe(2);
 
     const food = data.foods[0];
-    assert.equal(food.name, "spirulina");
-    assert.equal(food.value, 57.47);
-    assert.equal(food.kingdom, undefined, "kingdom excluded");
+    expect(food.name).toBe("spirulina");
+    expect(food.value).toBe(57.47);
+    expect(food.kingdom).toBe(undefined, "kingdom excluded");
   });
 
   it("preserves nutrient metadata", async () => {
     const data = await fetchJson("/nutrition/rank?fields=name");
-    assert.equal(data.nutrient, "protein");
-    assert.equal(data.count, 2);
+    expect(data.nutrient).toBe("protein");
+    expect(data.count).toBe(2);
   });
 });
 
@@ -251,20 +249,20 @@ describe("FieldProjection — ranked foods wrapper", () => {
 describe("FieldProjection — internal field stripping", () => {
   it("strips _id and __v from array items without fields param", async () => {
     const data = await fetchJson("/products");
-    assert.equal(data.products.length, 1);
-    assert.equal(data.products[0].name, "Test Product");
-    assert.equal(data.products[0]._id, undefined, "_id should be stripped");
-    assert.equal(data.products[0].__v, undefined, "__v should be stripped");
+    expect(data.products.length).toBe(1);
+    expect(data.products[0].name).toBe("Test Product");
+    expect(data.products[0]._id).toBe(undefined, "_id should be stripped");
+    expect(data.products[0].__v).toBe(undefined, "__v should be stripped");
   });
 
   it("strips _id and __v from array items with fields param", async () => {
     const data = await fetchJson("/products?fields=name,brand");
     const product = data.products[0];
-    assert.equal(product.name, "Test Product");
-    assert.equal(product.brand, "TestBrand");
-    assert.equal(product._id, undefined);
-    assert.equal(product.__v, undefined);
-    assert.equal(product.code, undefined, "non-requested field excluded");
+    expect(product.name).toBe("Test Product");
+    expect(product.brand).toBe("TestBrand");
+    expect(product._id).toBe(undefined);
+    expect(product.__v).toBe(undefined);
+    expect(product.code).toBe(undefined, "non-requested field excluded");
   });
 });
 
@@ -273,32 +271,32 @@ describe("FieldProjection — internal field stripping", () => {
 describe("FieldProjection — edge cases", () => {
   it("handles empty fields gracefully (returns full response)", async () => {
     const data = await fetchJson("/nutrition/search?fields=");
-    assert.equal(data.foods.length, 2);
-    assert.ok(data.foods[0].name);
-    assert.ok(data.foods[0].perHundredGrams);
+    expect(data.foods.length).toBe(2);
+    expect(data.foods[0].name).toBeTruthy();
+    expect(data.foods[0].perHundredGrams).toBeTruthy();
   });
 
   it("handles non-existent field paths gracefully", async () => {
     const data = await fetchJson(
       "/nutrition/search?fields=name,nonExistentField",
     );
-    assert.equal(data.foods[0].name, "banana");
-    assert.equal(data.foods[0].nonExistentField, undefined);
+    expect(data.foods[0].name).toBe("banana");
+    expect(data.foods[0].nonExistentField).toBe(undefined);
   });
 
   it("handles deeply nested non-existent paths", async () => {
     const data = await fetchJson(
       "/nutrition/search?fields=name,perHundredGrams.fake.deep",
     );
-    assert.equal(data.foods[0].name, "banana");
+    expect(data.foods[0].name).toBe("banana");
   });
 
   it("trims whitespace in field names", async () => {
     const data = await fetchJson(
       "/nutrition/search?fields=name%2C%20description",
     );
-    assert.equal(data.foods[0].name, "banana");
-    assert.equal(data.foods[0].description, "Bananas, raw");
+    expect(data.foods[0].name).toBe("banana");
+    expect(data.foods[0].description).toBe("Bananas, raw");
   });
 });
 
@@ -307,62 +305,62 @@ describe("FieldProjection — edge cases", () => {
 describe("FieldProjection — wrapper-prefix dot-notation", () => {
   it("projects foods.name → strips prefix, returns name on each item", async () => {
     const data = await fetchJson("/nutrition/search?fields=foods.name");
-    assert.equal(data.foods.length, 2);
-    assert.equal(data.foods[0].name, "banana");
-    assert.equal(data.foods[0].description, undefined, "description excluded");
-    assert.equal(data.foods[0].kingdom, undefined, "kingdom excluded");
-    assert.equal(data.foods[0].perHundredGrams, undefined, "nutrients excluded");
+    expect(data.foods.length).toBe(2);
+    expect(data.foods[0].name).toBe("banana");
+    expect(data.foods[0].description).toBe(undefined, "description excluded");
+    expect(data.foods[0].kingdom).toBe(undefined, "kingdom excluded");
+    expect(data.foods[0].perHundredGrams).toBe(undefined, "nutrients excluded");
   });
 
   it("projects foods.name,foods.description → multiple wrapper-prefixed fields", async () => {
     const data = await fetchJson(
       "/nutrition/search?fields=foods.name,foods.description",
     );
-    assert.equal(data.foods[0].name, "banana");
-    assert.equal(data.foods[0].description, "Bananas, raw");
-    assert.equal(data.foods[0].kingdom, undefined);
+    expect(data.foods[0].name).toBe("banana");
+    expect(data.foods[0].description).toBe("Bananas, raw");
+    expect(data.foods[0].kingdom).toBe(undefined);
   });
 
   it("projects foods.name,foods.value from ranked results", async () => {
     const data = await fetchJson(
       "/nutrition/rank?fields=foods.name,foods.value",
     );
-    assert.equal(data.foods.length, 2);
-    assert.equal(data.foods[0].name, "spirulina");
-    assert.equal(data.foods[0].value, 57.47);
-    assert.equal(data.foods[0].kingdom, undefined, "kingdom excluded");
+    expect(data.foods.length).toBe(2);
+    expect(data.foods[0].name).toBe("spirulina");
+    expect(data.foods[0].value).toBe(57.47);
+    expect(data.foods[0].kingdom).toBe(undefined, "kingdom excluded");
   });
 
   it("preserves top-level metadata when using wrapper-prefixed fields", async () => {
     const data = await fetchJson(
       "/nutrition/rank?fields=foods.name,foods.value",
     );
-    assert.equal(data.nutrient, "protein");
-    assert.equal(data.count, 2);
-    assert.ok(data.note);
+    expect(data.nutrient).toBe("protein");
+    expect(data.count).toBe(2);
+    expect(data.note).toBeTruthy();
   });
 
   it("mixes wrapper-prefixed and top-level fields", async () => {
     const data = await fetchJson(
       "/nutrition/rank?fields=nutrient,count,foods.name,foods.value",
     );
-    assert.equal(data.nutrient, "protein");
-    assert.equal(data.count, 2);
-    assert.equal(data.foods.length, 2);
-    assert.equal(data.foods[0].name, "spirulina");
-    assert.equal(data.foods[0].value, 57.47);
-    assert.equal(data.foods[0].kingdom, undefined);
+    expect(data.nutrient).toBe("protein");
+    expect(data.count).toBe(2);
+    expect(data.foods.length).toBe(2);
+    expect(data.foods[0].name).toBe("spirulina");
+    expect(data.foods[0].value).toBe(57.47);
+    expect(data.foods[0].kingdom).toBe(undefined);
     // Non-requested top-level metadata should be stripped
-    assert.equal(data.note, undefined, "note not requested");
+    expect(data.note).toBe(undefined, "note not requested");
   });
 
   it("projects wrapper-prefixed nested paths (foods.perHundredGrams.macros)", async () => {
     const data = await fetchJson(
       "/nutrition/search?fields=foods.name,foods.perHundredGrams.macros",
     );
-    assert.equal(data.foods[0].name, "banana");
-    assert.ok(data.foods[0].perHundredGrams.macros, "macros included");
-    assert.equal(data.foods[0].perHundredGrams.minerals, undefined, "minerals excluded");
+    expect(data.foods[0].name).toBe("banana");
+    expect(data.foods[0].perHundredGrams.macros).toBeTruthy();
+    expect(data.foods[0].perHundredGrams.minerals).toBe(undefined, "minerals excluded");
   });
 
   it("bare 'foods' alongside prefixed fields keeps full array unprojected", async () => {
@@ -371,27 +369,27 @@ describe("FieldProjection — wrapper-prefix dot-notation", () => {
     const data = await fetchJson("/nutrition/rank?fields=nutrient,foods");
     // Without wrapper-prefixed fields, "nutrient" is treated as item field
     // and "foods" as the wrapper key — items get projected by "nutrient"
-    assert.equal(data.foods.length, 2);
+    expect(data.foods.length).toBe(2);
     // In this backward-compat mode, items are projected by bare fields
     // The practical use case is with wrapper-prefix:
     const data2 = await fetchJson(
       "/nutrition/rank?fields=nutrient,count,foods.name",
     );
-    assert.equal(data2.nutrient, "protein");
-    assert.equal(data2.count, 2);
-    assert.ok(data2.foods[0].name);
-    assert.equal(data2.foods[0].kingdom, undefined);
+    expect(data2.nutrient).toBe("protein");
+    expect(data2.count).toBe(2);
+    expect(data2.foods[0].name).toBeTruthy();
+    expect(data2.foods[0].kingdom).toBe(undefined);
   });
 
   it("comparison wrapper with prefix: comparison.name,comparison.query", async () => {
     const data = await fetchJson(
       "/nutrition/compare?fields=comparison.name,comparison.query",
     );
-    assert.equal(data.comparison.length, 2);
-    assert.equal(data.comparison[0].query, "chicken");
-    assert.equal(data.comparison[0].name, "chicken");
-    assert.equal(data.comparison[0].found, undefined, "found excluded");
-    assert.equal(data.comparison[0].perHundredGrams, undefined, "nutrients excluded");
+    expect(data.comparison.length).toBe(2);
+    expect(data.comparison[0].query).toBe("chicken");
+    expect(data.comparison[0].name).toBe("chicken");
+    expect(data.comparison[0].found).toBe(undefined, "found excluded");
+    expect(data.comparison[0].perHundredGrams).toBe(undefined, "nutrients excluded");
   });
 });
 
