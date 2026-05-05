@@ -1,11 +1,12 @@
 import { TokenManager } from "@rodrigo-barraza/utilities/node";
+import { normalizeName } from "@rodrigo-barraza/utilities";
 import CONFIG from "../../config.js";
 import {
   TREND_SOURCES as SOURCES,
   REDDIT_SUBREDDITS,
   REDDIT_POSTS_PER_SUBREDDIT,
 } from "../../constants.js";
-import { normalizeName } from "../../utilities.js";
+
 import rateLimiter from "../../services/RateLimiterService.js";
 const redditTokenManager = new TokenManager(async () => {
   const credentials = Buffer.from(
