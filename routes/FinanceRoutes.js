@@ -27,7 +27,6 @@ import {
   searchSeries,
   getKeyIndicators,
 } from "../fetchers/finance/FredFetcher.js";
-import {  } from "../utilities.js";
 const router = Router();
 // ─── Stock Quote (on-demand with 1-min TTL cache) ──────────────────
 router.get("/quote/:symbol", asyncHandler(async (req, res) => {

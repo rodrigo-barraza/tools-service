@@ -21,7 +21,6 @@ import {
   getAvailabilityHealth,
 } from "../caches/BestBuyCAAvailabilityCache.js";
 import { fetchBestBuyCAAvailability } from "../fetchers/product/BestBuyCAAvailabilityFetcher.js";
-import {  } from "../utilities.js";
 const router = Router();
 // ─── Existing Product Routes ───────────────────────────────────────
 router.get("/products", (_req, res) => {

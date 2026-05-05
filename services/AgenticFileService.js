@@ -1,3 +1,4 @@
+import { escapeRegex } from "@rodrigo-barraza/utilities";
 // ============================================================
 // Agentic File Service — Sandboxed File Operations
 // ============================================================
@@ -961,9 +962,7 @@ export async function agenticDeleteFile(filePath) {
 // Helpers
 // ────────────────────────────────────────────────────────────
 
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+// escapeRegex — imported from @rodrigo-barraza/utilities
 
 function globToRegex(glob) {
   // Convert glob pattern to regex

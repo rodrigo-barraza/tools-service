@@ -9,7 +9,6 @@ import {
   getCommodityHealth,
 } from "../caches/CommodityCache.js";
 import { ASSET_CATEGORIES } from "../constants.js";
-import {  } from "../utilities.js";
 const router = Router();
 router.get("/commodities", (_req, res) => {
   res.json(getAllCommodities());

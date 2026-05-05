@@ -79,7 +79,6 @@ import {
   getWarningHealth,
 } from "../caches/EnvironmentCanadaCache.js";
 import { getAvalanche, getAvalancheHealth } from "../caches/AvalancheCache.js";
-import {  } from "../utilities.js";
 const router = Router();
 // ─── Weather ───────────────────────────────────────────────────────
 router.get("/weather", (_req, res) => res.json(getLatest()));

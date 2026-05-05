@@ -13,7 +13,6 @@ import {
   getEventSummary,
   getHealth,
 } from "../caches/EventCache.js";
-import {  } from "../utilities.js";
 const router = Router();
 // ─── Event Endpoints ───────────────────────────────────────────────
 router.get("/today", async (_req, res) => {

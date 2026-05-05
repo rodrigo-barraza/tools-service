@@ -49,7 +49,6 @@ import {
   checkDrugNutrientInteractions,
   getDrugInteractionCategories,
 } from "../fetchers/health/DrugNutrientFetcher.js";
-import {  } from "../utilities.js";
 const router = Router();
 // ─── USDA Nutrition (raw whole foods — in-memory database) ────
 router.get("/nutrition/search", (req, res) => {

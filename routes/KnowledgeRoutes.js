@@ -79,7 +79,6 @@ import {
   getSnapshot as getWaybackSnapshot,
   getSnapshotHistory,
 } from "../fetchers/web/WaybackFetcher.js";
-import {  } from "../utilities.js";
 const router = Router();
 // ─── Dictionary ────────────────────────────────────────────────────
 router.get("/dictionary/:word", asyncHandler(

@@ -1,67 +1,14 @@
 import CONFIG from "./config.js";
-import { USER_AGENTS } from "./constants.js";
+import crypto from "node:crypto";
+import { USER_AGENTS, EPHEMERAL_TTL_MS, EPHEMERAL_MAX_SIZE } from "./constants.js";
 
 // ─── Shared Utilities ──────────────────────────────────────────────
-
-/**
- * Async sleep for rate-limiting.
- * @param {number} ms
- */
-export function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 /**
  * Pick a random user-agent string.
  */
 export function randomUserAgent() {
   return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
-}
-
-/**
- * Safely parse a price string like "$29.99" or "29.99" into a number.
- */
-export function parsePrice(priceStr) {
-  if (!priceStr) return null;
-  const cleaned = String(priceStr).replace(/[^0-9.]/g, "");
-  const num = parseFloat(cleaned);
-  return isNaN(num) ? null : num;
-}
-
-// ─── Text Utilities ────────────────────────────────────────────────
-
-/**
- * Normalize a name/title for deduplication and matching.
- * Strips non-alphanumeric chars, lowercases, collapses whitespace.
- * @param {string} str
- * @returns {string}
- */
-export function normalizeName(str) {
-  if (!str) return "";
-  return str
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, "")
-    .trim()
-    .replace(/\s+/g, " ");
-}
-
-/**
- * Strip HTML tags from a string and decode common HTML entities.
- * @param {string} html
- * @returns {string}
- */
-export function stripHtml(html) {
-  if (!html) return "";
-  return html
-    .replace(/<br\s*\/?>/gi, " ")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 // ─── XML Utilities ─────────────────────────────────────────────────
@@ -106,39 +53,6 @@ export function extractXmlItems(xml, tag) {
   return items;
 }
 
-// ─── Array Utilities ───────────────────────────────────────────────
-
-/**
- * Batch an array into chunks of a given size.
- * @param {Array} array
- * @param {number} size
- * @returns {Array[]}
- */
-export function chunk(array, size) {
-  const chunks = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunks.push(array.slice(i, i + size));
-  }
-  return chunks;
-}
-
-// ─── Route Utilities ───────────────────────────────────────────────
-
-/**
- * Parse an integer query param with a default fallback and optional max clamp.
- * Replaces the repeated `Math.min(parseInt(req.query.X) || default, max)` pattern.
- * @param {string|undefined} value - Raw query string value
- * @param {number} defaultValue
- * @param {number} [max] - Optional upper bound (clamped via Math.min)
- * @returns {number}
- */
-export function parseIntParam(value, defaultValue, max) {
-  if (value == null) return defaultValue;
-  const parsed = parseInt(value, 10);
-  const result = isNaN(parsed) ? defaultValue : parsed;
-  return max != null ? Math.min(result, max) : result;
-}
-
 // ─── Scraping Utilities ────────────────────────────────────────────
 
 /**
@@ -164,43 +78,6 @@ export function buildScraperHeaders(referer) {
   };
   if (referer) headers.Referer = referer;
   return headers;
-}
-
-// ─── OAuth Token Manager ───────────────────────────────────────────
-
-/**
- * Reusable OAuth2 client-credentials token manager with caching.
- * Handles token expiry and automatic refresh.
- */
-export class TokenManager {
-  #token = null;
-  #expiry = 0;
-  #fetchFn;
-
-  /**
-   * @param {Function} fetchFn - Async function that returns { token, expiresInMs }
-   */
-  constructor(fetchFn) {
-    this.#fetchFn = fetchFn;
-  }
-
-  /**
-   * Get a valid token, refreshing if expired.
-   * @returns {Promise<string>}
-   */
-  async getToken() {
-    if (this.#token && Date.now() < this.#expiry) return this.#token;
-    const { token, expiresInMs } = await this.#fetchFn();
-    this.#token = token;
-    this.#expiry = Date.now() + expiresInMs;
-    return this.#token;
-  }
-
-  /** Invalidate the cached token (e.g. on 401). */
-  invalidate() {
-    this.#token = null;
-    this.#expiry = 0;
-  }
 }
 
 // ─── Event Utilities ───────────────────────────────────────────────
@@ -282,59 +159,31 @@ export function computeTrendingScore(product) {
   );
 }
 
-// ─── Route Handler Wrapper ────────────────────────────────────────
+// ─── Agentic Route Handler ────────────────────────────────────
 
 /**
- * Wrap an async route handler with standard error catching.
- * The wrapped function should return the JSON payload (or call res directly for non-standard flows).
+ * Wrap an agentic service call with standard error-status mapping.
+ * Agentic services return `{ error }` objects (not throw). This wrapper
+ * maps "outside allowed"/"blocked" errors to 403, other errors to 400,
+ * and sends the result as JSON on success.
  *
- * @param {Function} fn - (req, res) => Promise<any> — return value is sent as JSON
- * @param {string} label - Error context label (e.g. "Dictionary lookup")
- * @param {number|object} [errorStatusOrOpts=502] - HTTP status on error, or options object
- * @param {number} [errorStatusOrOpts.errorStatus=502] - HTTP status on error
- * @param {HealthTracker} [errorStatusOrOpts.health] - Optional HealthTracker to update
+ * @param {(req: import("express").Request) => Promise<object>} fn
  * @returns {Function} Express middleware
  */
-export function asyncHandler(fn, label, errorStatusOrOpts = 502) {
-  const errorStatus = typeof errorStatusOrOpts === "number" ? errorStatusOrOpts : (errorStatusOrOpts.errorStatus || 502);
-  const health = typeof errorStatusOrOpts === "object" ? errorStatusOrOpts.health : undefined;
+export function agenticHandler(fn) {
   return async (req, res) => {
-    try {
-      const result = await fn(req, res);
-      if (health) health.markSuccess();
-      if (result !== undefined) res.json(result);
-    } catch (err) {
-      if (health) health.markError(err);
-      res.status(errorStatus).json({ error: `${label} failed: ${err.message}` });
+    const result = await fn(req);
+    if (result.error) {
+      const isForbidden =
+        result.error.includes("outside allowed") ||
+        result.error.includes("blocked");
+      return res.status(isForbidden ? 403 : 400).json(result);
     }
+    res.json(result);
   };
 }
 
-// ─── SSE Streaming Helper ─────────────────────────────────────────
-
-/**
- * Set up a Server-Sent Events response with proper headers.
- * Returns a `send(event)` function that serializes objects as SSE data lines.
- * @param {import("express").Response} res
- * @returns {(event: object) => void}
- */
-export function setupStreamingSSE(res) {
-  res.writeHead(200, {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    Connection: "keep-alive",
-    "X-Accel-Buffering": "no",
-  });
-  const send = (event) => {
-    res.write(`data: ${JSON.stringify(event)}\n\n`);
-  };
-  return send;
-}
-
-// ─── Ephemeral Store ──────────────────────────────────────────────
-
-import crypto from "node:crypto";
-import { EPHEMERAL_TTL_MS, EPHEMERAL_MAX_SIZE } from "./constants.js";
+// ─── Ephemeral Store ──────────────────────────────────────────
 
 /**
  * Generic in-memory ephemeral store backed by a Map with automatic
@@ -393,18 +242,6 @@ export class EphemeralStore {
   }
 }
 
-// ─── Date Utilities ───────────────────────────────────────────────
-
-/**
- * Format a Date as an ISO date string (YYYY-MM-DD).
- * Replaces the repeated `date.toISOString().slice(0, 10)` pattern.
- * @param {Date} [date=new Date()] - The date to format
- * @returns {string}
- */
-export function toISODate(date = new Date()) {
-  return date.toISOString().slice(0, 10);
-}
-
 // ─── Local URL Builder ────────────────────────────────────────
 
 /**
@@ -419,47 +256,6 @@ export function buildLocalUrl(routePath, params) {
   if (!params || Object.keys(params).length === 0) return base;
   const qs = new URLSearchParams(params).toString();
   return `${base}?${qs}`;
-}
-
-// ─── Agentic Route Handler ────────────────────────────────────
-
-/**
- * Wrap an agentic service call with standard error-status mapping.
- * Agentic services return `{ error }` objects (not throw). This wrapper
- * maps "outside allowed"/"blocked" errors to 403, other errors to 400,
- * and sends the result as JSON on success.
- *
- * @param {(req: import("express").Request) => Promise<object>} fn
- * @returns {Function} Express middleware
- */
-export function agenticHandler(fn) {
-  return async (req, res) => {
-    const result = await fn(req);
-    if (result.error) {
-      const isForbidden =
-        result.error.includes("outside allowed") ||
-        result.error.includes("blocked");
-      return res.status(isForbidden ? 403 : 400).json(result);
-    }
-    res.json(result);
-  };
-}
-
-// ─── Input Length Validation ──────────────────────────────────
-
-/**
- * Validate that a string value does not exceed a maximum length.
- * Returns an error message string if exceeded, or null if valid.
- * @param {string} value - The string to validate
- * @param {number} maxLength - Maximum allowed length
- * @param {string} label - Human-readable label (e.g. "Code", "Command")
- * @returns {string|null} Error message or null
- */
-export function validateMaxLength(value, maxLength, label) {
-  if (value && value.length > maxLength) {
-    return `${label} exceeds maximum length of ${maxLength.toLocaleString()} characters`;
-  }
-  return null;
 }
 
 // ─── HTML Embed Shell ─────────────────────────────────────────
@@ -511,34 +307,6 @@ ${scripts}
 </body></html>`;
 }
 
-// ─── Health Tracker ───────────────────────────────────────────
-
-/**
- * Reusable health-state tracker for route domains.
- * Replaces the duplicated `const state = { lastChecked, error }` +
- * `getXxxHealth()` + `state.lastChecked = new Date()` pattern
- * found in ClockCrew, Lights, Newgrounds, and Discord routes.
- */
-export class HealthTracker {
-  #state = { lastChecked: null, error: null };
-
-  /** Return a snapshot of the current health state. */
-  getHealth() {
-    return { ...this.#state };
-  }
-
-  /** Mark a successful operation. */
-  markSuccess() {
-    this.#state.lastChecked = new Date();
-    this.#state.error = null;
-  }
-
-  /** Mark a failed operation. */
-  markError(err) {
-    this.#state.error = typeof err === "string" ? err : err.message;
-  }
-}
-
 // ─── Caller Context Extraction ────────────────────────────────
 
 /**
@@ -557,23 +325,3 @@ export function extractCallerContext(req) {
     agentSessionId: req.headers["x-agent-session-id"] || null,
   };
 }
-
-// ─── Lazy Import Factory ──────────────────────────────────────
-
-/**
- * Create a lazy-loading async getter for an ES module.
- * Replaces the duplicated `let mod; async function getMod() { ... }` pattern
- * used 6 times in ComputeRoutes.
- *
- * @param {string} specifier - The import specifier (e.g. "qrcode")
- * @param {(m: any) => any} [extract=m => m.default] - Extractor for the module export
- * @returns {() => Promise<any>}
- */
-export function lazyImport(specifier, extract = (m) => m.default) {
-  let cached;
-  return async () => {
-    if (!cached) cached = extract(await import(specifier));
-    return cached;
-  };
-}
-

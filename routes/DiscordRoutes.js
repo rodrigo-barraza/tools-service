@@ -2,7 +2,6 @@ import { asyncHandler, HealthTracker, setupStreamingSSE } from "@rodrigo-barraza
 import { parseIntParam } from "@rodrigo-barraza/utilities";
 import { Router } from "express";
 import DiscordDataService from "../services/DiscordDataService.js";
-import {  } from "../utilities.js";
 import logger from "../logger.js";
 const router = Router();
 // ─── Health ─────────────────────────────────────────────────────

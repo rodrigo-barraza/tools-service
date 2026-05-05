@@ -14,7 +14,6 @@ import {
   setEarningsError,
 } from "../caches/FinnhubCache.js";
 import { saveState, startCollectorLoop } from "../services/FreshnessService.js";
-import {  } from "../utilities.js";
 // ─── News Collector ────────────────────────────────────────────────
 async function collectMarketNews() {
   try {

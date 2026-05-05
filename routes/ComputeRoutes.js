@@ -1,4 +1,5 @@
 import { setupStreamingSSE, lazyImport } from "@rodrigo-barraza/utilities/node";
+import { validateMaxLength } from "@rodrigo-barraza/utilities";
 // ============================================================
 // Compute Routes — Process-Based Tool Endpoints
 // ============================================================
@@ -20,7 +21,7 @@ import {
 } from "../services/ShellExecutorService.js";
 import { MAX_CODE_LENGTH, MAX_COMMAND_LENGTH } from "../constants.js";
 import crypto from "node:crypto";
-import { EphemeralStore, buildLocalUrl, validateMaxLength, buildEmbedHtml } from "../utilities.js";
+import { EphemeralStore, buildLocalUrl, buildEmbedHtml } from "../utilities.js";
 // ─── Lazy-loaded dependencies ──────────────────────────────────────
 // These are loaded on first use to avoid blocking startup.
 const getConvertUnits = lazyImport("convert-units");

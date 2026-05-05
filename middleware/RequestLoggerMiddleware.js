@@ -1,18 +1,11 @@
 import { performance } from "node:perf_hooks";
+import { formatFileSize } from "@rodrigo-barraza/utilities";
 import logger from "../logger.js";
 import { getDB } from "../db.js";
 
 const COLLECTION = "requests";
 
-/**
- * Format bytes into a human-readable string (B, KB, MB).
- */
-function formatBytes(bytes) {
-  if (bytes === 0) return "0B";
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)}KB`;
-  return `${(bytes / 1048576).toFixed(1)}MB`;
-}
+const formatBytes = (bytes) => formatFileSize(bytes, { compact: true });
 
 /**
  * Express middleware that logs every completed request to:

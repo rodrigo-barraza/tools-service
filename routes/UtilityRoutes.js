@@ -1,4 +1,5 @@
 import { asyncHandler, setupStreamingSSE } from "@rodrigo-barraza/utilities/node";
+import { validateMaxLength } from "@rodrigo-barraza/utilities";
 import { Router } from "express";
 import BigNumber from "bignumber.js";
 import CONFIG from "../config.js";
@@ -33,7 +34,7 @@ import {
   renderChartPng,
 } from "../services/ChartService.js";
 import { MAX_CODE_LENGTH } from "../constants.js";
-import { EphemeralStore, buildLocalUrl, validateMaxLength } from "../utilities.js";
+import { EphemeralStore, buildLocalUrl } from "../utilities.js";
 import { crawlSingleStatic } from "../services/CrawlerService.js";
 const router = Router();
 // ─── Calculator (BigNumber) ────────────────────────────────────────

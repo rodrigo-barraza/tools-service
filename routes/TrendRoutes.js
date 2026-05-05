@@ -13,7 +13,6 @@ import {
   searchTrends,
   getHealth,
 } from "../caches/TrendCache.js";
-import {  } from "../utilities.js";
 const router = Router();
 router.get("/trends", (_req, res) => {
   res.json(getAll());
