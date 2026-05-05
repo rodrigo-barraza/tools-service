@@ -17,7 +17,7 @@ function h(ls, id, metric, val, unit) { add(id, 'human', ls, 'US_DRI', metric, v
 // Human adult helpers (keep backward compat)
 function humanM(id, metric, val, unit) { h('adult_male', id, metric, val, unit); }
 function humanF(id, metric, val, unit) { h('adult_female', id, metric, val, unit); }
-function humanMF(id, metric, valM, valF, unit) { humanM(id, metric, valM, unit); humanF(id, metric, valF, unit); }
+function _humanMF(id, metric, valM, valF, unit) { humanM(id, metric, valM, unit); humanF(id, metric, valF, unit); }
 function humanBoth(id, metric, val, unit) { humanM(id, metric, val, unit); humanF(id, metric, val, unit); }
 
 // Pet helpers

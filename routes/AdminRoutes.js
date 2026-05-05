@@ -21,7 +21,6 @@ import {
   refreshAllowedRoots,
 } from "../services/AgenticFileService.js";
 import { getDB } from "../db.js";
-import {  } from "../utilities.js";
 const router = Router();
 // ─── Path Translation ─────────────────────────────────────────────
 const WORKSPACE_COLLECTION = "workspace_config";
@@ -31,7 +30,7 @@ const WORKSPACE_COLLECTION = "workspace_config";
  * Returns null if the path is not a Windows path.
  */
 function windowsToWslPath(winPath) {
-  const match = winPath.match(/^([A-Za-z]):[\\\/](.*)/);
+  const match = winPath.match(/^([A-Za-z]):[/\\](.*)/);
   if (!match) return null;
   const drive = match[1].toLowerCase();
   const rest = match[2].replace(/\\/g, "/");
@@ -41,7 +40,7 @@ function windowsToWslPath(winPath) {
  * Detect whether a path is Windows-style.
  */
 function isWindowsPath(path) {
-  return /^[A-Za-z]:[\\\/]/.test(path);
+  return /^[A-Za-z]:[/\\]/.test(path);
 }
 /**
  * Resolve a user-supplied path to a WSL-native absolute path.

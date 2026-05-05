@@ -3,13 +3,13 @@ const fs = require('fs');
 const csv = fs.readFileSync('/home/rodrigo/development/sun/digest/database/data/digest_nutrient.csv', 'utf8');
 const lines = csv.split('\n').filter(Boolean);
 
-let aminoAcids = [];
-let carbohydrates = [];
-let fats = [];
-let vitamins = [];
-let minerals = [];
-let sterols = [];
-let other = [];
+const aminoAcids = [];
+const carbohydrates = [];
+const fats = [];
+const vitamins = [];
+const minerals = [];
+const sterols = [];
+const other = [];
 
 // Skip header
 for (let i = 1; i < lines.length; i++) {
@@ -19,7 +19,7 @@ for (let i = 1; i < lines.length; i++) {
     const name = cols[2] !== '' ? cols[2] : id.replace(/_/g, ' ');
     const type = cols[7];
     
-    let line = `| **${name}** (\`${id}\`) | All | [Pending Extraction] | [Pending Extraction] | [Pending Extraction] |`;
+    const line = `| **${name}** (\`${id}\`) | All | [Pending Extraction] | [Pending Extraction] | [Pending Extraction] |`;
     
     if (type.includes('amino acid')) {
         aminoAcids.push(line);

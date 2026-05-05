@@ -201,7 +201,7 @@ export function findFoodSubstitutes({
   }
 
   // ── Determine comparison columns ──────────────────────────────
-  let columns = ALL_NUTRIENT_COLUMNS;
+  const columns = ALL_NUTRIENT_COLUMNS;
   let emphasizedColumns = null;
 
   if (targetNutrients) {

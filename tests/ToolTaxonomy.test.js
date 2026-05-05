@@ -84,7 +84,7 @@ describe("Tool Taxonomy — domain coverage", () => {
   });
 
   it("every domain value is a non-empty string", () => {
-    for (const [tool, domain] of Object.entries(TOOL_DOMAINS)) {
+    for (const [_tool, domain] of Object.entries(TOOL_DOMAINS)) {
               expect(domain && typeof domain === "string").toBeTruthy();
     }
   });
@@ -116,7 +116,7 @@ describe("Tool Taxonomy — label coverage", () => {
   });
 
   it("every label value is a non-empty array of strings", () => {
-    for (const [tool, labels] of Object.entries(TOOL_LABELS)) {
+    for (const [_tool, labels] of Object.entries(TOOL_LABELS)) {
               expect(Array.isArray(labels) && labels.length > 0).toBeTruthy();
       for (const l of labels) {
                   expect(typeof l === "string" && l.length > 0).toBeTruthy();
@@ -180,7 +180,7 @@ describe("Tool Schema — parameter validation", () => {
 
   it("every property has a type or enum", () => {
     for (const s of TOOL_DEFINITIONS) {
-      for (const [propName, propDef] of Object.entries(
+      for (const [_propName, propDef] of Object.entries(
         s.parameters.properties || {},
       )) {
         const hasType = propDef.type || propDef.enum;
