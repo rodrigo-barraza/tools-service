@@ -15,18 +15,18 @@ import { escapeRegex } from "@rodrigo-barraza/utilities";
 import { readFile, writeFile, stat, readdir, mkdir, rename, unlink } from "node:fs/promises";
 import { resolve, relative, extname, dirname } from "node:path";
 import { existsSync } from "node:fs";
-import { WORKSPACE_ROOTS as WORKSPACE_ROOTS_RAW } from "../secrets.js";
+import { WORKSPACE_ROOTS as WORKSPACE_ROOTS_RAW } from "../config.js";
 
 // ────────────────────────────────────────────────────────────
 // Configuration
 // ────────────────────────────────────────────────────────────
 
-// Validated from secrets.js WORKSPACE_ROOTS (array of absolute paths).
+// Validated from config.js WORKSPACE_ROOTS (array of absolute paths).
 if (!Array.isArray(WORKSPACE_ROOTS_RAW) || WORKSPACE_ROOTS_RAW.length === 0) {
-  throw new Error("[AgenticFileService] WORKSPACE_ROOTS must be a non-empty array in secrets.js — agent tools require at least one allowed root path.");
+  throw new Error("[AgenticFileService] WORKSPACE_ROOTS must be a non-empty array in config.js — agent tools require at least one allowed root path.");
 }
 
-// Static roots — immutable baseline from secrets.js
+// Static roots — immutable baseline from config.js
 const STATIC_ROOTS = Object.freeze(WORKSPACE_ROOTS_RAW.map((r) => resolve(r.trim())));
 
 // Dynamic roots — mutable array that includes static + user-configured roots.
@@ -45,7 +45,6 @@ const BLOCKED_PATTERNS = [
   /node_modules\//,
   /\.git\/objects\//,
   /\.git\/hooks\//,
-  /secrets\.js$/,
   /\.env$/,
   /\.env\..+$/,
   /\.pem$/,
@@ -981,7 +980,7 @@ function globToRegex(glob) {
 export { validatePath, ALLOWED_ROOTS };
 
 /**
- * Return only the immutable roots from secrets.js (for UI "pinned" distinction).
+ * Return only the immutable roots from config.js (for UI "pinned" distinction).
  * @returns {string[]}
  */
 export function getStaticRoots() {

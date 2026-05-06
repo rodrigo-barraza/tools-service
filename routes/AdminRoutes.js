@@ -139,7 +139,7 @@ router.get("/config", (_req, res) => {
  * PUT /admin/config/workspaces
  * Update user-configured workspace roots.
  * Validates each path (must be absolute, must exist on disk).
- * Static roots from secrets.js are always preserved.
+ * Static roots from config.js are always preserved.
  *
  * Body: { roots: string[] }
  */

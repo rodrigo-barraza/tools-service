@@ -8,7 +8,7 @@
 
 import { spawn } from "node:child_process";
 import { validatePath } from "./AgenticFileService.js";
-import { WORKTREE_DIR } from "../secrets.js";
+import { WORKTREE_DIR } from "../config.js";
 
 // ────────────────────────────────────────────────────────────
 // Constants

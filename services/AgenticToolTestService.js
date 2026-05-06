@@ -29,7 +29,7 @@ import { agenticFetchUrl, agenticWebSearch } from "./AgenticWebService.js";
 import { executeCommand } from "./AgenticCommandService.js";
 import { agenticProjectSummary } from "./AgenticProjectService.js";
 import { agenticToolSearch } from "./AgenticToolSearchService.js";
-import { WORKSPACE_ROOTS } from "../secrets.js";
+import { WORKSPACE_ROOTS } from "../config.js";
 
 // ── Test Fixture ─────────────────────────────────────────────
 
