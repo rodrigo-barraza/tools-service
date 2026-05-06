@@ -1,14 +1,16 @@
 node_modules
 .git
-.env
-.env.deploy
-# secrets.js is NOT ignored — it only reads process.env, no hardcoded secrets
-test-output.log
-tests
-*.md
-!README.md
+.gitignore
+.gitattributes
 .vscode
 .prettierrc
+.env
+.env.*
+!.env.example
+deploy.sh
+docker-compose.yml
+Dockerfile
 eslint.config.js
-user_summaries
-*:Zone.Identifier
+vitest.config.js
+tests
+*.md
