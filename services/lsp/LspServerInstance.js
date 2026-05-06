@@ -1,4 +1,4 @@
-import { sleep } from "@rodrigo-barraza/utilities";
+import { sleep } from "@rodrigo-barraza/utilities-library";
 // ============================================================
 // LSP Server Instance — Single Server Lifecycle Manager
 // ============================================================

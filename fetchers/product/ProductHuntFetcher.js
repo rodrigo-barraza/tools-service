@@ -1,4 +1,4 @@
-import { TokenManager } from "@rodrigo-barraza/utilities/node";
+import { TokenManager } from "@rodrigo-barraza/utilities-library/node";
 import CONFIG from "../../config.js";
 import { PRODUCT_SOURCES } from "../../constants.js";
 import { computeTrendingScore } from "../../utilities.js";

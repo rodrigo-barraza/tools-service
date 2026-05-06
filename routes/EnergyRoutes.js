@@ -1,4 +1,4 @@
-import { asyncHandler } from "@rodrigo-barraza/utilities/node";
+import { asyncHandler } from "@rodrigo-barraza/utilities-library/node";
 import { Router } from "express";
 import {
   browseRoute,

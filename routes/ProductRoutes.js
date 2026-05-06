@@ -1,4 +1,4 @@
-import { parseIntParam } from "@rodrigo-barraza/utilities";
+import { parseIntParam } from "@rodrigo-barraza/utilities-library";
 import { Router } from "express";
 import { getRecentProducts, searchProducts } from "../models/Product.js";
 import {

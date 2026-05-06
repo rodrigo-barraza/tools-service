@@ -1,5 +1,5 @@
-import { setupStreamingSSE, lazyImport } from "@rodrigo-barraza/utilities/node";
-import { validateMaxLength } from "@rodrigo-barraza/utilities";
+import { setupStreamingSSE, lazyImport } from "@rodrigo-barraza/utilities-library/node";
+import { validateMaxLength } from "@rodrigo-barraza/utilities-library";
 // ============================================================
 // Compute Routes — Process-Based Tool Endpoints
 // ============================================================

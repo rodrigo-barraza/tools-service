@@ -1,4 +1,4 @@
-import { stripHtml } from "@rodrigo-barraza/utilities";
+import { stripHtml } from "@rodrigo-barraza/utilities-library";
 import { TREND_SOURCES as SOURCES, TREND_CATEGORIES } from "../../constants.js";
 import { randomUserAgent } from "../../utilities.js";
 const GITHUB_TRENDING_URL = "https://github.com/trending";

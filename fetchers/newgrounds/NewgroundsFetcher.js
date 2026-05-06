@@ -1,4 +1,4 @@
-import { sleep } from "@rodrigo-barraza/utilities";
+import { sleep } from "@rodrigo-barraza/utilities-library";
 import * as cheerio from "cheerio";
 
 // ═══════════════════════════════════════════════════════════════

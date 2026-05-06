@@ -1,4 +1,4 @@
-import { days as daysToMs } from "@rodrigo-barraza/utilities";
+import { days as daysToMs } from "@rodrigo-barraza/utilities-library";
 import { getMessagesCollection } from "../models/LuposMessage.js";
 
 // ═══════════════════════════════════════════════════════════════

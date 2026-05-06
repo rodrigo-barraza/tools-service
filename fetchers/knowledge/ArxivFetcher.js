@@ -1,4 +1,4 @@
-import { stripHtml } from "@rodrigo-barraza/utilities";
+import { stripHtml } from "@rodrigo-barraza/utilities-library";
 import { ARXIV_BASE_URL } from "../../constants.js";
 import { extractXmlTag, extractXmlItems } from "../../utilities.js";
 /**

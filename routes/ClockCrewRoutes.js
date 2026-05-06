@@ -1,5 +1,5 @@
-import { asyncHandler, HealthTracker } from "@rodrigo-barraza/utilities/node";
-import { parseIntParam } from "@rodrigo-barraza/utilities";
+import { asyncHandler, HealthTracker } from "@rodrigo-barraza/utilities-library/node";
+import { parseIntParam } from "@rodrigo-barraza/utilities-library";
 import { Router } from "express";
 import {
   getScrapeStats,

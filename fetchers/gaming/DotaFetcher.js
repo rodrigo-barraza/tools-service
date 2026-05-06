@@ -5,7 +5,7 @@
 // Docs: https://docs.opendota.com/
 // ============================================================
 
-import { MS_PER_DAY } from "@rodrigo-barraza/utilities";
+import { MS_PER_DAY } from "@rodrigo-barraza/utilities-library";
 
 const BASE_URL = "https://api.opendota.com/api";
 

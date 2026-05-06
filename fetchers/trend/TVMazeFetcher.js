@@ -1,4 +1,4 @@
-import { stripHtml, normalizeName } from "@rodrigo-barraza/utilities";
+import { stripHtml, normalizeName } from "@rodrigo-barraza/utilities-library";
 import { TREND_SOURCES as SOURCES, TREND_CATEGORIES } from "../../constants.js";
 const TVMAZE_SCHEDULE_URL = "https://api.tvmaze.com/schedule";
 /**

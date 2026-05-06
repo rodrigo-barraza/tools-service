@@ -6,7 +6,7 @@
 // embeds work correctly.
 // ============================================================
 
-import { MS_PER_HOUR } from "@rodrigo-barraza/utilities";
+import { MS_PER_HOUR } from "@rodrigo-barraza/utilities-library";
 import crypto from "node:crypto";
 import { ChartJSNodeCanvas } from "chartjs-node-canvas";
 

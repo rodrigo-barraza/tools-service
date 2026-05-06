@@ -1,5 +1,5 @@
-import { TokenManager } from "@rodrigo-barraza/utilities/node";
-import { normalizeName } from "@rodrigo-barraza/utilities";
+import { TokenManager } from "@rodrigo-barraza/utilities-library/node";
+import { normalizeName } from "@rodrigo-barraza/utilities-library";
 import CONFIG from "../../config.js";
 import {
   TREND_SOURCES as SOURCES,

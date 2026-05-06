@@ -1,5 +1,5 @@
-import { asyncHandler } from "@rodrigo-barraza/utilities/node";
-import { parseIntParam } from "@rodrigo-barraza/utilities";
+import { asyncHandler } from "@rodrigo-barraza/utilities-library/node";
+import { parseIntParam } from "@rodrigo-barraza/utilities-library";
 // ============================================================
 // Agentic Routes — File System & Web Interaction Endpoints
 // ============================================================
@@ -276,7 +276,7 @@ router.post("/command/stream", async (req, res) => {
   if (!command || typeof command !== "string") {
     return res.status(400).json({ error: "Request body must include 'command' (string)" });
   }
-  const { setupStreamingSSE } = await import("@rodrigo-barraza/utilities/node");
+  const { setupStreamingSSE } = await import("@rodrigo-barraza/utilities-library/node");
   const send = setupStreamingSSE(res);
   send({ event: "start", command });
   // Create an AbortController so we can kill the child process if the

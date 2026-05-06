@@ -3,7 +3,7 @@ const PLASMA_URL =
 const MAG_URL =
   "https://services.swpc.noaa.gov/products/solar-wind/mag-7-day.json";
 
-import { MS_PER_DAY } from "@rodrigo-barraza/utilities";
+import { MS_PER_DAY } from "@rodrigo-barraza/utilities-library";
 
 function parseRows(rows, fields) {
   // First row is header, skip it

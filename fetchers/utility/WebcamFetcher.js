@@ -1,4 +1,4 @@
-import { MS_PER_DAY } from "@rodrigo-barraza/utilities";
+import { MS_PER_DAY } from "@rodrigo-barraza/utilities-library";
 import { getWebcamsByCity, getWebcamsLastUpdated } from "../../models/Webcam.js";
 import { WEBCAM_REGISTRY, getSupportedCities } from "./webcams/WebcamRegistry.js";
 

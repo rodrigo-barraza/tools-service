@@ -1,4 +1,4 @@
-import { normalizeName } from "@rodrigo-barraza/utilities";
+import { normalizeName } from "@rodrigo-barraza/utilities-library";
 import CONFIG from "../../config.js";
 import { TREND_SOURCES as SOURCES, X_WOEIDS } from "../../constants.js";
 

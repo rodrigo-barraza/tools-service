@@ -1,4 +1,4 @@
-import { stripHtml } from "@rodrigo-barraza/utilities";
+import { stripHtml } from "@rodrigo-barraza/utilities-library";
 
 const AVCAN_PRODUCTS_URL = "https://api.avalanche.ca/forecasts/en/products";
 /**

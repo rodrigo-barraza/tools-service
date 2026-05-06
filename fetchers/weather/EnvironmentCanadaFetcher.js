@@ -1,4 +1,4 @@
-import { stripHtml } from "@rodrigo-barraza/utilities";
+import { stripHtml } from "@rodrigo-barraza/utilities-library";
 /**
  * Fetch weather warnings from Environment Canada for Metro Vancouver.
  * Scrapes the public warnings page since RSS/Atom feeds and GeoMet API

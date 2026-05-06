@@ -1,4 +1,4 @@
-import { hours as hoursToMs } from "@rodrigo-barraza/utilities";
+import { hours as hoursToMs } from "@rodrigo-barraza/utilities-library";
 import { getDB } from "../db.js";
 import { SNAPSHOT_TTL_SECONDS } from "../constants.js";
 

@@ -1,5 +1,5 @@
-import { asyncHandler, setupStreamingSSE } from "@rodrigo-barraza/utilities/node";
-import { validateMaxLength } from "@rodrigo-barraza/utilities";
+import { asyncHandler, setupStreamingSSE } from "@rodrigo-barraza/utilities-library/node";
+import { validateMaxLength } from "@rodrigo-barraza/utilities-library";
 import { Router } from "express";
 import BigNumber from "bignumber.js";
 import CONFIG from "../config.js";

@@ -1,4 +1,4 @@
-import { stripHtml } from "@rodrigo-barraza/utilities";
+import { stripHtml } from "@rodrigo-barraza/utilities-library";
 import { DICTIONARY_BASE_URL } from "../../constants.js";
 
 /**

@@ -1,5 +1,5 @@
 import { createSimpleCache } from "./createSimpleCache.js";
-import { MS_PER_DAY } from "@rodrigo-barraza/utilities";
+import { MS_PER_DAY } from "@rodrigo-barraza/utilities-library";
 import { KP_STORM_SCALE } from "../constants.js";
 
 const cache = createSimpleCache({ type: "array", itemsKey: "readings" });

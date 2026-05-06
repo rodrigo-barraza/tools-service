@@ -1,5 +1,5 @@
 import { performance } from "node:perf_hooks";
-import { formatFileSize } from "@rodrigo-barraza/utilities";
+import { formatFileSize } from "@rodrigo-barraza/utilities-library";
 import logger from "../logger.js";
 import { getDB } from "../db.js";
 

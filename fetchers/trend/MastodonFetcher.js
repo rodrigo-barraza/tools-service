@@ -1,4 +1,4 @@
-import { stripHtml, normalizeName } from "@rodrigo-barraza/utilities";
+import { stripHtml, normalizeName } from "@rodrigo-barraza/utilities-library";
 import {
   TREND_SOURCES as SOURCES,
   MASTODON_INSTANCES,

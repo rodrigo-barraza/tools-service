@@ -1,4 +1,4 @@
-import { toISODate } from "@rodrigo-barraza/utilities";
+import { toISODate } from "@rodrigo-barraza/utilities-library";
 import {
   FINNHUB_NEWS_INTERVAL_MS,
   FINNHUB_EARNINGS_INTERVAL_MS,

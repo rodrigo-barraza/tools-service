@@ -1,4 +1,4 @@
-import { chunk } from "@rodrigo-barraza/utilities";
+import { chunk } from "@rodrigo-barraza/utilities-library";
 import {
   BESTBUY_CA_AVAILABILITY_BASE_URL,
   BESTBUY_CA_MAX_SKUS_PER_REQUEST,

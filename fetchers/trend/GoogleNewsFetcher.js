@@ -1,4 +1,4 @@
-import { normalizeName } from "@rodrigo-barraza/utilities";
+import { normalizeName } from "@rodrigo-barraza/utilities-library";
 import {
   TREND_SOURCES as SOURCES,
   GOOGLE_NEWS_ARTICLE_LIMIT,

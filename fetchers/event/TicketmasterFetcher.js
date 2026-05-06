@@ -1,4 +1,4 @@
-import { days } from "@rodrigo-barraza/utilities";
+import { days } from "@rodrigo-barraza/utilities-library";
 import CONFIG from "../../config.js";
 import {
   EVENT_SOURCES,
