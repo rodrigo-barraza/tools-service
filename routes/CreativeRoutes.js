@@ -14,6 +14,7 @@ import { Router } from "express";
 import PrismService from "../services/PrismService.js";
 import logger from "../logger.js";
 import { extractCallerContext } from "../utilities.js";
+import CONFIG from "../config.js";
 
 const router = Router();
 
@@ -21,9 +22,9 @@ const router = Router();
 // Constants
 // ────────────────────────────────────────────────────────────
 
-const IMAGE_MODEL = "gemini-3.1-flash-image-preview";
+const IMAGE_MODEL = CONFIG.TOOLS_IMAGE_MODEL;
 const IMAGE_PROVIDER = "google";
-const VISION_MODEL = "gemini-3-flash-preview";
+const VISION_MODEL = CONFIG.TOOLS_VISION_MODEL;
 const VISION_PROVIDER = "google";
 
 const MAX_SAFETY_RETRIES = 3;

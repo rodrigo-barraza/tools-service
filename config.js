@@ -92,6 +92,10 @@ const CONFIG = {
   // ─── Prism (LLM Gateway) ────────────────────────────────────────
   PRISM_SERVICE_URL: process.env.PRISM_SERVICE_URL,
 
+  // ─── Default AI Models (vault-backed) ───────────────────────────
+  TOOLS_IMAGE_MODEL: process.env.TOOLS_IMAGE_MODEL,
+  TOOLS_VISION_MODEL: process.env.TOOLS_VISION_MODEL,
+
   // ─── Smart Home (Lights) ────────────────────────────────────────
   LIGHTS_SERVICE_URL: process.env.LIGHTS_SERVICE_URL,
 
