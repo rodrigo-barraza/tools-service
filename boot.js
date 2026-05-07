@@ -1,19 +1,9 @@
 // ============================================================
 // Tools API — Boot Sequence
 // ============================================================
-import { createVaultClient } from "@rodrigo-barraza/utilities-library/vault";
 
-const vault = createVaultClient({
-  localEnvFile: "./.env",
-  fallbackEnvFile: "../vault-service/.env",
-});
+import { bootstrapEnv } from "@rodrigo-barraza/utilities-library/vault";
 
-const secrets = await vault.fetch();
-
-for (const [key, value] of Object.entries(secrets)) {
-  if (process.env[key] === undefined) {
-    process.env[key] = value;
-  }
-}
+await bootstrapEnv();
 
 await import("./server.js");
