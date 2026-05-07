@@ -20,7 +20,8 @@ COPY package.json package-lock.json ./
 
 # Skip Playwright's bundled browser download — we install system Chromium
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-RUN npm ci --omit=dev
+RUN git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" && \
+    npm ci --omit=dev
 
 # ── Stage 2: Runtime ──────────────────────────────────────────
 FROM node:22-slim
