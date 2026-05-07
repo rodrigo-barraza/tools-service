@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Unified data aggregator API — events, market, products, trends, weather",
   "type": "module",
-  "main": "server.js",
+  "main": "boot.js",
   "scripts": {
     "start": "node boot.js",
     "dev": "nodemon --legacy-watch boot.js",
@@ -50,8 +50,8 @@
     "youtube-transcript": "^1.3.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.3",
-    "eslint": "^9.39.3",
+    "@eslint/js": "^9.39.4",
+    "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.4.0",
     "nodemon": "^3.1.14",
