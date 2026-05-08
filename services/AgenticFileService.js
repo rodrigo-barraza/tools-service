@@ -22,12 +22,19 @@ import { WORKSPACE_ROOTS as WORKSPACE_ROOTS_RAW } from "../config.js";
 // ────────────────────────────────────────────────────────────
 
 // Validated from config.js WORKSPACE_ROOTS (array of absolute paths).
+// If not configured, the service starts with no static roots — users must
+// add workspaces via Settings UI or set the WORKSPACE_ROOTS env var to
+// match their Docker volume mounts.
 if (!Array.isArray(WORKSPACE_ROOTS_RAW) || WORKSPACE_ROOTS_RAW.length === 0) {
-  throw new Error("[AgenticFileService] WORKSPACE_ROOTS must be a non-empty array in config.js — agent tools require at least one allowed root path.");
+  console.warn("[AgenticFileService] WORKSPACE_ROOTS is empty — no static workspace roots configured. Users must add workspaces via the Settings UI.");
 }
 
 // Static roots — immutable baseline from config.js
-const STATIC_ROOTS = Object.freeze(WORKSPACE_ROOTS_RAW.map((r) => resolve(r.trim())));
+const STATIC_ROOTS = Object.freeze(
+  (Array.isArray(WORKSPACE_ROOTS_RAW) ? WORKSPACE_ROOTS_RAW : [])
+    .filter(Boolean)
+    .map((r) => resolve(r.trim()))
+);
 
 // Dynamic roots — mutable array that includes static + user-configured roots.
 // Mutated in-place so all importers automatically see updates.
