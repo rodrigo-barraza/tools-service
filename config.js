@@ -103,6 +103,11 @@ const CONFIG = {
   MINIO_ENDPOINT: process.env.MINIO_ENDPOINT,
   MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY,
   MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY,
+
+  // ─── Workspace Agent ────────────────────────────────────────────
+  AGENT_SECRET: process.env.AGENT_SECRET,
+  AGENT_MAX_CONNECTIONS: process.env.AGENT_MAX_CONNECTIONS || "5",
+  API_SECRET: process.env.API_SECRET,
 };
 
 /**

@@ -15,6 +15,19 @@
 
 import { spawn } from "node:child_process";
 import { validatePath } from "./AgenticFileService.js";
+import { routeForPath, sendRpc, sendRpcStreaming } from "./AgentConnectionManager.js";
+
+// Agent routing helper
+async function tryAgentRouteCommand(method, params, cwd) {
+  if (!cwd) return null;
+  const agent = routeForPath(cwd);
+  if (!agent) return null;
+  try {
+    return await sendRpc(agent.id, method, params);
+  } catch (err) {
+    return { success: false, stdout: "", stderr: "", exitCode: null, executionTimeMs: 0, error: `Agent RPC failed: ${err.message}` };
+  }
+}
 
 // ────────────────────────────────────────────────────────────
 // Constants
@@ -134,6 +147,10 @@ function validateCommand(command) {
  * @returns {Promise<object>}
  */
 export async function executeCommand(command, { cwd, timeout = DEFAULT_TIMEOUT_MS, signal } = {}) {
+  // Agent routing — if CWD is served by a remote agent, proxy the command
+  const agentResult = await tryAgentRouteCommand("command.run", { command, cwd, timeout }, cwd);
+  if (agentResult) return agentResult;
+
   const clampedTimeout = Math.min(Math.max(timeout, 1000), MAX_TIMEOUT_MS);
 
   // Validate command
@@ -258,6 +275,21 @@ export async function executeCommand(command, { cwd, timeout = DEFAULT_TIMEOUT_M
  * @returns {Promise<object>}
  */
 export async function executeCommandStreaming(command, { cwd, timeout = DEFAULT_TIMEOUT_MS, onChunk, signal } = {}) {
+  // Agent routing for streaming commands
+  if (cwd) {
+    const agent = routeForPath(cwd);
+    if (agent) {
+      try {
+        return await sendRpcStreaming(agent.id, "command.stream", { command, cwd, timeout }, (method, params) => {
+          if (method === "command.stdout") onChunk?.("stdout", params.data);
+          else if (method === "command.stderr") onChunk?.("stderr", params.data);
+        });
+      } catch (err) {
+        return { success: false, stdout: "", stderr: "", exitCode: null, executionTimeMs: 0, error: `Agent RPC failed: ${err.message}` };
+      }
+    }
+  }
+
   const clampedTimeout = Math.min(Math.max(timeout, 1000), MAX_TIMEOUT_MS);
 
   const validation = validateCommand(command);

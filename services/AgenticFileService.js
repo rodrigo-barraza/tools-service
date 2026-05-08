@@ -10,12 +10,41 @@ import { escapeRegex } from "@rodrigo-barraza/utilities-library";
 //   - Only paths within ALLOWED_ROOTS are permitted
 //   - Blocked patterns prevent access to sensitive files
 //   - Size limits prevent resource exhaustion
+//
+// Remote workspace agent:
+//   - If a connected agent serves the target path, the
+//     operation is proxied via JSON-RPC over WebSocket.
 // ============================================================
 
 import { readFile, writeFile, stat, readdir, mkdir, rename, unlink } from "node:fs/promises";
 import { resolve, relative, extname, dirname } from "node:path";
 import { existsSync } from "node:fs";
 import { WORKSPACE_ROOTS as WORKSPACE_ROOTS_RAW } from "../config.js";
+import { routeForPath, sendRpc } from "./AgentConnectionManager.js";
+
+// ────────────────────────────────────────────────────────────
+// Agent Routing Helper
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Check if a path should be routed to a remote workspace agent.
+ * If so, sends an RPC request and returns the result.
+ * Returns null if the path should be handled locally.
+ *
+ * @param {string} method - RPC method name
+ * @param {object} params - RPC parameters
+ * @param {string} targetPath - The path to check for agent routing
+ * @returns {Promise<object|null>}
+ */
+async function tryAgentRoute(method, params, targetPath) {
+  const agent = routeForPath(targetPath);
+  if (!agent) return null;
+  try {
+    return await sendRpc(agent.id, method, params);
+  } catch (err) {
+    return { error: `Agent RPC failed: ${err.message}` };
+  }
+}
 
 // ────────────────────────────────────────────────────────────
 // Configuration
@@ -134,6 +163,10 @@ function validatePath(inputPath) {
  * @returns {Promise<object>}
  */
 export async function agenticReadFile(filePath, { startLine, endLine } = {}) {
+  // Agent routing — proxy to remote agent if path is served by one
+  const agentResult = await tryAgentRoute("file.read", { path: filePath, startLine, endLine }, filePath);
+  if (agentResult) return agentResult;
+
   const validation = validatePath(filePath);
   if (!validation.safe) {
     return { error: validation.error };
@@ -210,6 +243,10 @@ export async function agenticReadFile(filePath, { startLine, endLine } = {}) {
  * @returns {Promise<object>}
  */
 export async function agenticWriteFile(filePath, content, { createDirs = true } = {}) {
+  // Agent routing
+  const agentResult = await tryAgentRoute("file.write", { path: filePath, content, createDirs }, filePath);
+  if (agentResult) return agentResult;
+
   const validation = validatePath(filePath);
   if (!validation.safe) {
     return { error: validation.error };
@@ -263,6 +300,10 @@ export async function agenticWriteFile(filePath, content, { createDirs = true } 
  * @returns {Promise<object>}
  */
 export async function agenticStrReplace(filePath, oldStr, newStr, { allowMultiple = false } = {}) {
+  // Agent routing
+  const agentResult = await tryAgentRoute("file.strReplace", { path: filePath, oldStr, newStr, allowMultiple }, filePath);
+  if (agentResult) return agentResult;
+
   const validation = validatePath(filePath);
   if (!validation.safe) {
     return { error: validation.error };
@@ -341,6 +382,10 @@ export async function agenticStrReplace(filePath, oldStr, newStr, { allowMultipl
  * @returns {Promise<object>}
  */
 export async function agenticPatchFile(filePath, patch) {
+  // Agent routing
+  const agentResult = await tryAgentRoute("file.patch", { path: filePath, patch }, filePath);
+  if (agentResult) return agentResult;
+
   const validation = validatePath(filePath);
   if (!validation.safe) {
     return { error: validation.error };
@@ -394,6 +439,10 @@ export async function agenticPatchFile(filePath, patch) {
  * @returns {Promise<object>}
  */
 export async function agenticListDirectory(dirPath, { recursive = false, maxDepth = 3 } = {}) {
+  // Agent routing
+  const agentResult = await tryAgentRoute("directory.list", { path: dirPath, recursive, maxDepth }, dirPath);
+  if (agentResult) return agentResult;
+
   const validation = validatePath(dirPath);
   if (!validation.safe) {
     return { error: validation.error };
@@ -488,6 +537,10 @@ export async function agenticGrepSearch(pattern, searchPath, {
   caseInsensitive = false,
   matchPerLine = true,
 } = {}) {
+  // Agent routing
+  const agentResult = await tryAgentRoute("search.grep", { pattern, searchPath, isRegex, includes, caseInsensitive, matchPerLine }, searchPath);
+  if (agentResult) return agentResult;
+
   const validation = validatePath(searchPath);
   if (!validation.safe) {
     return { error: validation.error };
@@ -621,6 +674,10 @@ export async function agenticGrepSearch(pattern, searchPath, {
  * @returns {Promise<object>}
  */
 export async function agenticGlobFiles(pattern, searchPath) {
+  // Agent routing
+  const agentResult = await tryAgentRoute("search.glob", { pattern, searchPath }, searchPath);
+  if (agentResult) return agentResult;
+
   const validation = validatePath(searchPath);
   if (!validation.safe) {
     return { error: validation.error };
@@ -745,6 +802,12 @@ export async function agenticMultiFileRead(files) {
  */
 export async function agenticFileInfo(paths) {
   const pathList = Array.isArray(paths) ? paths : [paths];
+  // Agent routing — if first path is agent-served, proxy the entire batch
+  if (pathList.length > 0) {
+    const agentResult = await tryAgentRoute("file.info", { paths: pathList }, pathList[0]);
+    if (agentResult) return agentResult;
+  }
+
   if (pathList.length === 0) {
     return { error: "'paths' must be a non-empty string or array of strings" };
   }
@@ -819,6 +882,10 @@ export async function agenticFileInfo(paths) {
  * @returns {Promise<object>}
  */
 export async function agenticFileDiff(pathA, { pathB, content, contextLines = 3 } = {}) {
+  // Agent routing
+  const agentResult = await tryAgentRoute("file.diff", { pathA, pathB, content, contextLines }, pathA);
+  if (agentResult) return agentResult;
+
   if (!pathA) {
     return { error: "'pathA' is required" };
   }
@@ -893,6 +960,10 @@ export async function agenticFileDiff(pathA, { pathB, content, contextLines = 3 
  * @returns {Promise<object>}
  */
 export async function agenticMoveFile(source, destination, { createDirs = true } = {}) {
+  // Agent routing
+  const agentResult = await tryAgentRoute("file.move", { source, destination, createDirs }, source);
+  if (agentResult) return agentResult;
+
   const validSrc = validatePath(source);
   if (!validSrc.safe) {
     return { error: validSrc.error };
@@ -937,6 +1008,10 @@ export async function agenticMoveFile(source, destination, { createDirs = true }
  * @returns {Promise<object>}
  */
 export async function agenticDeleteFile(filePath) {
+  // Agent routing
+  const agentResult = await tryAgentRoute("file.delete", { path: filePath }, filePath);
+  if (agentResult) return agentResult;
+
   const validation = validatePath(filePath);
   if (!validation.safe) {
     return { error: validation.error };

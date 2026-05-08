@@ -9,6 +9,7 @@
 import { readFile, stat, readdir } from "node:fs/promises";
 import { resolve, join, relative } from "node:path";
 import { validatePath } from "./AgenticFileService.js";
+import { routeForPath, sendRpc } from "./AgentConnectionManager.js";
 
 // ────────────────────────────────────────────────────────────
 // Constants
@@ -30,6 +31,16 @@ const MAX_SCAN_ENTRIES = 200;
  * @returns {Promise<object>}
  */
 export async function agenticProjectSummary(projectPath) {
+  // Agent routing
+  const agent = routeForPath(projectPath);
+  if (agent) {
+    try {
+      return await sendRpc(agent.id, "project.summary", { path: projectPath });
+    } catch (err) {
+      return { error: `Agent RPC failed: ${err.message}` };
+    }
+  }
+
   const validation = validatePath(projectPath);
   if (!validation.safe) {
     return { error: validation.error };

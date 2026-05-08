@@ -1,3 +1,4 @@
+import http from "node:http";
 import express from "express";
 import CONFIG, { applyLocation } from "./config.js";
 import { connectDB } from "./db.js";
@@ -50,7 +51,9 @@ import gamingRoutes, { getGamingHealth } from "./routes/GamingRoutes.js";
 import discordRoutes, { getDiscordHealth } from "./routes/DiscordRoutes.js";
 import lightsRoutes, { getLightsHealth } from "./routes/LightsRoutes.js";
 import adminRoutes, { loadUserWorkspaceRoots } from "./routes/AdminRoutes.js";
+import agentStatusRoutes from "./routes/AgentRoutes.js";
 import { mountMcpRoutes } from "./services/McpAdapter.js";
+import { initAgentWebSocket } from "./services/AgentConnectionManager.js";
 
 // ─── Collectors ────────────────────────────────────────────────────
 
@@ -101,6 +104,7 @@ app.use("/gaming", gamingRoutes);
 app.use("/discord", discordRoutes);
 app.use("/lights", lightsRoutes);
 app.use("/admin", adminRoutes);
+app.use("/agents", agentStatusRoutes);
 mountMcpRoutes(app);
 
 // ─── Unified Health ────────────────────────────────────────────────
@@ -194,7 +198,12 @@ async function start() {
   startSchedulePoller();
 
   const port = CONFIG.TOOLS_SERVICE_PORT;
-  app.listen(port, () => {
+  const httpServer = http.createServer(app);
+
+  // Initialize workspace agent WebSocket (handles upgrade on /ws/agent)
+  initAgentWebSocket(httpServer);
+
+  httpServer.listen(port, () => {
     console.log(`🔧 Tools API running on port ${port}`);
     console.log(`   Database: ${CONFIG.MONGODB_URI}`);
     console.log(
@@ -203,6 +212,7 @@ async function start() {
     console.log(
       "   Routes: /event/*, /finance/*, /market/*, /product/*, /trend/*, /weather/*, /knowledge/*, /health/*, /transit/*, /utility/*, /compute/*, /maritime/*, /energy/*, /agentic/*, /communication/*, /creative/*, /gaming/*, /discord/*, /lights/*",
     );
+    console.log("   🔌 Agent WebSocket: /ws/agent");
   });
 }
 

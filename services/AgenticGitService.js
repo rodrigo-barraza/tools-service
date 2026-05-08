@@ -9,6 +9,18 @@
 import { spawn } from "node:child_process";
 import { validatePath } from "./AgenticFileService.js";
 import { WORKTREE_DIR } from "../config.js";
+import { routeForPath, sendRpc } from "./AgentConnectionManager.js";
+
+// Agent routing helper
+async function tryAgentRoute(method, params, targetPath) {
+  const agent = routeForPath(targetPath);
+  if (!agent) return null;
+  try {
+    return await sendRpc(agent.id, method, params);
+  } catch (err) {
+    return { error: `Agent RPC failed: ${err.message}` };
+  }
+}
 
 // ────────────────────────────────────────────────────────────
 // Constants
@@ -102,6 +114,10 @@ async function runGit(args, cwd) {
  * @returns {Promise<object>}
  */
 export async function agenticGitStatus(repoPath) {
+  // Agent routing
+  const agentResult = await tryAgentRoute("git.status", { path: repoPath }, repoPath);
+  if (agentResult) return agentResult;
+
   const validation = validatePath(repoPath);
   if (!validation.safe) {
     return { error: validation.error };
@@ -187,6 +203,10 @@ export async function agenticGitStatus(repoPath) {
  * @returns {Promise<object>}
  */
 export async function agenticGitDiff(repoPath, { staged = false, path: filePath, ref } = {}) {
+  // Agent routing
+  const agentResult = await tryAgentRoute("git.diff", { path: repoPath, staged, filePath, ref }, repoPath);
+  if (agentResult) return agentResult;
+
   const validation = validatePath(repoPath);
   if (!validation.safe) {
     return { error: validation.error };
@@ -247,6 +267,10 @@ export async function agenticGitDiff(repoPath, { staged = false, path: filePath,
  * @returns {Promise<object>}
  */
 export async function agenticGitLog(repoPath, { limit = 20, author, since, path: filePath } = {}) {
+  // Agent routing
+  const agentResult = await tryAgentRoute("git.log", { path: repoPath, limit, author, since, filePath }, repoPath);
+  if (agentResult) return agentResult;
+
   const validation = validatePath(repoPath);
   if (!validation.safe) {
     return { error: validation.error };

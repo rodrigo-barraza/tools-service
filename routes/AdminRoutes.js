@@ -20,6 +20,7 @@ import {
   getStaticRoots,
   refreshAllowedRoots,
 } from "../services/AgenticFileService.js";
+import { getConnectedAgents } from "../services/AgentConnectionManager.js";
 import { getDB } from "../db.js";
 const router = Router();
 // ─── Path Translation ─────────────────────────────────────────────
@@ -130,9 +131,11 @@ router.get("/tool-calls/stats", asyncHandler(
  * Includes both the full merged list and the immutable static roots.
  */
 router.get("/config", (_req, res) => {
+  const agents = getConnectedAgents();
   res.json({
     workspaceRoots: ALLOWED_ROOTS,
     staticRoots: getStaticRoots(),
+    agents,
   });
 });
 /**
