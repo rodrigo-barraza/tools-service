@@ -2785,6 +2785,19 @@ export const AGENTIC_COMMAND_ENV_ALLOWED_PREFIXES = [
   "npm_config_",
 ];
 
+// Prism `command` hooks (HookCommandService). A hook sits inside prism's
+// agent loop, so it gets a tight default and a hard ceiling, and its answer
+// is small.
+export const HOOK_COMMAND_DEFAULT_TIMEOUT_MS = 10_000;
+export const HOOK_COMMAND_MIN_TIMEOUT_MS = 500;
+export const HOOK_COMMAND_MAX_TIMEOUT_MS = 60_000;
+export const HOOK_COMMAND_MAX_OUTPUT_BYTES = 256 * 1024;
+export const HOOK_COMMAND_MAX_COMMAND_CHARS = 4_000;
+export const HOOK_COMMAND_MAX_STDIN_CHARS = 1_000_000;
+/** The only caller-supplied variables a hook command receives. */
+export const HOOK_COMMAND_ENV_NAME_PATTERN = /^PRISM_HOOK_[A-Z0-9_]+$/;
+export const HOOK_COMMAND_ENV_VALUE_MAX_CHARS = 4_096;
+
 export const BACKGROUND_PROCESS_MAX_TTL_MS = 30 * 60 * 1000;
 export const BACKGROUND_PROCESS_CLEANUP_INTERVAL_MS = 60 * 1000;
 export const BACKGROUND_PROCESS_MAX_BUFFERED_BYTES = 256 * 1024;
