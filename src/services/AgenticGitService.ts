@@ -1,7 +1,8 @@
 // ─── VCS Introspection for AI Coding Loops ──────────────────
 
 import { spawn } from "node:child_process";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { realpathSync } from "node:fs";
 import { validatePath } from "./AgenticFileService.ts";
 import { WORKTREE_DIR } from "../config.ts";
 import { resolveAndRouteToAgent, sendRpc } from "./AgentConnectionManager.ts";
@@ -17,6 +18,7 @@ export type { GitFileChange, GitStatusResult, GitDiffResult, GitLogResult, GitCo
 
 export interface GitWorktreeCreateResult {
   worktreePath?: string;
+  /** The branch as created — callers store THIS name, never their own. */
   branch?: string;
   repoPath?: string;
   error?: string;
@@ -26,24 +28,73 @@ export interface GitWorktreeRemoveResult {
   removed?: string;
   branch?: string | null;
   branchDeleted?: boolean;
+  /** Why a (non-forced) branch delete was refused; the worktree is gone. */
+  branchError?: string;
+  /** True when nothing was removed because it would have lost work. */
+  kept?: boolean;
+  error?: string;
+}
+
+export interface GitWorktreeCommitResult {
+  branch?: string;
+  /** False when the worktree had nothing to commit. */
+  committed?: boolean;
+  commit?: string;
   error?: string;
 }
 
 export interface GitWorktreeMergeResult {
   merged?: string;
+  into?: string;
   output?: string;
+  /**
+   * Set on a refused merge. "conflict": the branches conflict, and the merge
+   * was aborted so the target tree is as it was. "local-changes": uncommitted
+   * work in the target tree would be overwritten, so git never started.
+   */
+  reason?: "conflict" | "local-changes";
+  conflictingFiles?: string[];
   error?: string;
 }
 
-export interface GitWorktreeDiffResult {
-  branch?: string;
-  baseBranch?: string;
-  hasChanges?: boolean;
-  additions?: number;
-  deletions?: number;
-  diff?: string;
-  error?: string;
+// ── Worktree diff contract ─────────────────────────────────
+// Consumed by prism-service's sub-agent merge-back. prism-service keeps its
+// own copy of these types (src/types/orchestrator.ts), and both repos pin the
+// same fixture: tests/fixtures/worktree-diff-contract.json.
+
+export type WorktreeFileStatus =
+  | "added"
+  | "modified"
+  | "deleted"
+  | "renamed"
+  | "copied"
+  | "type-changed";
+
+export interface WorktreeDiffFile {
+  path: string;
+  status: WorktreeFileStatus;
+  /** Source path of a rename or copy. */
+  previousPath?: string;
 }
+
+export interface WorktreeDiffStats {
+  filesChanged: number;
+  additions: number;
+  deletions: number;
+}
+
+/** What `branch` changed since it left `base` (`git diff base...branch`). */
+export interface WorktreeDiff {
+  branch: string;
+  base: string;
+  files: WorktreeDiffFile[];
+  patch: string;
+  stats: WorktreeDiffStats;
+  /** The patch hit the output cap; `files` and `stats` are still complete. */
+  patchTruncated?: boolean;
+}
+
+export type GitWorktreeDiffResult = WorktreeDiff | { error: string };
 
 export interface GitWorktreeCleanupResult {
   pruned?: boolean;
@@ -470,8 +521,95 @@ export async function agenticGitLog(
 
 const WORKTREE_BASE = WORKTREE_DIR?.trim() || "/tmp/prism-worktrees";
 
+/** Used only when the repo has no identity, so a commit or merge commit can land. */
+const FALLBACK_IDENTITY = { name: "Prism sub-agent", email: "prism@localhost" };
+
+async function identityArgs(cwd: string): Promise<string[]> {
+  const args: string[] = [];
+  for (const key of ["name", "email"] as const) {
+    const configured = await runGit(["config", `user.${key}`], cwd);
+    if (configured.error || !configured.stdout.trim()) {
+      args.push("-c", `user.${key}=${FALLBACK_IDENTITY[key]}`);
+    }
+  }
+  return args;
+}
+
 /**
- * Create a git worktree with its own branch.
+ * `git check-ref-format --branch` is git's own rule for a branch name. A name
+ * that is not a valid ref is rejected, never rewritten: rewriting it (the old
+ * `/` → `_`) handed the caller back a different branch than it asked for.
+ */
+async function validateBranchName(
+  branchName: string,
+  cwd: string,
+): Promise<string | null> {
+  const optionLike = rejectOptionLikeArg(branchName, "branch name");
+  if (optionLike) return optionLike;
+  const check = await runGit(["check-ref-format", "--branch", branchName], cwd);
+  // --branch expands `@{-N}` to another branch; demand the name come back as given.
+  if (check.error || check.stdout.trim() !== branchName) {
+    return `Invalid branch name '${branchName}': git check-ref-format rejects it (no spaces, '..', '~', '^', ':', '?', '*', '[', '\\', '@{', and no leading '-' or trailing '/', '.' or '.lock').`;
+  }
+  return null;
+}
+
+interface WorktreeEntry {
+  path: string;
+  branch: string | null;
+}
+
+function realpathOrSelf(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch {
+    return resolve(path);
+  }
+}
+
+/**
+ * Find `worktreePath` among the repo's linked worktrees (never the main one).
+ * Everything that writes to a worktree goes through this, so a request can
+ * only touch a worktree git itself registered for that repo.
+ */
+async function findLinkedWorktree(
+  repoCwd: string,
+  worktreePath: string,
+): Promise<WorktreeEntry | { error: string }> {
+  const list = await runGit(["worktree", "list", "--porcelain"], repoCwd);
+  if (list.error) return { error: list.error };
+
+  const entries: WorktreeEntry[] = list.stdout
+    .split(/\n\n+/)
+    .filter((block) => block.trim())
+    .map((block) => {
+      const lines = block.split("\n");
+      const path = (lines.find((l) => l.startsWith("worktree ")) || "").slice(9);
+      const ref = (lines.find((l) => l.startsWith("branch ")) || "").slice(7);
+      return { path, branch: ref ? ref.replace(/^refs\/heads\//, "") : null };
+    });
+
+  const wanted = realpathOrSelf(worktreePath);
+  const match = entries
+    .slice(1)
+    .find((entry) => realpathOrSelf(entry.path) === wanted);
+  if (!match) {
+    return {
+      error: `'${worktreePath}' is not a linked worktree of ${repoCwd}`,
+    };
+  }
+  return match;
+}
+
+async function currentBranchOrHead(cwd: string): Promise<string> {
+  const current = await runGit(["branch", "--show-current"], cwd);
+  return current.error || !current.stdout.trim()
+    ? "HEAD"
+    : current.stdout.trim();
+}
+
+/**
+ * Create a git worktree on a new branch named exactly `branchName`.
  */
 export async function agenticGitWorktreeCreate(
   repoPath: string,
@@ -483,8 +621,14 @@ export async function agenticGitWorktreeCreate(
   }
 
   const cwd = validation.resolved;
-  const sanitized = branchName.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const worktreePath = `${WORKTREE_BASE}/${sanitized}-${Date.now()}`;
+  const invalidName = await validateBranchName(branchName, cwd);
+  if (invalidName) {
+    return { error: invalidName, repoPath: cwd };
+  }
+
+  // The directory name is not the branch name; only it is flattened.
+  const directoryName = branchName.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const worktreePath = `${WORKTREE_BASE}/${directoryName}-${Date.now()}`;
 
   // Ensure base directory exists
   const { mkdirSync } = await import("node:fs");
@@ -495,7 +639,7 @@ export async function agenticGitWorktreeCreate(
   }
 
   const result = await runGit(
-    ["worktree", "add", worktreePath, "-b", sanitized],
+    ["worktree", "add", worktreePath, "-b", branchName],
     cwd,
   );
 
@@ -505,22 +649,66 @@ export async function agenticGitWorktreeCreate(
 
   return {
     worktreePath,
-    branch: sanitized,
+    branch: branchName,
     repoPath: cwd,
+  };
+}
+
+/**
+ * Stage and commit everything in a linked worktree (argv, no shell). A clean
+ * worktree is not an error: `committed: false`.
+ */
+export async function agenticGitWorktreeCommit(
+  repoPath: string,
+  worktreePath: string,
+  message: string,
+): Promise<GitWorktreeCommitResult> {
+  const validation = validatePath(repoPath);
+  if (!validation.safe) {
+    return { error: validation.error };
+  }
+
+  const worktree = await findLinkedWorktree(validation.resolved, worktreePath);
+  if ("error" in worktree) return { error: worktree.error };
+  const branch = worktree.branch ?? undefined;
+
+  const staged = await runGit(["add", "-A"], worktree.path);
+  if (staged.error) return { error: staged.error, branch };
+
+  const status = await runGit(["status", "--porcelain"], worktree.path);
+  if (status.error) return { error: status.error, branch };
+  if (!status.stdout.trim()) return { branch, committed: false };
+
+  const committed = await runGit(
+    [...(await identityArgs(worktree.path)), "commit", "-q", "-m", message],
+    worktree.path,
+  );
+  if (committed.error) return { error: committed.error, branch };
+
+  const head = await runGit(["rev-parse", "HEAD"], worktree.path);
+  return {
+    branch,
+    committed: true,
+    ...(!head.error && { commit: head.stdout.trim() }),
   };
 }
 
 interface WorktreeRemoveOptions {
   deleteBranch?: boolean;
+  /** Discard uncommitted and unmerged work. Only for an explicit discard. */
+  force?: boolean;
 }
 
 /**
- * Remove a git worktree and optionally delete the branch.
+ * Remove a linked worktree and (by default) its branch — but never over work:
+ * without `force`, a branch with commits its repo's HEAD does not contain
+ * keeps BOTH the worktree and the branch, git refuses a dirty worktree, and
+ * the branch is deleted with `-d`, not `-D`.
  */
 export async function agenticGitWorktreeRemove(
   repoPath: string,
   worktreePath: string,
-  { deleteBranch = true }: WorktreeRemoveOptions = {},
+  { deleteBranch = true, force = false }: WorktreeRemoveOptions = {},
 ): Promise<GitWorktreeRemoveResult> {
   const validation = validatePath(repoPath);
   if (!validation.safe) {
@@ -528,38 +716,57 @@ export async function agenticGitWorktreeRemove(
   }
 
   const cwd = validation.resolved;
+  const worktree = await findLinkedWorktree(cwd, worktreePath);
+  if ("error" in worktree) return { error: worktree.error };
+  const branchName = worktree.branch;
 
-  // Get branch name from worktree before removing
-  let branchName: string | null = null;
-  if (deleteBranch) {
-    const branchResult = await runGit(
-      ["branch", "--show-current"],
-      worktreePath,
+  if (!force && deleteBranch && branchName) {
+    const contained = await runGit(
+      ["merge-base", "--is-ancestor", branchName, "HEAD"],
+      cwd,
     );
-    if (!branchResult.error) {
-      branchName = branchResult.stdout.trim();
+    if (contained.error) {
+      const into = await currentBranchOrHead(cwd);
+      return {
+        error:
+          contained.exitCode === 1
+            ? `Branch '${branchName}' has commits that ${into} does not contain; kept the worktree (${worktree.path}) and the branch. Merge it first, or remove with force: true to discard them.`
+            : contained.error,
+        kept: true,
+        branch: branchName,
+      };
     }
   }
 
-  // Remove worktree
   const result = await runGit(
-    ["worktree", "remove", worktreePath, "--force"],
+    ["worktree", "remove", ...(force ? ["--force"] : []), worktree.path],
     cwd,
   );
 
   if (result.error) {
-    return { error: result.error };
+    return {
+      error: force
+        ? result.error
+        : `${result.error} (kept the worktree and branch '${branchName}'; remove with force: true to discard its changes)`,
+      kept: true,
+      branch: branchName,
+    };
   }
 
-  // Delete the branch
+  let branchError: string | undefined;
   if (deleteBranch && branchName) {
-    await runGit(["branch", "-D", branchName], cwd);
+    const deleted = await runGit(
+      ["branch", force ? "-D" : "-d", branchName],
+      cwd,
+    );
+    branchError = deleted.error;
   }
 
   return {
-    removed: worktreePath,
+    removed: worktree.path,
     branch: branchName,
-    branchDeleted: deleteBranch && !!branchName,
+    branchDeleted: deleteBranch && !!branchName && !branchError,
+    ...(branchError && { branchError }),
   };
 }
 
@@ -567,8 +774,20 @@ interface WorktreeMergeOptions {
   message?: string;
 }
 
+/** Paths git lists (tab-indented) under "...would be overwritten by merge:". */
+function filesBlockingMerge(gitError: string): string[] {
+  if (!/would be overwritten by merge/.test(gitError)) return [];
+  return gitError
+    .split("\n")
+    .filter((line) => line.startsWith("\t"))
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 /**
- * Merge a worktree branch back into the current branch.
+ * Merge a worktree branch into the repo's current branch. A merge that
+ * conflicts is aborted, so the caller's tree is never left half-merged; the
+ * result names the conflicting files.
  */
 export async function agenticGitWorktreeMerge(
   repoPath: string,
@@ -579,27 +798,101 @@ export async function agenticGitWorktreeMerge(
   if (!validation.safe) {
     return { error: validation.error };
   }
+  const optionLike = rejectOptionLikeArg(branch, "branch");
+  if (optionLike) return { error: optionLike };
 
   const cwd = validation.resolved;
+  const into = await currentBranchOrHead(cwd);
 
-  const args = ["merge", "--no-ff", branch];
-  if (message) {
-    args.push("-m", message);
+  const result = await runGit(
+    [
+      ...(await identityArgs(cwd)),
+      "merge",
+      "--no-ff",
+      "--no-edit",
+      ...(message ? ["-m", message] : []),
+      branch,
+    ],
+    cwd,
+  );
+  if (!result.error) {
+    return {
+      merged: branch,
+      into,
+      output: result.stdout.trim(),
+    };
   }
 
-  const result = await runGit(args, cwd);
-  if (result.error) {
-    return { error: result.error };
+  const unmerged = await runGit(
+    ["diff", "--name-only", "--diff-filter=U", "-z"],
+    cwd,
+  );
+  const conflictingFiles = unmerged.error
+    ? []
+    : unmerged.stdout.split("\0").filter(Boolean);
+  if (conflictingFiles.length > 0) {
+    const aborted = await runGit(["merge", "--abort"], cwd);
+    return {
+      error: `Merging '${branch}' into ${into} conflicts in ${conflictingFiles.join(", ")}. ${aborted.error ? `The merge could NOT be aborted (${aborted.error}); ${into} is mid-merge.` : `The merge was aborted; ${into} is unchanged.`}`,
+      reason: "conflict",
+      conflictingFiles,
+    };
   }
 
-  return {
-    merged: branch,
-    output: result.stdout.trim(),
-  };
+  const blocking = filesBlockingMerge(`${result.error}\n${result.stdout}`);
+  if (blocking.length > 0) {
+    return {
+      error: `Merging '${branch}' into ${into} would overwrite uncommitted changes in ${blocking.join(", ")}; nothing was merged.`,
+      reason: "local-changes",
+      conflictingFiles: blocking,
+    };
+  }
+
+  return { error: result.error };
+}
+
+const FILE_STATUS_BY_LETTER: Record<string, WorktreeFileStatus> = {
+  A: "added",
+  M: "modified",
+  D: "deleted",
+  R: "renamed",
+  C: "copied",
+  T: "type-changed",
+};
+
+/** Parse `git diff --name-status -z` (`R100\0old\0new\0` for renames/copies). */
+function parseNameStatus(output: string): WorktreeDiffFile[] {
+  const tokens = output.split("\0");
+  const files: WorktreeDiffFile[] = [];
+  for (let index = 0; index < tokens.length; ) {
+    const code = tokens[index++];
+    if (!code) continue;
+    const status = FILE_STATUS_BY_LETTER[code[0]] ?? "modified";
+    if (status === "renamed" || status === "copied") {
+      const previousPath = tokens[index++];
+      files.push({ path: tokens[index++], status, previousPath });
+    } else {
+      files.push({ path: tokens[index++], status });
+    }
+  }
+  return files;
+}
+
+/** Sum `git diff --numstat` (binary files report `-`). */
+function sumNumstat(output: string): { additions: number; deletions: number } {
+  let additions = 0;
+  let deletions = 0;
+  for (const line of output.split("\n")) {
+    const [added, deleted] = line.split("\t");
+    additions += Number.parseInt(added, 10) || 0;
+    deletions += Number.parseInt(deleted, 10) || 0;
+  }
+  return { additions, deletions };
 }
 
 /**
- * Get the diff between a worktree branch and the main branch.
+ * What a worktree branch changed since it left the repo's current branch —
+ * the typed diff contract (`WorktreeDiff`).
  */
 export async function agenticGitWorktreeDiff(
   repoPath: string,
@@ -607,38 +900,39 @@ export async function agenticGitWorktreeDiff(
 ): Promise<GitWorktreeDiffResult> {
   const validation = validatePath(repoPath);
   if (!validation.safe) {
-    return { error: validation.error };
+    return { error: validation.error ?? "Invalid path" };
   }
+  const optionLike = rejectOptionLikeArg(branch, "branch");
+  if (optionLike) return { error: optionLike };
 
   const cwd = validation.resolved;
+  const base = await currentBranchOrHead(cwd);
+  const range = `${base}...${branch}`;
 
-  // Get current branch name
-  const currentResult = await runGit(["branch", "--show-current"], cwd);
-  const currentBranch = currentResult.error
-    ? "HEAD"
-    : currentResult.stdout.trim();
-
-  const result = await runGit(
-    ["diff", `${currentBranch}...${branch}`, "--stat", "--patch"],
+  const nameStatus = await runGit(
+    ["diff", "--name-status", "-z", range, "--"],
     cwd,
   );
-
-  if (result.error) {
-    return { error: result.error };
+  if (nameStatus.error) {
+    return { error: nameStatus.error };
+  }
+  const numstat = await runGit(["diff", "--numstat", range, "--"], cwd);
+  if (numstat.error) {
+    return { error: numstat.error };
+  }
+  const patch = await runGit(["diff", "--patch", range, "--"], cwd);
+  if (patch.error) {
+    return { error: patch.error };
   }
 
-  const diff = result.stdout;
-  const hasChanges = diff.trim().length > 0;
-  const additions = (diff.match(/^\+[^+]/gm) || []).length;
-  const deletions = (diff.match(/^-[^-]/gm) || []).length;
-
+  const files = parseNameStatus(nameStatus.stdout);
   return {
     branch,
-    baseBranch: currentBranch,
-    hasChanges,
-    additions,
-    deletions,
-    diff: hasChanges ? diff : "(no changes)",
+    base,
+    files,
+    patch: patch.stdout,
+    stats: { filesChanged: files.length, ...sumNumstat(numstat.stdout) },
+    ...(patch.truncated && { patchTruncated: true }),
   };
 }
 
