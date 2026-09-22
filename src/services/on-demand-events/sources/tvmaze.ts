@@ -62,7 +62,7 @@ export async function fetchTvMazeOnDemand(
         image: episode.show.image?.medium,
       },
     }));
-  } catch (error) {
+  } catch {
     return [];
   }
 }

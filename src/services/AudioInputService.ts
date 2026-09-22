@@ -140,7 +140,7 @@ export async function decodeAudioToPcm(
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes("Invalid data") || message.includes("could not find codec")) {
-      throw new Error(`Could not decode audio input: ${message}`);
+      throw new Error(`Could not decode audio input: ${message}`, { cause: error });
     }
     throw error;
   } finally {

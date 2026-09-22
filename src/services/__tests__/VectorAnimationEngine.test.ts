@@ -11,7 +11,6 @@ import {
   interpolate,
   isSvgPathString,
   interpolatePath,
-  getDefaultValue,
   resolveAnimatedProperties,
   getPathPointAt,
   buildEngineEmbedScript,

@@ -68,7 +68,7 @@ export async function fetchParisEventsOnDemand(
         };
       })
       .filter((event) => event.endDate >= now);
-  } catch (error) {
+  } catch {
     return [];
   }
 }

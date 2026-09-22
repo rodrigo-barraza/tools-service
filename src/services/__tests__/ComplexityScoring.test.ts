@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  getToolSchemas,
-  calculateToolComplexityScore,
-  TOOL_DEFINITIONS,
-} from "../ToolSchemaService.ts";
+import { getToolSchemas } from "../ToolSchemaService.ts";
 
 describe("Dynamic Complexity Scoring", () => {
   it("produces correct scores and tier distribution", () => {

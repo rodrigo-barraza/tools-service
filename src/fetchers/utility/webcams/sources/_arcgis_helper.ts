@@ -54,7 +54,7 @@ export async function fetchArcGISCameras({
   fieldMappings,
   bounds,
 }: FetchArcGISCamerasParams) {
-  let allParsedWebcams: WebcamDocument[] = [];
+  const allParsedWebcams: WebcamDocument[] = [];
   let resultOffset = 0;
   const resultRecordCount = 1000;
   let hasMore = true;

@@ -205,7 +205,9 @@ export async function fetchContainerLogs(
       (error.name === "AbortError" || error.name === "TimeoutError")
     ) {
       logger.warn(`[PortalFetcher] Log snapshot timed out for ${containerName}`);
-      throw new Error(`Log snapshot timed out for container: ${containerName}`);
+      throw new Error(`Log snapshot timed out for container: ${containerName}`, {
+        cause: error,
+      });
     }
     throw error;
   }

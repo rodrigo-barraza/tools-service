@@ -64,7 +64,7 @@ export async function fetchNycParksEventsOnDemand(
         };
       })
       .filter((event) => event.endDate >= now);
-  } catch (error) {
+  } catch {
     return [];
   }
 }

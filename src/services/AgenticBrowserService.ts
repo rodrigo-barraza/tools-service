@@ -849,7 +849,7 @@ function formatAccessibilityTree(
  * 4. Anything else — matched as an aria-label
  */
 function resolveRef(page: Page, rawRef: string) {
-  let ref = rawRef
+  const ref = rawRef
     .trim()
     .replace(/^-\s*/, "")
     .replace(/:\s*$/, "")

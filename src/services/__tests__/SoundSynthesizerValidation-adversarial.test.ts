@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { validateSynthesizerInput } from "../SoundSynthesizerValidation.ts";
-import type { SynthesizerConfig } from "../SoundSynthesizerService.ts";
 
 // ═══════════════════════════════════════════════════════════════
 // ADVERSARIAL TESTS — SoundSynthesizerValidation

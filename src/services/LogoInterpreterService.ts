@@ -1554,7 +1554,7 @@ class LogoExecutor {
     const [endValue, indexAfterEnd] = this.evaluateExpression(remainingTokens, index, remainingTokens.length);
     index = indexAfterEnd;
 
-    let stepValue = 1;
+    let stepValue: number;
     if (index < remainingTokens.length) {
       const [parsedStep] = this.evaluateExpression(remainingTokens, index, remainingTokens.length);
       stepValue = Number(parsedStep);

@@ -51,7 +51,7 @@ export async function fetchOpenF1OnDemand(
           year: session.year,
         },
       }));
-  } catch (error) {
+  } catch {
     return [];
   }
 }

@@ -76,7 +76,7 @@ export async function fetchOpenLigaDbOnDemand(
     }
 
     return events;
-  } catch (error) {
+  } catch {
     return [];
   }
 }

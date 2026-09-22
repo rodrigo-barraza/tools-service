@@ -12,12 +12,6 @@ import { executeLogoProgram } from "../LogoInterpreterService.ts";
 
 // ── Custom Arbitraries ──────────────────────────────────────
 
-const arbitraryTurtleCommand = fc.constantFrom(
-  "fd", "bk", "rt", "lt", "pu", "pd", "ht", "st", "home", "cs",
-  "forward", "back", "right", "left", "penup", "pendown",
-  "hideturtle", "showturtle", "clearscreen",
-);
-
 const arbitraryNumber = fc.oneof(
   fc.integer({ min: -1000, max: 1000 }),
   fc.double({ min: -500, max: 500, noNaN: true }),

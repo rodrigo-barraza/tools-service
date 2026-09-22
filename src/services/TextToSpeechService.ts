@@ -144,7 +144,7 @@ export async function synthesizeSpeech(
     logger.error(
       `[TextToSpeechService] espeak-ng failed: ${errorText}`,
     );
-    throw new Error(`Local TTS synthesis failed: ${errorText}`);
+    throw new Error(`Local TTS synthesis failed: ${errorText}`, { cause: error });
   } finally {
     try {
       await unlink(outputFilePath);

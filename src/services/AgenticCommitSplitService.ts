@@ -16,7 +16,6 @@ import { readFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 
 import { validatePath } from "./AgenticFileService.ts";
-import { errorMessage } from "../utilities.ts";
 import logger from "../logger.ts";
 
 // ── git runner ───────────────────────────────────────────────

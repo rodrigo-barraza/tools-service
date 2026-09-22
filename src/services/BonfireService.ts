@@ -383,7 +383,7 @@ export function generateHtmlEmbed(
   }
 
   // Generate logs HTML
-  let logsHtml = "";
+  let logsHtml: string;
   if (logsCount === 1) {
     logsHtml = `<div class="log log-base log-single"></div>`;
   } else if (logsCount === 2) {

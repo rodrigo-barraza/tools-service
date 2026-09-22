@@ -287,7 +287,7 @@ export async function datastoreWrite(
     username: provenance.username ?? null,
   };
 
-  let inserted = 0;
+  let inserted: number;
   let updated = 0;
 
   if (keyField) {

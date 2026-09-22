@@ -32,8 +32,6 @@ const arbitraryNoteString = fc.tuple(arbitraryNoteName, arbitraryOctave).map(
   ([name, octave]) => `${name}${octave}`,
 );
 
-const arbitraryFrequency = fc.double({ min: 1, max: 22050, noNaN: true });
-
 const arbitraryTempo = fc.integer({ min: 20, max: 999 });
 
 const arbitraryADSR: fc.Arbitrary<ADSREnvelope> = fc.record({

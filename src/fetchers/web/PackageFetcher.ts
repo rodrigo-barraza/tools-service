@@ -21,7 +21,7 @@ export async function getPackageInfo(
 
   let result:
     | (Record<string, unknown> & { error?: string; registry?: string })
-    | null = null;
+    | null;
 
   switch (reg) {
     case "npm":
