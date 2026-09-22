@@ -32,7 +32,7 @@ vi.mock("pdf-parse", () => {
 
   return {
     PDFParse: class MockPDFParse {
-      constructor(paramsName: unknown) {}
+      constructor(_params: unknown) {}
       load = vi.fn().mockResolvedValue(undefined);
       getInfo = mockGetInfo;
       getText = mockGetText;

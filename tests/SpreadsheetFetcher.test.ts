@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
 import request from "supertest";
 import { createTestApp } from "./testApp.ts";
 import { readSpreadsheetUrl, type SpreadsheetJsonResponse } from "../src/fetchers/web/SpreadsheetFetcher.ts";

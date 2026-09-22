@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
 import { createTestApp } from "./testApp.ts";
 import computeRoutes from "../src/routes/ComputeRoutes.ts";
-import { convertVideoToGif, checkFfmpegAvailability } from "../src/services/VideoService.ts";
+import { checkFfmpegAvailability } from "../src/services/VideoService.ts";
 import { ALLOWED_ROOTS } from "../src/services/AgenticFileService.ts";
 import fs from "node:fs/promises";
 import { existsSync, mkdirSync } from "node:fs";
