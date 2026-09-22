@@ -43,7 +43,7 @@ export async function fetchClevelandMuseumOnDemand(
         const closingDate = new Date(exhibition.closing_date);
         return closingDate >= now; // Only current or future
       })
-      .filter((exhibition) => {
+      .filter((_exhibition) => {
         // If not Cleveland, only include if the title is very prominent (placeholder logic)
         // or if the user is in "global" mode (which we don't have a flag for yet, so we'll be generous if it's a major museum)
         return isCleveland || normalizedCity === "";
@@ -63,7 +63,7 @@ export async function fetchClevelandMuseumOnDemand(
           id: exhibition.id,
         },
       }));
-  } catch (error) {
+  } catch {
     return [];
   }
 }

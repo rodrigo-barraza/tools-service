@@ -39,7 +39,7 @@ describe("WebcamFetcher", () => {
     vi.mocked(getWebcamsLastUpdatedByKey).mockResolvedValue(new Date());
     vi.mocked(getWebcams).mockResolvedValue([{ id: "seacam", name: "Seattle Cam", city: "Seattle" }]);
 
-    const results = await getPublicWebcams({ city: "seattle" });
+    await getPublicWebcams({ city: "seattle" });
 
     expect(getWebcams).toHaveBeenCalledWith({ city: { $regex: /^seattle$/i } }, 100);
   });
@@ -48,7 +48,7 @@ describe("WebcamFetcher", () => {
     vi.mocked(getWebcamsLastUpdatedByKey).mockResolvedValue(new Date());
     vi.mocked(getWebcams).mockResolvedValue([{ id: "cacam", name: "California Cam", state: "California" }]);
 
-    const results = await getPublicWebcams({ state: "California" });
+    await getPublicWebcams({ state: "California" });
 
     expect(getWebcamsLastUpdatedByKey).toHaveBeenCalledWith("california");
     expect(getWebcams).toHaveBeenCalledWith({ state: { $regex: /^California$/i } }, 100);
@@ -58,7 +58,7 @@ describe("WebcamFetcher", () => {
     vi.mocked(getWebcamsLastUpdatedByKey).mockResolvedValue(new Date());
     vi.mocked(getWebcams).mockResolvedValue([{ id: "qbcam", name: "Quebec Cam", province: "Quebec" }]);
 
-    const results = await getPublicWebcams({ province: "Quebec" });
+    await getPublicWebcams({ province: "Quebec" });
 
     expect(getWebcamsLastUpdatedByKey).toHaveBeenCalledWith("quebec");
     expect(getWebcams).toHaveBeenCalledWith({ province: { $regex: /^Quebec$/i } }, 100);
@@ -68,7 +68,7 @@ describe("WebcamFetcher", () => {
     vi.mocked(getWebcamsLastUpdatedByKey).mockResolvedValue(new Date());
     vi.mocked(getWebcams).mockResolvedValue([{ id: "licam", name: "Long Island Cam", region: "Long Island" }]);
 
-    const results = await getPublicWebcams({ region: "long-island" });
+    await getPublicWebcams({ region: "long-island" });
 
     expect(getWebcamsLastUpdatedByKey).toHaveBeenCalledWith("long-island");
     expect(getWebcams).toHaveBeenCalledWith({ region: { $regex: /^long-island$/i } }, 100);
@@ -78,7 +78,7 @@ describe("WebcamFetcher", () => {
     vi.mocked(getWebcamsLastUpdatedByKey).mockResolvedValue(new Date());
     vi.mocked(getWebcams).mockResolvedValue([{ id: "decam", name: "Germany Cam", country: "DE" }]);
 
-    const results = await getPublicWebcams({ country: "Germany" });
+    await getPublicWebcams({ country: "Germany" });
 
     expect(getWebcamsLastUpdatedByKey).toHaveBeenCalledWith("germany");
     expect(getWebcams).toHaveBeenCalledWith({ country: "DE" }, 100);
@@ -88,7 +88,7 @@ describe("WebcamFetcher", () => {
     vi.mocked(getWebcamsLastUpdatedByKey).mockResolvedValue(null);
     vi.mocked(getWebcams).mockResolvedValue([{ id: "vancam", name: "Vancouver Cam", city: "Vancouver" }]);
 
-    const results = await getPublicWebcams({ city: "vancouver" });
+    await getPublicWebcams({ city: "vancouver" });
 
     expect(WEBCAM_REGISTRY.vancouver).toHaveBeenCalled();
     expect(getWebcams).toHaveBeenCalled();

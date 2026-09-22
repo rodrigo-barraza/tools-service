@@ -35,7 +35,6 @@ export async function refreshCalgaryWebcams() {
 
     const data = (await response.json()) as CalgaryCamera[];
     if (!Array.isArray(data) || data.length === 0) {
-      hasMore = false;
       break;
     }
 

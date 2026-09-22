@@ -31,10 +31,6 @@ const arbitraryValidInput = fc.constantFrom(
   "/tmp/audio.wav",
 );
 
-const arbitraryValidOperation = fc.record({
-  type: fc.constantFrom(...VALID_OPERATION_TYPES),
-});
-
 // ═══════════════════════════════════════════════════════════════
 // Universal Invariants
 // ═══════════════════════════════════════════════════════════════

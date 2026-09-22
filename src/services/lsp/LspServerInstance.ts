@@ -268,6 +268,7 @@ export function createLspServerInstance(
     } catch (error: unknown) {
       throw new Error(
         `LSP request '${method}' failed for server '${name}': ${getErrorMessage(error)}`,
+        { cause: error },
       );
     }
   }

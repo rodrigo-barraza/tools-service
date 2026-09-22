@@ -150,7 +150,10 @@ const AXIS_STYLE = {
 };
 
 function buildOption(chartConfig: ChartConfig): echarts.EChartsOption {
-  const { type, title, labels, datasets, options = {} } = chartConfig;
+  // `options` is intentionally not read: the old Chart.js options bag doesn't
+  // map to ECharts. The field is still stored for back-compat but no longer
+  // alters rendering.
+  const { type, title, labels, datasets } = chartConfig;
 
   const base: echarts.EChartsOption = {
     backgroundColor: "#ffffff",
@@ -324,10 +327,6 @@ function buildOption(chartConfig: ChartConfig): echarts.EChartsOption {
       };
     }
   }
-  // options passthrough intentionally dropped from the render path: the old
-  // Chart.js options bag doesn't map to ECharts. The field is still stored
-  // for back-compat but no longer alters rendering.
-  void options;
 }
 
 // ─── PNG Renderer ──────────────────────────────────────────────

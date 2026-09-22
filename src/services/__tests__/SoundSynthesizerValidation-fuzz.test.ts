@@ -14,10 +14,6 @@ import type { SynthesizerConfig } from "../SoundSynthesizerService.ts";
 
 const VALID_SOUND_TYPES = ["synthesizer", "sound_effect", "modular"];
 const VALID_WAVEFORMS = ["sine", "triangle", "sawtooth", "square", "noise"];
-const VALID_PRESET_EFFECTS = [
-  "laser", "coin", "powerup", "jump", "explosion",
-  "synthwave_bass", "ambient_pad", "sci_fi_sweep",
-];
 const VALID_NODE_TYPES = [
   "oscillator", "noise", "biquad_filter", "envelope", "delay",
   "stereo_panner", "gain", "reverb", "drum_synth", "distortion",

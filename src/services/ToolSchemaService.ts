@@ -1,23 +1,5 @@
 // ─── Single Source of Truth ─────────────────────────────────
 
-// ────────────────────────────────────────────────────────────
-// Interval Constants — imported as single source of truth
-// for both the collectors and the dataSource metadata.
-// ────────────────────────────────────────────────────────────
-
-import {
-  // Weather domain — still used by get_weather_forecast, get_canada_avalanche_forecast
-  OPEN_METEO_INTERVAL_MS,
-  AVALANCHE_INTERVAL_MS,
-  // Product domain
-  AMAZON_INTERVAL_MS,
-  BESTBUY_CA_AVAILABILITY_INTERVAL_MS,
-  COSTCO_INTERVAL_MS,
-  // Finance domain
-  FINNHUB_NEWS_INTERVAL_MS,
-  FINNHUB_EARNINGS_INTERVAL_MS,
-  EMOJI_KITCHEN_INTERVAL_MS,
-} from "../constants.ts";
 import { queryEmojiCombination } from "../caches/EmojiKitchenCache.ts";
 
 import type {
@@ -28,34 +10,6 @@ import type {
   ToolSchema,
   ToolSchemaForAI,
 } from "../types/tools.ts";
-
-// ────────────────────────────────────────────────────────────
-// Data Source Helpers — builds the dataSource metadata
-// ────────────────────────────────────────────────────────────
-// type: "cached"    — background-polled on a cron interval,
-//                     served from in-memory cache / database.
-// type: "onDemand"  — fetched from a provider at request time.
-//
-// provider: the external API or "internal" for own data.
-// intervalSeconds: polling interval (cached only), derived
-//                  from the same constant the collector uses.
-// ────────────────────────────────────────────────────────────
-
-function cached(provider: string, intervalMs: number) {
-  return {
-    type: "cached" as const,
-    provider,
-    intervalSeconds: Math.round(intervalMs / 1000),
-  };
-}
-
-function onDemand(provider: string) {
-  return { type: "onDemand" as const, provider };
-}
-
-function staticDataset(name: string) {
-  return { type: "static" as const, provider: "internal", dataset: name };
-}
 
 import { DOMAINS } from "@rodrigo-barraza/utilities-library/taxonomy";
 import PromptLocaleService from "./PromptLocaleService.ts";
@@ -76,10 +30,6 @@ function resolveDomainKey(domain: string): string {
       .replace(new RegExp("[^a-z0-9]+", "g"), "_")
       .replace(/^_|_$/g, "")
   );
-}
-
-function compute(name: string) {
-  return { type: "compute" as const, provider: "internal", runtime: name };
 }
 
 // ────────────────────────────────────────────────────────────

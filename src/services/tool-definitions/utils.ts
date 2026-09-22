@@ -1,4 +1,14 @@
-import type { ToolParameterProperty } from "../../types/tools.ts";
+// ────────────────────────────────────────────────────────────
+// Data Source Helpers — builds the dataSource metadata
+// ────────────────────────────────────────────────────────────
+// type: "cached"    — background-polled on a cron interval,
+//                     served from in-memory cache / database.
+// type: "onDemand"  — fetched from a provider at request time.
+//
+// provider: the external API or "internal" for own data.
+// intervalSeconds: polling interval (cached only), derived
+//                  from the same constant the collector uses.
+// ────────────────────────────────────────────────────────────
 
 export function cached(provider: string, intervalMs: number) {
   return {

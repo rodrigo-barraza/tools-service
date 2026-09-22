@@ -14,8 +14,6 @@ import {
   expandTrackRepeats,
   getEnvelopeValue,
   BiquadFilter,
-  DelayNode,
-  SchroederReverb,
   synthesizeSound,
   synthesizeSequence,
   createWavBuffer,

@@ -108,7 +108,7 @@ export async function agenticProjectSummary(
   // Read and parse are handled separately: a MISSING package.json means "not a
   // Node project" (probe Python), but a PRESENT-but-malformed one is still a
   // Node project — reporting it as python/unknown would be a lie.
-  let pkgRaw: string | null = null;
+  let pkgRaw: string | null;
   try {
     pkgRaw = await readFile(join(root, "package.json"), "utf-8");
   } catch {

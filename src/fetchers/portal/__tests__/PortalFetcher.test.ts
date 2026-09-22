@@ -4,9 +4,6 @@ import {
   fetchServiceStatuses,
   fetchContainerStats,
   fetchContainerMetrics,
-  fetchContainerHistory,
-  fetchSystemInfo,
-  fetchDevices,
   fetchContainerLogs,
   isPortalConfigured,
 } from "../../PortalFetcher.ts";

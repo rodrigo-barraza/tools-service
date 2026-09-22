@@ -41,17 +41,6 @@ function quarterNoteRows(note: string, linesPerBeat: number, velocity?: number):
   return rows;
 }
 
-const STANDARD_NODES = {
-  oscillator: { type: "oscillator" as const, waveform: "sine" as const },
-  envelope: {
-    type: "envelope" as const,
-    attack: 0.005,
-    decay: 0.1,
-    sustain: 0.5,
-    release: 0.1,
-  },
-};
-
 // ────────────────────────────────────────────────────────────
 // 1. Auto-Repeat Count Computation
 // ────────────────────────────────────────────────────────────

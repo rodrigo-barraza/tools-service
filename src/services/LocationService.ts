@@ -223,6 +223,8 @@ export async function initLocation() {
       );
       return resolvedLocation;
     }
-    throw new Error(`Location resolution failed: ${errorMessage(error)}`);
+    throw new Error(`Location resolution failed: ${errorMessage(error)}`, {
+      cause: error,
+    });
   }
 }

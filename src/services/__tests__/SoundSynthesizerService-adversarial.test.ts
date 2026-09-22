@@ -3,13 +3,10 @@ import {
   noteToFreq,
   isChordNotation,
   expandChordToNotes,
-  getScaleNotes,
   parseBeatDuration,
   parseTimeMarker,
   getEnvelopeValue,
   applySwingOffset,
-  applyHumanizeOffset,
-  computeSixteenthIndex,
   getVoiceReleaseTime,
   BiquadFilter,
   createWavBuffer,
@@ -458,7 +455,7 @@ describe("expandChordToNotes adversarial — chord expansion", () => {
   });
 
   it("C5 (power chord) should expand to [C4, G4] with default octave", () => {
-    const notes = expandChordToNotes("C5"); // chord type "5" = power chord
+    expandChordToNotes("C5"); // chord type "5" = power chord
     // "C5" regex: root=C, chordType=5, octave=undefined → default 4
     // Wait, "C5" could be misparse: root=C, chordType=5? Let's test the actual behavior
     const result = expandChordToNotes("C5");

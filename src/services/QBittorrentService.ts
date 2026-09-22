@@ -65,6 +65,7 @@ async function authenticate(): Promise<string> {
   } catch (error: unknown) {
     throw new Error(
       `qBittorrent unreachable at ${baseUrl}: ${errorMessage(error)}`,
+      { cause: error },
     );
   }
 
@@ -156,6 +157,7 @@ async function qbtFetch(
   } catch (error: unknown) {
     throw new Error(
       `qBittorrent unreachable at ${baseUrl}: ${errorMessage(error)}`,
+      { cause: error },
     );
   }
 

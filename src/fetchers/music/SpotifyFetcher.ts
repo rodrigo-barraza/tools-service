@@ -272,7 +272,7 @@ async function spotifyRequest(
     return { status: response.status, data: null };
   }
   const text = await response.text();
-  let data: any = null;
+  let data: any;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {

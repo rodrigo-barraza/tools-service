@@ -125,7 +125,9 @@ export async function resolveInput(input: string, store?: ImageStore) {
         const buffer = await readFile(validation.resolved);
         return buffer;
       } catch (error: unknown) {
-        throw new Error(`Failed to read local image file: ${getErrorMessage(error)}`);
+        throw new Error(`Failed to read local image file: ${getErrorMessage(error)}`, {
+          cause: error,
+        });
       }
     } else {
       throw new Error(`Local path validation failed: ${validation.error}`);
