@@ -419,6 +419,116 @@ describe("POST /agentic/git/restore", () => {
   });
 });
 
+describe("POST /agentic/git/restore with agentRanges — only the agent's changes", () => {
+  /** Turn 1 writes a.txt; turn 2 rewrites it and creates b.txt. Returns the refs. */
+  async function twoAgentTurns(repo: string) {
+    await snapshot(repo, REF("1-1"));
+    writeFileSync(join(repo, "a.txt"), "turn one\n");
+    await snapshot(repo, REF("1-1-after"));
+    await snapshot(repo, REF("2-1"));
+    writeFileSync(join(repo, "a.txt"), "turn two\n");
+    writeFileSync(join(repo, "b.txt.new"), "bee\n");
+    await snapshot(repo, REF("2-1-after"));
+    return { target: REF("2-1"), ranges: [{ from: REF("2-1"), to: REF("2-1-after") }] };
+  }
+
+  it("restores the agent's files and leaves the user's unrelated staged and untracked changes alone", async () => {
+    const repo = makeRepo();
+    const { target, ranges } = await twoAgentTurns(repo);
+    // The user stages an unrelated change and drops an untracked file.
+    writeFileSync(join(repo, "c.txt"), "c staged by user\n");
+    git(repo, ["add", "c.txt"]);
+    writeFileSync(join(repo, "notes.md"), "mine\n");
+    const staged = git(repo, ["diff", "--cached"]);
+    const index = indexHash(repo);
+
+    const response = await restore({ workspaceRoot: repo, ref: target, agentRanges: ranges });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ applied: true, restored: ["a.txt"], removed: ["b.txt.new"], conflicts: [] });
+    expect(read(repo, "a.txt")).toBe("turn one\n");
+    expect(existsSync(join(repo, "b.txt.new"))).toBe(false);
+    expect(read(repo, "c.txt")).toBe("c staged by user\n");
+    expect(read(repo, "notes.md")).toBe("mine\n");
+    expect(git(repo, ["diff", "--cached"])).toBe(staged);
+    expect(indexHash(repo)).toBe(index);
+  });
+
+  it("an agent-changed file the user edited afterwards is a conflict, unless forced", async () => {
+    const repo = makeRepo();
+    const { target, ranges } = await twoAgentTurns(repo);
+    writeFileSync(join(repo, "a.txt"), "user touched it\n");
+    writeFileSync(join(repo, "c.txt"), "unrelated user edit\n");
+
+    const refused = await restore({ workspaceRoot: repo, ref: target, agentRanges: ranges });
+    const forced = await restore({ workspaceRoot: repo, ref: target, agentRanges: ranges, force: true });
+
+    expect(refused.status).toBe(409);
+    expect(refused.body.conflicts).toEqual(["a.txt"]);
+    expect(forced.status).toBe(200);
+    expect(read(repo, "a.txt")).toBe("turn one\n");
+    // Forcing overwrites the conflict only — never the user's unrelated file.
+    expect(read(repo, "c.txt")).toBe("unrelated user edit\n");
+  });
+
+  it("a user edit BETWEEN two agent batches to a path the agent touched is a conflict", async () => {
+    const repo = makeRepo();
+    await snapshot(repo, REF("2-1"));
+    writeFileSync(join(repo, "a.txt"), "agent 1\n");
+    await snapshot(repo, REF("2-1-after"));
+    writeFileSync(join(repo, "a.txt"), "user between turns\n");
+    await snapshot(repo, REF("3-1"));
+    writeFileSync(join(repo, "b.txt"), "agent 2\n");
+    await snapshot(repo, REF("3-1-after"));
+
+    const response = await restore({
+      workspaceRoot: repo,
+      ref: REF("2-1"),
+      agentRanges: [
+        { from: REF("2-1"), to: REF("2-1-after") },
+        { from: REF("3-1"), to: REF("3-1-after") },
+      ],
+      dryRun: true,
+    });
+
+    expect(response.status).toBe(409);
+    expect(response.body.conflicts).toEqual(["a.txt"]);
+    expect(response.body.restored.sort()).toEqual(["a.txt", "b.txt"]);
+  });
+
+  it("an earlier restore counts as the agent's change, not the user's", async () => {
+    const repo = makeRepo();
+    const { target, ranges } = await twoAgentTurns(repo);
+    const first = await restore({ workspaceRoot: repo, ref: target, agentRanges: ranges });
+    expect(first.status).toBe(200);
+    // The conversation goes on: turn 3 writes a.txt again.
+    await snapshot(repo, REF("3-1"));
+    writeFileSync(join(repo, "a.txt"), "turn three\n");
+    await snapshot(repo, REF("3-1-after"));
+
+    const again = await restore({
+      workspaceRoot: repo,
+      ref: target,
+      agentRanges: [
+        ...ranges,
+        { from: first.body.undoRef, to: first.body.afterRef },
+        { from: REF("3-1"), to: REF("3-1-after") },
+      ],
+    });
+
+    expect(again.status).toBe(200);
+    expect(again.body.conflicts).toEqual([]);
+    expect(read(repo, "a.txt")).toBe("turn one\n");
+  });
+
+  it("rejects a malformed range", async () => {
+    const repo = makeRepo();
+    await snapshot(repo, REF("1-1"));
+    const response = await restore({ workspaceRoot: repo, ref: REF("1-1"), agentRanges: [{ from: "refs/heads/main", to: null }] });
+    expect(response.status).toBe(400);
+  });
+});
+
 describe("POST /agentic/git/snapshot/delete", () => {
   it("deletes a conversation's refs by prefix and only those", async () => {
     const repo = makeRepo();

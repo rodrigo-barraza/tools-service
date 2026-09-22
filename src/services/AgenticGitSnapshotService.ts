@@ -17,7 +17,12 @@
 //     and deleted ones, and never touches the index or HEAD either — files are
 //     written by `checkout-index` from a second temporary index;
 //   - a restore refuses (unless forced) when a path it would touch changed
-//     after the latest snapshot — i.e. in a way the agent did not make.
+//     after the latest snapshot — i.e. in a way the agent did not make;
+//   - given `agentRanges` (the before/after snapshot pair of every agent
+//     write batch since the target), a restore touches ONLY the paths the
+//     agent changed inside those ranges. A user's unrelated edit — staged or
+//     not — is left alone; a user edit to an agent-changed path, made in a
+//     gap between ranges or after the last one, is a conflict.
 //
 // Non-git workspaces are reported as `snapshotCapable: false` with a reason,
 // never as a silent success. This replaces prism-service's SandboxExecutor,
@@ -113,6 +118,12 @@ export interface RestoreResult {
   undoRef?: string;
   /** The post-restore state: the baseline for the next restore's conflict check. */
   afterRef?: string;
+}
+
+/** One agent write batch: the snapshot before it and after it (null: through the current tree). */
+export interface AgentRange {
+  from: string;
+  to: string | null;
 }
 
 export interface DeleteSnapshotsResult {
@@ -355,6 +366,14 @@ async function writeRef(workspace: Workspace, ref: string, commit: string): Prom
   await mustGit(["update-ref", "--no-deref", ref, commit], workspace.top);
 }
 
+/** A snapshot ref's tree; throws when the ref is gone. */
+async function resolveTree(workspace: Workspace, ref: string): Promise<string> {
+  const outcome = await runGit(["rev-parse", "--verify", "-q", `${ref}^{tree}`], workspace.top);
+  const tree = outcome.stdout.trim();
+  if (outcome.error || !tree) throw new Error(`Snapshot ref not found: ${ref}`);
+  return tree;
+}
+
 interface TreeChange {
   status: string;
   path: string;
@@ -524,6 +543,7 @@ export async function restoreWorkspace({
   ref,
   againstRef,
   paths,
+  agentRanges,
   force = false,
   dryRun = false,
 }: {
@@ -531,11 +551,26 @@ export async function restoreWorkspace({
   ref: unknown;
   againstRef?: unknown;
   paths?: unknown;
+  agentRanges?: unknown;
   force?: boolean;
   dryRun?: boolean;
 }): Promise<RestoreResult | NotSnapshotCapable | SnapshotError> {
   const refError = validateSnapshotRef(ref);
   if (refError) return { error: refError };
+  let ranges: AgentRange[] | null = null;
+  if (agentRanges !== undefined && agentRanges !== null) {
+    if (!Array.isArray(agentRanges)) return { error: "'agentRanges' must be an array of {from, to}" };
+    ranges = [];
+    for (const range of agentRanges as Array<Record<string, unknown>>) {
+      const fromError = validateSnapshotRef(range?.from, "agentRanges[].from");
+      if (fromError) return { error: fromError };
+      if (range.to !== null && range.to !== undefined) {
+        const toError = validateSnapshotRef(range.to, "agentRanges[].to");
+        if (toError) return { error: toError };
+      }
+      ranges.push({ from: range.from as string, to: (range.to as string | undefined) ?? null });
+    }
+  }
   if (againstRef !== undefined && againstRef !== null) {
     const againstError = validateSnapshotRef(againstRef, "againstRef");
     if (againstError) return { error: againstError };
@@ -573,6 +608,26 @@ export async function restoreWorkspace({
       const currentTree = await buildWorkingTree(workspace, scratch, "current-index");
       let changes = await diffTrees(workspace, targetTree, currentTree);
 
+      // With agent ranges: only what the agent changed is restored, and a
+      // conflict is an agent-changed path someone else changed in a gap.
+      let gapPaths: Set<string> | null = null;
+      if (ranges) {
+        const agentPaths = new Set<string>();
+        gapPaths = new Set<string>();
+        const pathsBetween = async (from: string, to: string) =>
+          (await diffTrees(workspace, from, to)).map((change) => change.path);
+        let cursor = targetTree;
+        for (const range of ranges) {
+          const fromTree = await resolveTree(workspace, range.from);
+          const toTree = range.to ? await resolveTree(workspace, range.to) : currentTree;
+          for (const path of await pathsBetween(cursor, fromTree)) gapPaths.add(path);
+          for (const path of await pathsBetween(fromTree, toTree)) agentPaths.add(path);
+          cursor = toTree;
+        }
+        for (const path of await pathsBetween(cursor, currentTree)) gapPaths.add(path);
+        changes = changes.filter((change) => agentPaths.has(change.path));
+      }
+
       if (Array.isArray(paths) && paths.length > 0) {
         const wanted = (paths as string[])
           .map((path) => toRepoRelative(workspace, path))
@@ -590,7 +645,10 @@ export async function restoreWorkspace({
       const toRestore = actionable.filter((change) => change.status !== "A").map((change) => change.path);
 
       let conflicts: string[] = [];
-      if (baselineTree) {
+      if (gapPaths) {
+        const userChanged = gapPaths;
+        conflicts = [...toRestore, ...toRemove].filter((path) => userChanged.has(path)).sort();
+      } else if (baselineTree) {
         const changedSinceBaseline = new Set(
           (await diffTrees(workspace, baselineTree, currentTree)).map((change) => change.path),
         );

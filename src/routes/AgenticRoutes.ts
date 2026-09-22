@@ -1011,12 +1011,13 @@ router.post(
 );
 router.post(
   "/git/restore",
-  snapshotRoute(({ workspaceRoot, ref, againstRef, paths, force, dryRun }) =>
+  snapshotRoute(({ workspaceRoot, ref, againstRef, paths, agentRanges, force, dryRun }) =>
     restoreWorkspace({
       workspaceRoot,
       ref,
       againstRef,
       paths,
+      agentRanges,
       force: force === true || force === "true",
       dryRun: dryRun === true || dryRun === "true",
     }),
