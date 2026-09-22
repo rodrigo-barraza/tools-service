@@ -52,6 +52,7 @@ import {
   agenticGitDiff,
   agenticGitLog,
   agenticGitWorktreeCreate,
+  agenticGitWorktreeCommit,
   agenticGitWorktreeRemove,
   agenticGitWorktreeMerge,
   agenticGitWorktreeDiff,
@@ -911,7 +912,7 @@ router.post(
 router.post(
   "/git/worktree/remove",
   agenticHandler(async (req: Request) => {
-    const { path, worktreePath, deleteBranch } = req.body;
+    const { path, worktreePath, deleteBranch, force } = req.body;
     if (!path || typeof path !== "string") {
       return {
         error:
@@ -924,9 +925,36 @@ router.post(
           "Request body must include 'worktreePath' (string) — path to the worktree to remove",
       };
     }
+    const forced = coerceBool(force, "force", false);
+    if (!forced.ok) return { error: forced.error };
     return agenticGitWorktreeRemove(path, worktreePath, {
       deleteBranch: deleteBranch !== false,
+      force: forced.value,
     });
+  }),
+);
+router.post(
+  "/git/worktree/commit",
+  agenticHandler(async (req: Request) => {
+    const { path, worktreePath, message } = req.body;
+    if (!path || typeof path !== "string") {
+      return {
+        error:
+          "Request body must include 'path' (string) — path to the main git repo",
+      };
+    }
+    if (!worktreePath || typeof worktreePath !== "string") {
+      return {
+        error:
+          "Request body must include 'worktreePath' (string) — path to the worktree to commit",
+      };
+    }
+    if (!message || typeof message !== "string") {
+      return {
+        error: "Request body must include 'message' (string) — commit message",
+      };
+    }
+    return agenticGitWorktreeCommit(path, worktreePath, message);
   }),
 );
 router.post(
@@ -1165,6 +1193,7 @@ export function getAgenticHealth() {
     gitLog: "on-demand (git subprocess)",
     gitWorktreeCreate: "on-demand (git worktree)",
     gitWorktreeRemove: "on-demand (git worktree)",
+    gitWorktreeCommit: "on-demand (git commit)",
     gitWorktreeMerge: "on-demand (git merge)",
     gitWorktreeDiff: "on-demand (git diff)",
     gitWorktreeCleanup: "on-demand (git prune)",
