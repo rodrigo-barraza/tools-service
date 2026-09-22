@@ -19,6 +19,7 @@ import {
   EMOJI_KITCHEN_INTERVAL_MS,
 } from "../constants.ts";
 import { queryEmojiCombination } from "../caches/EmojiKitchenCache.ts";
+import { TOOL_CAPABILITIES, type ToolCapabilityTag } from "./ToolCapabilities.ts";
 
 import type {
   ToolDefinition,
@@ -1187,6 +1188,8 @@ export interface RegistryDriftReport {
   missingDomains: string[];
   /** Tool names with no TOOL_EMOJIS entry */
   missingEmojis: string[];
+  /** Tool names with no TOOL_CAPABILITIES entry */
+  missingCapabilities: string[];
 }
 
 export function validateToolRegistries(): RegistryDriftReport {
@@ -1197,6 +1200,7 @@ export function validateToolRegistries(): RegistryDriftReport {
     TOOL_EMOJIS,
     TOOL_REQUIRED_KEYS,
     TOOL_REQUIRED_DATA_FILES,
+    TOOL_CAPABILITIES,
   };
 
   const staleKeys: Record<string, string[]> = {};
@@ -1213,6 +1217,9 @@ export function validateToolRegistries(): RegistryDriftReport {
   const missingEmojis = [...definedNames].filter(
     (name) => !(name in TOOL_EMOJIS),
   );
+  const missingCapabilities = [...definedNames].filter(
+    (name) => !(name in TOOL_CAPABILITIES),
+  );
 
   for (const [registryName, stale] of Object.entries(staleKeys)) {
     logger.warn(
@@ -1225,7 +1232,13 @@ export function validateToolRegistries(): RegistryDriftReport {
     );
   }
 
-  return { staleKeys, missingDomains, missingEmojis };
+  if (missingCapabilities.length > 0) {
+    logger.warn(
+      `[ToolSchema] ⚠️ ${missingCapabilities.length} tools have no TOOL_CAPABILITIES entry: ${missingCapabilities.join(", ")}`,
+    );
+  }
+
+  return { staleKeys, missingDomains, missingEmojis, missingCapabilities };
 }
 
 validateToolRegistries();
@@ -1449,6 +1462,7 @@ function resolveToolIntelligenceTierCached(tool: ToolDefinition) {
 export {
   TOOL_DOMAINS,
   TOOL_EMOJIS,
+  TOOL_CAPABILITIES,
   TOOL_DEFINITIONS,
   COMPLEXITY_WEIGHTS,
   SEMANTIC_PARAMETER_TYPES,
@@ -1489,6 +1503,17 @@ export function resolveToolEmoji(toolName: string): string | null {
 }
 
 
+/**
+ * `{ capabilities }` for a tool with a TOOL_CAPABILITIES entry, `{}` for one
+ * without. Omitting the field — rather than sending `[]` — keeps "unknown"
+ * distinguishable from "pure computation", and consumers treat unknown
+ * conservatively.
+ */
+function capabilitiesOf(toolName: string): { capabilities?: ToolCapabilityTag[] } {
+  const capabilities = TOOL_CAPABILITIES[toolName];
+  return capabilities ? { capabilities: [...capabilities] } : {};
+}
+
 export function getToolSchemas(locale?: string): ToolSchema[] {
   const definitions = locale
     ? getLocalizedToolDefinitions(locale)
@@ -1507,6 +1532,7 @@ export function getToolSchemas(locale?: string): ToolSchema[] {
         emoji: resolveToolEmoji(tool.name),
         intelligenceTier,
         complexityScore,
+        ...capabilitiesOf(tool.name),
       };
     },
   );
@@ -1531,6 +1557,7 @@ export function getToolSchemasForAI(locale?: string): ToolSchemaForAI[] {
         ...rest,
         intelligenceTier,
         complexityScore,
+        ...capabilitiesOf(tool.name),
       };
     },
   );
