@@ -77,6 +77,7 @@ import computeRoutes, { getComputeHealth } from "./routes/ComputeRoutes.ts";
 import maritimeRoutes, { getMaritimeHealth } from "./routes/MaritimeRoutes.ts";
 import energyRoutes, { getEnergyHealth } from "./routes/EnergyRoutes.ts";
 import agenticRoutes, { getAgenticHealth } from "./routes/AgenticRoutes.ts";
+import hookCommandRoutes from "./routes/HookCommandRoutes.ts";
 import communicationRoutes, {
   getCommunicationHealth,
 } from "./routes/CommunicationRoutes.ts";
@@ -157,6 +158,8 @@ app.use("/utility", utilityRoutes);
 app.use("/compute", computeRoutes);
 app.use("/maritime", maritimeRoutes);
 app.use("/energy", energyRoutes);
+// Before /agentic: its own router, not one of the agentic tools.
+app.use("/agentic/hook-command", hookCommandRoutes);
 app.use("/agentic", agenticRoutes);
 app.use("/communication", communicationRoutes);
 app.use("/creative", express.json({ limit: "50mb" }), creativeRoutes);
