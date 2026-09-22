@@ -76,7 +76,7 @@ If the plan includes removing a whole capability or user-visible mode, state the
   - Rewrite tests that pin deliberately-changed behavior — call out that the change is intentional, don't contort the fix to keep old tests green.
   - Add a unit test for **each fixed bug that reproduces the production failure pattern** (the exact bad input real models sent).
   - Add endpoint tests for the full happy-path workflow plus each new validation error.
-- Verify: `npx tsc --noEmit` clean and `npx vitest run` fully green (run the complete suite, not just touched files — schema changes ripple into complexity-scoring and locale-parity tests). `npx eslint` currently crashes in these repos (typescript-estree / TS 7.x mismatch) — rely on tsc + tests.
+- Verify: `npx tsc --noEmit` clean and `npx vitest run` fully green (run the complete suite, not just touched files — schema changes ripple into complexity-scoring and locale-parity tests). `npm run lint` (oxlint) must be clean too.
 - Do **not** commit unless asked. Note in the summary that the service needs a redeploy before agents see the new schema.
 
 ## Report

@@ -10,10 +10,8 @@
 //   6. Route-level integration (POST /agentic/custom-tool/execute)
 // ────────────────────────────────────────────────────────────
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import { executeJavaScript } from "../src/services/JavaScriptInterpreterService.ts";
-import { createTestApp } from "./testApp.ts";
-import request from "supertest";
 
 interface CustomWeekYearResult {
   week: number;

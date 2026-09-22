@@ -229,8 +229,8 @@ describe("DapClient protocol handling", () => {
       breakpoints: [{ line: 3 }],
     });
     expect(
-      (breakpointsResponse.body?.breakpoints as Array<{ verified: boolean }>)[0]
-        .verified,
+      (breakpointsResponse.body?.breakpoints as Array<{ verified: boolean }> | undefined)?.[0]
+        ?.verified,
     ).toBe(true);
     await client.sendRequest("configurationDone");
     await launchPromise;

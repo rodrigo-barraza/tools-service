@@ -59,7 +59,7 @@ All endpoints support sparse fieldsets via `?fields=name,venue.city`.
 ```bash
 npm start              # Start server
 npm run dev            # Start with auto-reload (nodemon)
-npm run lint           # Run ESLint
+npm run lint           # Run oxlint (.oxlintrc.json)
 npm run lint:fix       # Auto-fix lint issues
 npm run format         # Format with Prettier
 npm run format:check   # Check formatting
