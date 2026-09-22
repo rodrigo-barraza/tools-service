@@ -82,6 +82,7 @@ import {
   type ToolDisplaySubjectFormat,
 } from "@rodrigo-barraza/utilities-library";
 export { type ToolDisplayMetadata, type ToolDisplaySubjectFormat };
+import type { ToolCapabilityTag } from "../services/ToolCapabilities.ts";
 
 // ─── Tool Definition ───────────────────────────────────────────
 
@@ -103,6 +104,8 @@ export interface ToolSchema extends ToolDefinition {
   emoji: string | null;
   intelligenceTier: ToolIntelligenceTier;
   complexityScore: number;
+  /** What the tool can do (`ToolCapabilities.ts`). Absent = not declared. */
+  capabilities?: ToolCapabilityTag[];
 }
 
 // ─── Stripped schema for AI consumption ─────────────────────────
@@ -113,6 +116,7 @@ export type ToolSchemaForAI = Omit<
 > & {
   intelligenceTier: ToolIntelligenceTier;
   complexityScore: number;
+  capabilities?: ToolCapabilityTag[];
 };
 
 // ─── Scored match from AgenticToolSearchService ─────────────────
