@@ -74,6 +74,12 @@ import {
 } from "../services/AgenticDebugService.ts";
 import { agenticCommitSplit } from "../services/AgenticCommitSplitService.ts";
 import {
+  snapshotWorkspace,
+  restoreWorkspace,
+  deleteWorkspaceSnapshots,
+  snapshotResultStatus,
+} from "../services/AgenticGitSnapshotService.ts";
+import {
   testTool,
   testAllTools,
   getTestableTools,
@@ -978,6 +984,49 @@ router.post(
     }
     return agenticGitWorktreeCleanup(path);
   }),
+);
+// ── Workspace Snapshots (rewind) ─────────────────────────────
+// Shadow commits under refs/prism/checkpoints/… built through a temporary
+// index — never the user's index, HEAD or hooks. prism-service takes one
+// before and after each writing tool batch; see AgenticGitSnapshotService.
+// A non-git workspace answers 200 { snapshotCapable: false, reason }.
+function snapshotRoute(
+  run: (body: Record<string, unknown>) => Promise<object>,
+) {
+  return async (req: Request, res: Response) => {
+    try {
+      const result = await run((req.body || {}) as Record<string, unknown>);
+      res.status(snapshotResultStatus(result)).json(result);
+    } catch (error: unknown) {
+      logger.error(`[snapshot] ${req.originalUrl}: ${errorMessage(error)}`);
+      res.status(500).json({ error: errorMessage(error) || "Snapshot route failed" });
+    }
+  };
+}
+router.post(
+  "/git/snapshot",
+  snapshotRoute(({ workspaceRoot, ref, message }) =>
+    snapshotWorkspace({ workspaceRoot, ref, message }),
+  ),
+);
+router.post(
+  "/git/restore",
+  snapshotRoute(({ workspaceRoot, ref, againstRef, paths, force, dryRun }) =>
+    restoreWorkspace({
+      workspaceRoot,
+      ref,
+      againstRef,
+      paths,
+      force: force === true || force === "true",
+      dryRun: dryRun === true || dryRun === "true",
+    }),
+  ),
+);
+router.post(
+  "/git/snapshot/delete",
+  snapshotRoute(({ workspaceRoot, refs, prefix, olderThanMs }) =>
+    deleteWorkspaceSnapshots({ workspaceRoot, refs, prefix, olderThanMs }),
+  ),
 );
 // ─── 8. Project Intelligence ────────────────────────────────
 router.post(

@@ -183,6 +183,45 @@ describe("POST /agentic/git/snapshot", () => {
     expect(existsSync(join(markers, "reference-transaction"))).toBe(false);
     expect(existsSync(join(markers, "post-index-change"))).toBe(false);
     expect(existsSync(join(markers, "post-checkout"))).toBe(false);
+    // Control: the hooks are live — plain git trips reference-transaction.
+    expect(() => git(repo, ["update-ref", "refs/prism/checkpoints/control/x", "HEAD"])).toThrow();
+    expect(existsSync(join(markers, "reference-transaction"))).toBe(true);
+  });
+
+  it("snapshots a repository with no commits yet (no parent)", async () => {
+    const repo = makeTempDir("prism-unborn-");
+    git(repo, ["init", "-q", "-b", "main"]);
+    writeFileSync(join(repo, "first.txt"), "first\n");
+
+    const response = await snapshot(repo, REF("1-1"));
+    writeFileSync(join(repo, "second.txt"), "second\n");
+    const restored = await restore({ workspaceRoot: repo, ref: REF("1-1"), force: true });
+
+    expect(response.status).toBe(200);
+    expect(response.body.head).toBeNull();
+    expect(git(repo, ["show", `${REF("1-1")}:first.txt`])).toBe("first\n");
+    expect(restored.body.removed).toEqual(["second.txt"]);
+    expect(existsSync(join(repo, "second.txt"))).toBe(false);
+    expect(() => git(repo, ["rev-parse", "--verify", "HEAD"])).toThrow();
+  });
+
+  it("works in a linked git worktree without touching the worktree's own index", async () => {
+    const repo = makeRepo();
+    const worktree = join(makeTempDir("prism-linked-"), "wt");
+    git(repo, ["worktree", "add", "-q", worktree, "-b", "feature"]);
+    writeFileSync(join(worktree, "a.txt"), "a in worktree\n");
+    git(worktree, ["add", "a.txt"]);
+    const before = git(worktree, ["status", "--porcelain"]);
+
+    const response = await snapshot(worktree, REF("1-1"));
+    writeFileSync(join(worktree, "b.txt"), "b agent\n");
+    const restored = await restore({ workspaceRoot: worktree, ref: REF("1-1"), force: true });
+
+    expect(response.status).toBe(200);
+    expect(restored.body.restored).toEqual(["b.txt"]);
+    expect(git(worktree, ["status", "--porcelain"])).toBe(before);
+    // Refs are shared across worktrees: the main checkout sees the snapshot.
+    expect(git(repo, ["show", `${REF("1-1")}:a.txt`])).toBe("a in worktree\n");
   });
 
   it("reports a non-git workspace as not snapshot-capable instead of succeeding", async () => {
