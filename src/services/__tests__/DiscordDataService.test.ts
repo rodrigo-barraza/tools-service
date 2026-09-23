@@ -284,3 +284,72 @@ describe("DiscordDataService.getServerActivity", () => {
     expect(result).toHaveProperty("hourlyActivity");
   });
 });
+
+// ── Discord-scoped calls — the requester's visible channels ──
+
+describe("DiscordDataService — visibleChannelIds (Discord-scoped calls)", () => {
+  const VISIBLE = ["chan-a", "thread-b"];
+
+  it("limits a search to the visible channels and threads", async () => {
+    await DiscordDataService.searchMessages({ guildId: "g1", visibleChannelIds: VISIBLE });
+    expect(lastFilter().channelId).toEqual({ $in: VISIBLE });
+  });
+
+  it("keeps an explicit visible channel, and matches nothing for a hidden one", async () => {
+    await DiscordDataService.searchMessages({ channelId: "thread-b", visibleChannelIds: VISIBLE });
+    expect(lastFilter().channelId).toBe("thread-b");
+
+    await DiscordDataService.searchMessages({ channelId: "staff", visibleChannelIds: VISIBLE });
+    expect(lastFilter().channelId).toEqual({ $in: [] });
+  });
+
+  it("holds a message-ID lookup, and the bare-snowflake fallback, to the visible channels", async () => {
+    await DiscordDataService.searchMessages({
+      guildId: "g1",
+      messageId: "1526820952019701853",
+      visibleChannelIds: VISIBLE,
+    });
+    expect(lastFilter()).toMatchObject({
+      id: "1526820952019701853",
+      guildId: "g1",
+      channelId: { $in: VISIBLE },
+    });
+
+    await DiscordDataService.searchMessages({
+      query: "1526820952019701853",
+      visibleChannelIds: VISIBLE,
+    });
+    expect(lastFilter()).toMatchObject({ id: "1526820952019701853", channelId: { $in: VISIBLE } });
+  });
+
+  it("holds count mode to the visible channels", async () => {
+    await DiscordDataService.searchMessages({ mode: "count", visibleChannelIds: VISIBLE });
+    expect(mockCountDocuments.mock.calls[0][0].channelId).toEqual({ $in: VISIBLE });
+  });
+
+  it("groups analytics (by channel too) over the visible channels only", async () => {
+    await DiscordDataService.analyzeMessages({ groupBy: "channel", visibleChannelIds: VISIBLE });
+    const [pipeline] = mockAggregate.mock.calls[0];
+    expect(pipeline[0].$match.channelId).toEqual({ $in: VISIBLE });
+    expect(mockCountDocuments.mock.calls[0][0].channelId).toEqual({ $in: VISIBLE });
+  });
+
+  it("keeps the visible set in every server-activity aggregation, the channel breakdown included", async () => {
+    await DiscordDataService.getServerActivity({ guildId: "g1", visibleChannelIds: VISIBLE });
+    expect(mockCountDocuments.mock.calls[0][0].channelId).toEqual({ $in: VISIBLE });
+    for (const [pipeline] of mockAggregate.mock.calls) {
+      expect(pipeline[0].$match.channelId).toEqual({ $in: VISIBLE });
+    }
+  });
+
+  it("leaves an unscoped server activity as before (breakdown over every channel)", async () => {
+    await DiscordDataService.getServerActivity({ guildId: "g1" });
+    expect(mockCountDocuments.mock.calls[0][0].channelId).toBeUndefined();
+    const breakdown = mockAggregate.mock.calls.find(([pipeline]) =>
+      pipeline.some((stage: Record<string, unknown>) =>
+        JSON.stringify(stage).includes('"$group":{"_id":"$channelId"'),
+      ),
+    );
+    expect(breakdown?.[0][0].$match.channelId).toEqual({ $exists: true });
+  });
+});
