@@ -153,7 +153,8 @@ async function getSecuritySettings(): Promise<{ allowEnvFiles: boolean }> {
     const database = getDatabase();
     const databaseInternal = database as unknown as { client?: { db: (name: string) => import("mongodb").Db }; s?: { client?: { db: (name: string) => import("mongodb").Db } } };
     const client = databaseInternal.client || databaseInternal.s?.client;
-    const prismDb = client ? client.db("prism") : null;
+    const { default: CONFIG } = await import("../config.ts");
+    const prismDb = client ? client.db(CONFIG.PRISM_MONGODB_DB_NAME) : null;
     if (prismDb) {
       const collection = prismDb.collection("settings");
       const doc = await collection.findOne({ _key: "global" });
@@ -163,7 +164,6 @@ async function getSecuritySettings(): Promise<{ allowEnvFiles: boolean }> {
     } else {
       // Fallback: lazily establish a new connection if needed
       if (!settingsClient) {
-        const { default: CONFIG } = await import("../config.ts");
         if (CONFIG.MONGODB_URI) {
           settingsClient = new MongoClient(CONFIG.MONGODB_URI);
           await settingsClient.connect();
@@ -171,7 +171,7 @@ async function getSecuritySettings(): Promise<{ allowEnvFiles: boolean }> {
       }
       if (settingsClient) {
         const doc = await settingsClient
-          .db("prism")
+          .db(CONFIG.PRISM_MONGODB_DB_NAME)
           .collection("settings")
           .findOne({ _key: "global" });
         if (doc && doc.data && doc.data.security) {
