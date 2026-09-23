@@ -40,11 +40,21 @@ FROM node:26-slim
 
 # Chromium (Playwright), Python 3 (interpreter), FFmpeg (media),
 # wget (healthcheck), git (agentic git tools), espeak-ng (local TTS),
-# yt-dlp (YouTube/Reddit video downloads)
+# yt-dlp (YouTube/Reddit video downloads).
+# numpy / pandas / matplotlib are what execute_python's description
+# promises (figures are auto-captured), and Pillow is what agents reach for
+# to edit an attached image — none were installed, so 7 of Lupos's 10
+# execute_python runs (30 days to 2026-09-22) died on an ImportError.
+# Debian's builds: prebuilt, and they import in ~0.6 s under the sandbox's
+# RLIMIT_DATA cap (verified on node:26-slim as a no-home system user).
 RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
     python3 \
     python3-pip \
+    python3-numpy \
+    python3-pandas \
+    python3-matplotlib \
+    python3-pil \
     ffmpeg \
     fonts-liberation \
     ca-certificates \
