@@ -18,6 +18,7 @@ interface ToolsServiceConfig {
   TOOLS_SERVICE_PUBLIC_URL: string | undefined;
   MONGODB_URI: string | undefined;
   MONGODB_DB_NAME: string;
+  PRISM_MONGODB_DB_NAME: string;
 
   // Location (mutable)
   LATITUDE: number;
@@ -151,6 +152,10 @@ const CONFIG: ToolsServiceConfig = {
   TOOLS_SERVICE_PUBLIC_URL: process.env.TOOLS_SERVICE_PUBLIC_URL,
   MONGODB_URI: process.env.MONGO_URI,
   MONGODB_DB_NAME: process.env.TOOLS_SERVICE_MONGO_DB_NAME || "tools",
+  // prism-service's database, where the global settings live (the workspace
+  // agent secret, allowEnvFiles). A live test that boots both services on
+  // test databases names prism's here too, or this reads production's.
+  PRISM_MONGODB_DB_NAME: process.env.PRISM_SERVICE_MONGO_DB_NAME || "prism",
 
   // ─── Location (populated dynamically by LocationService.initLocation()) ───
   // Defaults act as fallbacks if initLocation() hasn't run yet.

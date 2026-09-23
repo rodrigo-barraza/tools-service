@@ -208,7 +208,7 @@ export async function resolveAgentSecret(): Promise<string | undefined> {
     };
     const client = databaseInternal.client || databaseInternal.s?.client;
     if (client) {
-      const prismDatabase = client.db("prism");
+      const prismDatabase = client.db(CONFIG.PRISM_MONGODB_DB_NAME);
       const document = await prismDatabase
         .collection("settings")
         .findOne({ _key: "global" });
