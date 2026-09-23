@@ -316,6 +316,12 @@ export const TOOL_CAPABILITIES: Record<string, readonly ToolCapabilityTag[]> = {
   get_discord_gold_balance: ["network"],
   give_discord_gold: ["network", "external_side_effect"],
   mug_discord_gold: ["network", "external_side_effect"],
+  create_discord_poll: ["network", "external_side_effect"],
+  create_discord_thread: ["network", "external_side_effect"],
+  schedule_discord_reminder: ["network", "external_side_effect"],
+  list_discord_reminders: ["network"],
+  cancel_discord_reminder: ["network", "external_side_effect"],
+  set_discord_nickname: ["network", "external_side_effect"],
   // ── Smart Home ──
   list_lights: ["network"],
   set_light_state: ["network", "external_side_effect"],
