@@ -361,7 +361,10 @@ async function forwardToLuposBot(
   const targetUrl = `${LUPOS_BOT_URL}${path}${queryString ? `?${queryString}` : ""}`;
 
   const response = await fetch(targetUrl);
-  return readLuposBotResponse(response, relayRefusals);
+  // Inside a Discord conversation lupos-bot answers for the requester
+  // (a stats route refuses a channel they can't see, a non-member, …) —
+  // its reason is the model's to relay, not a service failure.
+  return readLuposBotResponse(response, relayRefusals || scope !== null);
 }
 
 /**

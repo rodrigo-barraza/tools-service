@@ -464,3 +464,31 @@ describe("a lupos-bot 4xx on a POST is the tool's error", () => {
     expect(res.body.error).toContain("alreadyReacted");
   });
 });
+
+describe("a lupos-bot 4xx on a scoped GET is the tool's error", () => {
+  // lupos-bot's stats routes answer for the requester: a channel they
+  // can't see is a 403 with a reason the model should pass on.
+  it("relays the reason with its status inside a Discord conversation", async () => {
+    luposBotReplies.set("GET /guild/word-frequencies", {
+      status: 403,
+      body: { error: "You can't see that channel." },
+    });
+    const res = await request(app)
+      .get("/discord/guild/word-frequencies")
+      .set(DISCORD_HEADERS)
+      .query({ userId: USER });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe("You can't see that channel.");
+  });
+
+  it("still fails as a server error outside one", async () => {
+    luposBotReplies.set("GET /guild/word-frequencies", {
+      status: 403,
+      body: { error: "You can't see that channel." },
+    });
+    const res = await request(app)
+      .get("/discord/guild/word-frequencies")
+      .query({ guildId: GUILD, userId: USER });
+    expect(res.status).toBe(500);
+  });
+});
