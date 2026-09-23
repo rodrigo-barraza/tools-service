@@ -75,6 +75,11 @@ import {
 } from "../utilities/VectorAnimationEngine.ts";
 import { lintAnimation } from "../services/VectorAnimationLint.ts";
 import {
+  declineOf,
+  type ImageDecline,
+  type ImageGenerationResult,
+} from "../services/ImageDecline.ts";
+import {
   queryEmojiCombination,
   queryEmojiCombinations,
   getEmojiKitchenHealth,
@@ -309,13 +314,8 @@ router.post(
     try {
       const creativeSettings = await getCreativeSettings();
       let currentPrompt = prompt;
-      let result:
-        | {
-            text?: string;
-            images?: { data: string; mimeType?: string }[];
-            safetyBlock?: boolean;
-          }
-        | undefined;
+      let result: ImageGenerationResult | undefined;
+      let decline: ImageDecline | null = null;
       let safetyRetries = 0;
 
       // The model can't output alpha — for cut-outs we ask for a chromakey
@@ -427,11 +427,21 @@ router.post(
         }
 
         // Success — we got an image
-        if (!result.safetyBlock && (result.images?.length ?? 0) > 0) {
+        decline = declineOf(result);
+        if (!decline) {
           break;
         }
 
-        // Safety block — can we retry with a softer prompt?
+        // A decline softening cannot change (a likeness, personal info, the
+        // model choosing not to draw) ends the attempt now.
+        if (!decline.softenable) {
+          logger.warn(
+            `[CreativeRoutes] generate-image: declined (${decline.category}) — not a content-policy block, not retrying`,
+          );
+          break;
+        }
+
+        // Content-policy block — can we retry with a softer prompt?
         if (attempt < MAX_SAFETY_RETRIES) {
           safetyRetries++;
           const previousPrompt = currentPrompt;
@@ -452,21 +462,29 @@ router.post(
         }
       }
 
-      // All attempts exhausted — still blocked
-      if (!result || result.safetyBlock) {
+      // No image. The message names the reason and tells the agent not to
+      // redraw the same request — it used to invite exactly that.
+      if (!result || decline || !result.images?.length) {
+        const category = decline?.category ?? "UNKNOWN";
+        const explanation = decline?.explanation
+          ? PromptLocaleService.get("en", "prompts.creative.image.decline-explanation", {
+              explanation: decline.explanation.slice(0, 300),
+            })
+          : "";
+        const errorKey =
+          category === "UNKNOWN"
+            ? "prompts.creative.image.no-image-error"
+            : decline?.softenable
+              ? "prompts.creative.image.safety-block-error"
+              : "prompts.creative.image.declined-error";
         return res.status(422).json({
           success: false,
-          error: PromptLocaleService.get("en", "prompts.creative.image.safety-block-error", {
+          error: PromptLocaleService.get("en", errorKey, {
             attemptCount: String(safetyRetries + 1),
+            reason: category,
+            explanation,
           }),
-        });
-      }
-
-      // No image in response (model returned text instead)
-      if (!result.images || result.images.length === 0) {
-        return res.status(422).json({
-          success: false,
-          error: PromptLocaleService.get("en", "prompts.creative.image.no-image-error"),
+          refusal: { category, explanation: decline?.explanation ?? null },
         });
       }
 
