@@ -72,7 +72,11 @@ export class DiscordRefusal extends Error {
   readonly status: number;
   readonly body: Record<string, unknown>;
 
-  constructor(status: number, error: string, body: Record<string, unknown> = {}) {
+  constructor(
+    status: number,
+    error: string,
+    body: Record<string, unknown> = {},
+  ) {
     super(error);
     this.name = "DiscordRefusal";
     this.status = status;
@@ -124,12 +128,18 @@ export function argumentId(value: unknown): string | undefined {
  * becomes the conversation's and any other guild is refused (so is every
  * guild when the conversation has none).
  */
-export function scopedGuildId<T>(scope: DiscordScope | null, requested: T): string | T {
+export function scopedGuildId<T>(
+  scope: DiscordScope | null,
+  requested: T,
+): string | T {
   return scope ? conversationGuildId(scope, requested) : requested;
 }
 
 /** `scopedGuildId` inside a Discord conversation: always its guild. */
-export function conversationGuildId(scope: DiscordScope, requested: unknown): string {
+export function conversationGuildId(
+  scope: DiscordScope,
+  requested: unknown,
+): string {
   if (!scope.guildId) {
     throw new DiscordRefusal(403, DISCORD_SCOPE_ERRORS.otherGuild);
   }
@@ -147,7 +157,11 @@ export function requireDiscordConversation(
   if (!scope?.guildId || !scope.channelId || !scope.userId) {
     throw new DiscordRefusal(403, DISCORD_SCOPE_ERRORS.outsideConversation);
   }
-  return { guildId: scope.guildId, channelId: scope.channelId, userId: scope.userId };
+  return {
+    guildId: scope.guildId,
+    channelId: scope.channelId,
+    userId: scope.userId,
+  };
 }
 
 // ── Visible channels (lupos-bot, cached per guild + requester) ───
@@ -172,7 +186,10 @@ async function fetchVisibleChannels(
     `${LUPOS_BOT_URL}/guild/visible-channels?${query.toString()}`,
     { signal: AbortSignal.timeout(VISIBLE_CHANNELS_TIMEOUT_MS) },
   );
-  const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+  const body = (await response.json().catch(() => null)) as Record<
+    string,
+    unknown
+  > | null;
   if (!response.ok) {
     const detail =
       typeof body?.error === "string"
@@ -187,9 +204,12 @@ async function fetchVisibleChannels(
     throw new Error(message);
   }
   const channelIds = stringList(body?.channelIds);
-  const threadIds = body?.threadIds === undefined ? [] : stringList(body.threadIds);
+  const threadIds =
+    body?.threadIds === undefined ? [] : stringList(body.threadIds);
   if (!channelIds || !threadIds) {
-    throw new Error("Couldn't check which channels you can see — lupos-bot sent an unreadable channel list");
+    throw new Error(
+      "Couldn't check which channels you can see — lupos-bot sent an unreadable channel list",
+    );
   }
   return { channelIds: new Set(channelIds), threadIds: new Set(threadIds) };
 }
@@ -215,7 +235,10 @@ export function getVisibleChannels(
   }
 
   const value = fetchVisibleChannels(guildId, userId);
-  visibleChannelsCache.set(key, { expiresAt: now + VISIBLE_CHANNELS_TTL_MS, value });
+  visibleChannelsCache.set(key, {
+    expiresAt: now + VISIBLE_CHANNELS_TTL_MS,
+    value,
+  });
   value.catch(() => {
     if (visibleChannelsCache.get(key)?.value === value) {
       visibleChannelsCache.delete(key);
@@ -249,7 +272,10 @@ export function isChannelVisible(
  * Every channel and thread the requester can read, the conversation's own
  * channel included — the `channelId $in` of a scoped archive query.
  */
-export function visibleChannelIdList(scope: DiscordScope, visible: VisibleChannels) {
+export function visibleChannelIdList(
+  scope: DiscordScope,
+  visible: VisibleChannels,
+) {
   const ids = new Set([...visible.channelIds, ...visible.threadIds]);
   if (scope.channelId) ids.add(scope.channelId);
   return [...ids];
@@ -280,7 +306,11 @@ export async function scopeChannelRead(
   if (channelId && !isChannelVisible(scope, visible, channelId)) {
     throw new DiscordRefusal(403, DISCORD_SCOPE_ERRORS.hiddenChannel);
   }
-  return { guildId, channelId, visibleChannelIds: visibleChannelIdList(scope, visible) };
+  return {
+    guildId,
+    channelId,
+    visibleChannelIds: visibleChannelIdList(scope, visible),
+  };
 }
 
 /**
@@ -312,7 +342,8 @@ export async function scopeGuildAndChannel(
   requestedChannelId: unknown,
   { defaultToConversationChannel = false } = {},
 ): Promise<{ guildId: unknown; channelId: unknown }> {
-  if (!scope) return { guildId: requestedGuildId, channelId: requestedChannelId };
+  if (!scope)
+    return { guildId: requestedGuildId, channelId: requestedChannelId };
   const guildId = conversationGuildId(scope, requestedGuildId);
   const channelId =
     argumentId(requestedChannelId) ??

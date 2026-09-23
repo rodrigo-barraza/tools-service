@@ -51,18 +51,32 @@ function characterCount(text: string) {
   return Array.from(text).length;
 }
 
-function boundedText(value: unknown, name: string, maxCharacters: number): string {
+function boundedText(
+  value: unknown,
+  name: string,
+  maxCharacters: number,
+): string {
   if (typeof value !== "string") throw invalid(`${name} must be text.`);
   const text = value.trim();
   const count = characterCount(text);
   if (count > maxCharacters) {
-    throw invalid(`${name} must be at most ${maxCharacters} characters (got ${count}).`);
+    throw invalid(
+      `${name} must be at most ${maxCharacters} characters (got ${count}).`,
+    );
   }
   return text;
 }
 
-function requiredText(value: unknown, name: string, maxCharacters: number): string {
-  if (value === undefined || value === null || (typeof value === "string" && !value.trim())) {
+function requiredText(
+  value: unknown,
+  name: string,
+  maxCharacters: number,
+): string {
+  if (
+    value === undefined ||
+    value === null ||
+    (typeof value === "string" && !value.trim())
+  ) {
     throw invalid(`${name} is required.`);
   }
   return boundedText(value, name, maxCharacters);
@@ -71,7 +85,11 @@ function requiredText(value: unknown, name: string, maxCharacters: number): stri
 function optionalNumber(value: unknown, name: string): number | undefined {
   if (value === undefined || value === null || value === "") return undefined;
   const number =
-    typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value)
+        : NaN;
   if (!Number.isFinite(number)) throw invalid(`${name} must be a number.`);
   return number;
 }
@@ -92,7 +110,11 @@ export interface PollArguments {
 
 export function parsePollArguments(body: Arguments): PollArguments {
   const limits = DISCORD_ACTION_LIMITS;
-  const question = requiredText(body.question, "question", limits.pollQuestionMaxCharacters);
+  const question = requiredText(
+    body.question,
+    "question",
+    limits.pollQuestionMaxCharacters,
+  );
   if (!Array.isArray(body.answers)) {
     throw invalid(
       `answers must be a list of ${limits.pollAnswersMin}-${limits.pollAnswersMax} answers.`,
@@ -101,13 +123,17 @@ export function parsePollArguments(body: Arguments): PollArguments {
   const answers = body.answers.map((answer, index) =>
     requiredText(answer, `answers[${index}]`, limits.pollAnswerMaxCharacters),
   );
-  if (answers.length < limits.pollAnswersMin || answers.length > limits.pollAnswersMax) {
+  if (
+    answers.length < limits.pollAnswersMin ||
+    answers.length > limits.pollAnswersMax
+  ) {
     throw invalid(
       `A poll needs ${limits.pollAnswersMin}-${limits.pollAnswersMax} answers (got ${answers.length}).`,
     );
   }
   const durationHours =
-    optionalNumber(body.durationHours, "durationHours") ?? limits.pollDurationHoursDefault;
+    optionalNumber(body.durationHours, "durationHours") ??
+    limits.pollDurationHoursDefault;
   if (
     !Number.isInteger(durationHours) ||
     durationHours < limits.pollDurationHoursMin ||
@@ -117,7 +143,8 @@ export function parsePollArguments(body: Arguments): PollArguments {
       `durationHours must be a whole number of hours from ${limits.pollDurationHoursMin} to ${limits.pollDurationHoursMax}.`,
     );
   }
-  const allowMultiselect = optionalBoolean(body.allowMultiselect, "allowMultiselect") ?? false;
+  const allowMultiselect =
+    optionalBoolean(body.allowMultiselect, "allowMultiselect") ?? false;
   return { question, answers, durationHours, allowMultiselect };
 }
 
@@ -131,7 +158,11 @@ export function parseThreadArguments(body: Arguments): ThreadArguments {
   const limits = DISCORD_ACTION_LIMITS;
   const name = requiredText(body.name, "name", limits.threadNameMaxCharacters);
   let messageId: string | undefined;
-  if (body.messageId !== undefined && body.messageId !== null && body.messageId !== "") {
+  if (
+    body.messageId !== undefined &&
+    body.messageId !== null &&
+    body.messageId !== ""
+  ) {
     messageId = String(body.messageId).trim();
     if (!SNOWFLAKE_PATTERN.test(messageId)) {
       throw invalid("messageId must be a Discord message ID (17-20 digits).");
@@ -140,7 +171,11 @@ export function parseThreadArguments(body: Arguments): ThreadArguments {
   const autoArchiveMinutes =
     optionalNumber(body.autoArchiveMinutes, "autoArchiveMinutes") ??
     limits.threadAutoArchiveMinutesDefault;
-  if (!(limits.threadAutoArchiveMinutes as readonly number[]).includes(autoArchiveMinutes)) {
+  if (
+    !(limits.threadAutoArchiveMinutes as readonly number[]).includes(
+      autoArchiveMinutes,
+    )
+  ) {
     throw invalid(
       `autoArchiveMinutes must be one of ${limits.threadAutoArchiveMinutes.join(", ")}.`,
     );
@@ -156,11 +191,19 @@ export type ReminderArguments =
  * `dueAt` goes to lupos-bot normalised to UTC (`toISOString`), so both
  * services read the same instant.
  */
-export function parseReminderArguments(body: Arguments, now = Date.now()): ReminderArguments {
+export function parseReminderArguments(
+  body: Arguments,
+  now = Date.now(),
+): ReminderArguments {
   const limits = DISCORD_ACTION_LIMITS;
-  const text = requiredText(body.text, "text", limits.reminderTextMaxCharacters);
+  const text = requiredText(
+    body.text,
+    "text",
+    limits.reminderTextMaxCharacters,
+  );
   const delayMinutes = optionalNumber(body.delayMinutes, "delayMinutes");
-  const hasDueAt = body.dueAt !== undefined && body.dueAt !== null && body.dueAt !== "";
+  const hasDueAt =
+    body.dueAt !== undefined && body.dueAt !== null && body.dueAt !== "";
   if (delayMinutes !== undefined && hasDueAt) {
     throw invalid("Give delayMinutes or dueAt, not both.");
   }
@@ -181,7 +224,9 @@ export function parseReminderArguments(body: Arguments, now = Date.now()): Remin
     );
   }
   const dueAtText = typeof body.dueAt === "string" ? body.dueAt.trim() : "";
-  const dueAtMs = ISO_DATE_TIME_WITH_OFFSET.test(dueAtText) ? Date.parse(dueAtText) : NaN;
+  const dueAtMs = ISO_DATE_TIME_WITH_OFFSET.test(dueAtText)
+    ? Date.parse(dueAtText)
+    : NaN;
   if (!Number.isFinite(dueAtMs)) {
     throw invalid(
       "dueAt must be an ISO 8601 time with a timezone offset, e.g. 2026-09-23T17:00:00-07:00.",
@@ -194,7 +239,9 @@ export function parseReminderArguments(body: Arguments, now = Date.now()): Remin
   return { text, dueAt: new Date(dueAtMs).toISOString() };
 }
 
-export function parseReminderCancelArguments(body: Arguments): { reminderId: string } {
+export function parseReminderCancelArguments(body: Arguments): {
+  reminderId: string;
+} {
   return {
     reminderId: requiredText(
       body.reminderId,
@@ -210,6 +257,10 @@ export function parseNicknameArguments(body: Arguments): { nickname: string } {
     throw invalid("nickname is required — an empty string resets it.");
   }
   return {
-    nickname: boundedText(body.nickname, "nickname", DISCORD_ACTION_LIMITS.nicknameMaxCharacters),
+    nickname: boundedText(
+      body.nickname,
+      "nickname",
+      DISCORD_ACTION_LIMITS.nicknameMaxCharacters,
+    ),
   };
 }
