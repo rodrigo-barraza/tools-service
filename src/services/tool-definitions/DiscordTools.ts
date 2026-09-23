@@ -621,5 +621,154 @@ export function getDiscordTools(
       required: ["guildId", "targetUserId", "amount"],
     },
   },
+  // ── Actions in the conversation's channel ──
+  // Guild, channel and requester come from the Discord conversation
+  // (x-discord-* headers), never from the model — outside one these tools
+  // refuse.
+  {
+    name: "create_discord_poll",
+    dataSource: onDemand("Discord Live API"),
+    description: translate("create_discord_poll.description"),
+    endpoint: {
+      path: "/discord/guild/poll",
+      method: "POST",
+      bodyParams: ["question", "answers", "durationHours", "allowMultiselect"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        question: {
+          type: "string",
+          description: translate("create_discord_poll.params.question"),
+        },
+        answers: {
+          type: "array",
+          items: { type: "string" },
+          description: translate("create_discord_poll.params.answers"),
+        },
+        durationHours: {
+          type: "number",
+          description: translate("create_discord_poll.params.durationHours"),
+        },
+        allowMultiselect: {
+          type: "boolean",
+          description: translate("create_discord_poll.params.allowMultiselect"),
+        },
+      },
+      required: ["question", "answers"],
+    },
+  },
+  {
+    name: "create_discord_thread",
+    dataSource: onDemand("Discord Live API"),
+    description: translate("create_discord_thread.description"),
+    endpoint: {
+      path: "/discord/guild/thread",
+      method: "POST",
+      bodyParams: ["name", "messageId", "autoArchiveMinutes"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: translate("create_discord_thread.params.name"),
+        },
+        messageId: {
+          type: "string",
+          description: translate("create_discord_thread.params.messageId"),
+        },
+        autoArchiveMinutes: {
+          type: "number",
+          description: translate("create_discord_thread.params.autoArchiveMinutes"),
+        },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "schedule_discord_reminder",
+    dataSource: onDemand("Discord Live API"),
+    description: translate("schedule_discord_reminder.description"),
+    endpoint: {
+      path: "/discord/guild/reminders",
+      method: "POST",
+      bodyParams: ["text", "delayMinutes", "dueAt"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        text: {
+          type: "string",
+          description: translate("schedule_discord_reminder.params.text"),
+        },
+        delayMinutes: {
+          type: "number",
+          description: translate("schedule_discord_reminder.params.delayMinutes"),
+        },
+        dueAt: {
+          type: "string",
+          description: translate("schedule_discord_reminder.params.dueAt"),
+        },
+      },
+      required: ["text"],
+    },
+  },
+  {
+    name: "list_discord_reminders",
+    dataSource: onDemand("Discord Live API"),
+    description: translate("list_discord_reminders.description"),
+    endpoint: {
+      // Not /discord/guild/reminders: tool-call logging maps a path to one
+      // tool, and schedule_discord_reminder POSTs there.
+      path: "/discord/guild/reminders/pending",
+      queryParams: [],
+    },
+    parameters: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: "cancel_discord_reminder",
+    dataSource: onDemand("Discord Live API"),
+    description: translate("cancel_discord_reminder.description"),
+    endpoint: {
+      path: "/discord/guild/reminders/cancel",
+      method: "POST",
+      bodyParams: ["reminderId"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        reminderId: {
+          type: "string",
+          description: translate("cancel_discord_reminder.params.reminderId"),
+        },
+      },
+      required: ["reminderId"],
+    },
+  },
+  {
+    name: "set_discord_nickname",
+    dataSource: onDemand("Discord Live API"),
+    description: translate("set_discord_nickname.description"),
+    endpoint: {
+      path: "/discord/guild/nickname",
+      method: "POST",
+      bodyParams: ["nickname"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        nickname: {
+          type: "string",
+          description: translate("set_discord_nickname.params.nickname"),
+        },
+      },
+      required: ["nickname"],
+    },
+  },
   ];
 }

@@ -18,6 +18,11 @@ interface MessageSearchParams {
   limit?: number;
   mode?: "messages" | "count" | "compact";
   includeBots?: boolean;
+  /**
+   * Channels (and threads) the requester can read — set on a Discord-scoped
+   * call. Results never come from any other channel.
+   */
+  visibleChannelIds?: string[];
 }
 
 interface MessageAnalyticsParams {
@@ -31,6 +36,11 @@ interface MessageAnalyticsParams {
   groupBy?: "user" | "channel" | "day" | "hour" | "weekday" | "month";
   topN?: number;
   includeBots?: boolean;
+  /**
+   * Channels (and threads) the requester can read — set on a Discord-scoped
+   * call. Results never come from any other channel.
+   */
+  visibleChannelIds?: string[];
 }
 
 interface ServerActivityParams {
@@ -38,6 +48,11 @@ interface ServerActivityParams {
   channelId?: string;
   days?: number;
   topN?: number;
+  /**
+   * Channels (and threads) the requester can read — set on a Discord-scoped
+   * call. Results never come from any other channel.
+   */
+  visibleChannelIds?: string[];
 }
 
 /** MongoDB $dateToString expression. */
@@ -201,6 +216,25 @@ function resolveArchivedUrl(
 }
 
 /**
+ * The `channelId` clause of a query: the explicit channel, the requester's
+ * visible channels (a Discord-scoped call), or none. A thread's messages
+ * are archived under the thread's own ID, so a visible thread is matched
+ * here like a channel. An explicit channel outside the visible set matches
+ * nothing — the route refuses it first; this keeps the query honest on its
+ * own.
+ */
+function channelClause(
+  channelId: string | undefined,
+  visibleChannelIds: string[] | undefined,
+): string | Document | undefined {
+  if (!visibleChannelIds) return channelId || undefined;
+  if (channelId) {
+    return visibleChannelIds.includes(channelId) ? channelId : { $in: [] };
+  }
+  return { $in: visibleChannelIds };
+}
+
+/**
  * Build the common MongoDB filter used by search and analytics.
  */
 function buildBaseFilter({
@@ -212,11 +246,13 @@ function buildBaseFilter({
   before,
   after,
   includeBots = false,
+  visibleChannelIds,
 }: MessageSearchParams = {}) {
   const filter: Document = {};
 
   if (guildId) filter.guildId = guildId;
-  if (channelId) filter.channelId = channelId;
+  const channel = channelClause(channelId, visibleChannelIds);
+  if (channel !== undefined) filter.channelId = channel;
   if (userId) filter["author.id"] = userId;
 
   // Username search — match across username, globalName, and displayName
@@ -282,6 +318,7 @@ const DiscordDataService = {
     limit = 50,
     mode = "messages",
     includeBots = false,
+    visibleChannelIds,
   }: MessageSearchParams = {}) {
     const collection = getMessagesCollection();
     const filter = buildBaseFilter({
@@ -293,6 +330,7 @@ const DiscordDataService = {
       before,
       after,
       includeBots,
+      visibleChannelIds,
     });
     const cappedLimit = Math.min(Number(limit), 500);
 
@@ -302,10 +340,12 @@ const DiscordDataService = {
     // retried as an ID lookup — models reach for this tool with IDs from
     // reply chains and message links, and $text search can't find those.
     // Bot messages are included (fetching a known ID implies intent); the
-    // restricted-category exclusion still applies.
+    // restricted-category exclusion still applies, and so does a scoped
+    // call's visible-channel set — an ID must not reach a hidden channel.
     const idLookupFilter = (idValue: string): Document => ({
       id: idValue,
       ...(guildId ? { guildId } : {}),
+      ...(visibleChannelIds ? { channelId: { $in: visibleChannelIds } } : {}),
       "channel.parentId": { $not: { $in: EXCLUDED_CATEGORY_IDS } },
     });
     const snowflakeQuery =
@@ -641,6 +681,7 @@ const DiscordDataService = {
     groupBy = "user",
     topN = 25,
     includeBots = false,
+    visibleChannelIds,
   }: MessageAnalyticsParams = {}) {
     const collection = getMessagesCollection();
     const filter = buildBaseFilter({
@@ -652,6 +693,7 @@ const DiscordDataService = {
       before,
       after,
       includeBots,
+      visibleChannelIds,
     });
     const cappedTopN = Math.min(Number(topN), 100);
 
@@ -793,6 +835,7 @@ const DiscordDataService = {
     channelId,
     days = 7,
     topN = 15,
+    visibleChannelIds,
   }: ServerActivityParams = {}) {
     const collection = getMessagesCollection();
     const cappedDays = Math.min(Number(days), 365);
@@ -804,7 +847,8 @@ const DiscordDataService = {
       "author.bot": { $in: [false, null] },
       "channel.parentId": { $not: { $in: EXCLUDED_CATEGORY_IDS } },
     };
-    if (channelId) match.channelId = channelId;
+    const channel = channelClause(channelId, visibleChannelIds);
+    if (channel !== undefined) match.channelId = channel;
 
     const cappedTopN = Math.min(Number(topN), 50);
 
@@ -835,9 +879,11 @@ const DiscordDataService = {
         collection
           .aggregate([
             {
+              // Keep the match's own channel clause — a scoped call's
+              // visible set must hold here too.
               $match: {
                 ...match,
-                channelId: channelId ? channelId : { $exists: true },
+                channelId: match.channelId ?? { $exists: true },
               },
             },
             {
