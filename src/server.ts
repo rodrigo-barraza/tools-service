@@ -19,6 +19,10 @@ import {
 } from "./middleware/RequestLoggerMiddleware.ts";
 import { toolCallLoggerMiddleware } from "./middleware/ToolCallLoggerMiddleware.ts";
 import { fieldProjectionMiddleware } from "./middleware/FieldProjectionMiddleware.ts";
+import {
+  installTraceContextForwarding,
+  traceContextMiddleware,
+} from "./middleware/TraceContextMiddleware.ts";
 import { createAuthMiddleware } from "@rodrigo-barraza/utilities-library/service";
 import { DEFAULT_USERNAME, CORS_ALLOWED_HEADERS_STRING } from "@rodrigo-barraza/utilities-library/taxonomy";
 
@@ -116,6 +120,9 @@ import { errorMessage } from "./utilities.ts";
 
 const app = express();
 
+// A caller's W3C trace context rides on every fetch made serving its request.
+installTraceContextForwarding();
+
 app.use((req: Request, res: Response, next: NextFunction) => {
   const origin = req.headers.origin;
   res.header("Access-Control-Allow-Origin", origin || "*");
@@ -131,6 +138,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
+app.use(traceContextMiddleware);
 app.use(express.json({ limit: "50mb" }));
 app.use(requestLoggerMiddleware);
 app.use(toolCallLoggerMiddleware);
