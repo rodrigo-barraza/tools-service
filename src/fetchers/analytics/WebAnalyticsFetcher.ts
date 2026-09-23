@@ -18,8 +18,9 @@
 // sessions secret are needed here.
 //
 // NOTE ON UNIFICATION: a "GA session" and a "sessions-service
-// session" are measured differently (GA de-dupes and drops bots via
-// its own model; sessions-service counts server-side heartbeats).
+// session" are measured differently (GA models consent and sampling;
+// sessions-service counts every browser that ran its tracker, bots and
+// automation excluded, with engaged time only while the page was in use).
 // The two are therefore reported SIDE BY SIDE and never summed. The
 // `headline` block picks a single primary source (Google Analytics
 // when present, else first-party) so a caller has one coherent set
@@ -28,7 +29,10 @@
 import CONFIG from "../../config.ts";
 import logger from "../../logger.ts";
 import { getErrorMessage } from "@rodrigo-barraza/utilities-library";
-import { createApiClient, type ApiClient } from "@rodrigo-barraza/utilities-library/http";
+import {
+  createApiClient,
+  type ApiClient,
+} from "@rodrigo-barraza/utilities-library/http";
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -103,7 +107,7 @@ async function safeGet<T = unknown>(path: string): Promise<T | null> {
 async function safeSessionsGet<T = unknown>(path: string): Promise<T | null> {
   const response = await safeGet<{ success?: boolean; data?: T }>(path);
   if (!response) return null;
-  return response.data ?? (response as unknown as T) ?? null;
+  return response.data ?? null;
 }
 
 // ─── Source enumeration ────────────────────────────────────────
@@ -118,9 +122,13 @@ interface GaProperty {
 
 interface SessionsProject {
   projectId: string;
-  sessionCount?: number;
-  uniqueVisitors?: number;
-  lastActivity?: string | null;
+  visitors: number;
+  sessions: number;
+  pageviews: number;
+  engagedMs: number;
+  live: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
 }
 
 async function listGaProperties(): Promise<GaProperty[]> {
@@ -148,6 +156,8 @@ interface PropertyMeta {
   gaPropertyId: string | null;
   measurementId: string | null;
   hasSessions: boolean;
+  /** First-party sessions active in the last 5 minutes. */
+  activeNow: number | null;
   lastActivity: string | null;
 }
 
@@ -165,6 +175,7 @@ function buildRegistry(
       gaPropertyId: property.id,
       measurementId: property.measurementId || null,
       hasSessions: false,
+      activeNow: null,
       lastActivity: null,
     });
   }
@@ -173,7 +184,8 @@ function buildRegistry(
     const existing = registry.get(project.projectId);
     if (existing) {
       existing.hasSessions = true;
-      existing.lastActivity = project.lastActivity ?? null;
+      existing.activeNow = project.live ?? 0;
+      existing.lastActivity = project.lastSeenAt ?? null;
     } else {
       registry.set(project.projectId, {
         key: project.projectId,
@@ -182,7 +194,8 @@ function buildRegistry(
         gaPropertyId: null,
         measurementId: null,
         hasSessions: true,
-        lastActivity: project.lastActivity ?? null,
+        activeNow: project.live ?? 0,
+        lastActivity: project.lastSeenAt ?? null,
       });
     }
   }
@@ -200,9 +213,9 @@ function matchesFilter(meta: PropertyMeta, filter: string): boolean {
 }
 
 // ─── Normalisation ─────────────────────────────────────────────
-// GA reports rates as 0..1 ratios and durations in seconds.
-// sessions-service reports rates as 0..100 percentages and durations
-// in milliseconds. Normalise both to percentages + seconds so the two
+// GA reports rates as 0..1 ratios and durations in seconds;
+// sessions-service reports rates as 0..1 ratios and durations in
+// milliseconds. Normalise both to percentages + seconds so the two
 // blocks (and the headline) are directly comparable.
 
 interface NormalizedOverview {
@@ -244,77 +257,127 @@ function normalizeGaOverview(ga: GaOverviewPayload): NormalizedOverview {
   };
 }
 
-interface SessionsOverviewPayload {
-  totalSessions?: number;
-  totalPageViews?: number;
-  uniqueVisitors?: number;
-  avgSessionDuration?: number; // milliseconds
-  engagementRate?: number; // 0..100
-  bounceRate?: number; // 0..100
+/** sessions-service /stats/report `summary` (and `previous`). */
+interface SessionsSummary {
+  visitors: number;
+  newVisitors: number;
+  sessions: number;
+  engagedSessions: number;
+  pageviews: number;
+  engagedMs: number;
+  avgEngagedMs: number;
+  engagementRate: number; // 0..1
+  bounceRate: number; // 0..1
+  pagesPerSession: number;
+}
+
+/** The parts of sessions-service /stats/report this tool reads. */
+interface SessionsReport {
+  summary: SessionsSummary;
+  previous: SessionsSummary | null;
+  series: unknown[];
+  pages: unknown[];
+  channels: unknown[];
+  referrers: unknown[];
+  campaigns: unknown[];
+  countries: unknown[];
+  cities: unknown[];
+  devices: unknown[];
+  browsers: unknown[];
+  os: unknown[];
+  screens: unknown[];
 }
 
 function normalizeSessionsOverview(
-  session: SessionsOverviewPayload,
+  summary: SessionsSummary,
 ): NormalizedOverview {
   return {
-    sessions: session.totalSessions ?? 0,
-    pageviews: session.totalPageViews ?? 0,
-    visitors: session.uniqueVisitors ?? 0,
-    newUsers: null, // sessions-service does not distinguish new vs returning here
-    avgSessionDurationSeconds: round((session.avgSessionDuration ?? 0) / 1000),
-    engagementRatePct: round(session.engagementRate ?? 0, 1),
-    bounceRatePct: round(session.bounceRate ?? 0, 1),
+    sessions: summary.sessions ?? 0,
+    pageviews: summary.pageviews ?? 0,
+    visitors: summary.visitors ?? 0,
+    newUsers: summary.newVisitors ?? 0,
+    avgSessionDurationSeconds: round((summary.avgEngagedMs ?? 0) / 1000),
+    engagementRatePct: round((summary.engagementRate ?? 0) * 100, 1),
+    bounceRatePct: round((summary.bounceRate ?? 0) * 100, 1),
   };
 }
 
-// ─── Breakdown endpoint map ────────────────────────────────────
-// GA and sessions-service name some breakdowns differently
-// (geography vs geo, sources vs referrers); this reconciles them.
+/** Same ratio as GA's deltas (0.25 = +25 %), under GA's key names. */
+function relativeDelta(current: number, previous: number): number {
+  if (!previous) return current > 0 ? 1 : 0;
+  return round((current - previous) / Math.abs(previous), 4);
+}
 
-const BREAKDOWN_ENDPOINTS: Record<
+function sessionsDeltas(
+  summary: SessionsSummary,
+  previous: SessionsSummary | null,
+): Record<string, number> | null {
+  if (!previous) return null;
+  return {
+    sessions: relativeDelta(summary.sessions, previous.sessions),
+    pageviews: relativeDelta(summary.pageviews, previous.pageviews),
+    totalUsers: relativeDelta(summary.visitors, previous.visitors),
+    avgSessionDuration: relativeDelta(
+      summary.avgEngagedMs,
+      previous.avgEngagedMs,
+    ),
+    engagementRate: relativeDelta(
+      summary.engagementRate,
+      previous.engagementRate,
+    ),
+  };
+}
+
+// ─── Breakdown sources ─────────────────────────────────────────
+// GA has one endpoint per breakdown; sessions-service answers every
+// breakdown from its single /report, sliced here.
+
+const GA_ENDPOINTS: Record<
   AnalyticsBreakdown,
-  {
-    ga: (propertyId: string, period: string) => string;
-    sessions: (projectId: string, period: string) => string;
-  }
+  (propertyId: string, period: string) => string
 > = {
-  overview: {
-    ga: (id, p) =>
-      `/google-analytics/${encodeURIComponent(id)}/overview?period=${p}`,
-    sessions: (k, p) =>
-      `/session-analytics/overview?projectId=${encodeURIComponent(k)}&period=${p}`,
-  },
-  timeseries: {
-    ga: (id, p) =>
-      `/google-analytics/${encodeURIComponent(id)}/timeseries?period=${p}`,
-    sessions: (k, p) =>
-      `/session-analytics/timeseries?projectId=${encodeURIComponent(k)}&period=${p}`,
-  },
-  pages: {
-    ga: (id, p) =>
-      `/google-analytics/${encodeURIComponent(id)}/pages?period=${p}`,
-    sessions: (k, p) =>
-      `/session-analytics/pages?projectId=${encodeURIComponent(k)}&period=${p}`,
-  },
-  sources: {
-    ga: (id, p) =>
-      `/google-analytics/${encodeURIComponent(id)}/sources?period=${p}`,
-    sessions: (k, p) =>
-      `/session-analytics/referrers?projectId=${encodeURIComponent(k)}&period=${p}`,
-  },
-  geo: {
-    ga: (id, p) =>
-      `/google-analytics/${encodeURIComponent(id)}/geography?period=${p}`,
-    sessions: (k, p) =>
-      `/session-analytics/geo?projectId=${encodeURIComponent(k)}&period=${p}`,
-  },
-  devices: {
-    ga: (id, p) =>
-      `/google-analytics/${encodeURIComponent(id)}/devices?period=${p}`,
-    sessions: (k, p) =>
-      `/session-analytics/devices?projectId=${encodeURIComponent(k)}&period=${p}`,
-  },
+  overview: (id, p) =>
+    `/google-analytics/${encodeURIComponent(id)}/overview?period=${p}`,
+  timeseries: (id, p) =>
+    `/google-analytics/${encodeURIComponent(id)}/timeseries?period=${p}`,
+  pages: (id, p) =>
+    `/google-analytics/${encodeURIComponent(id)}/pages?period=${p}`,
+  sources: (id, p) =>
+    `/google-analytics/${encodeURIComponent(id)}/sources?period=${p}`,
+  geo: (id, p) =>
+    `/google-analytics/${encodeURIComponent(id)}/geography?period=${p}`,
+  devices: (id, p) =>
+    `/google-analytics/${encodeURIComponent(id)}/devices?period=${p}`,
 };
+
+const SESSIONS_SECTIONS: Record<
+  Exclude<AnalyticsBreakdown, "overview">,
+  (report: SessionsReport) => Record<string, unknown>
+> = {
+  timeseries: (report) => ({ series: report.series }),
+  pages: (report) => ({ pages: report.pages }),
+  sources: (report) => ({
+    channels: report.channels,
+    referrers: report.referrers,
+    campaigns: report.campaigns,
+  }),
+  geo: (report) => ({ countries: report.countries, cities: report.cities }),
+  devices: (report) => ({
+    devices: report.devices,
+    browsers: report.browsers,
+    os: report.os,
+    screens: report.screens,
+  }),
+};
+
+function sessionsReport(
+  projectId: string,
+  period: string,
+): Promise<SessionsReport | null> {
+  return safeSessionsGet<SessionsReport>(
+    `/session-analytics/report?projectId=${encodeURIComponent(projectId)}&period=${period}`,
+  );
+}
 
 // ─── Per-property assembly ─────────────────────────────────────
 
@@ -335,16 +398,14 @@ async function buildOverviewProperty(
   includeGoogle: boolean,
   includeSessions: boolean,
 ): Promise<UnifiedProperty> {
-  const endpoints = BREAKDOWN_ENDPOINTS.overview;
-
-  const [gaRaw, sessionsRaw] = await Promise.all([
+  const [gaRaw, report] = await Promise.all([
     includeGoogle && meta.gaPropertyId
-      ? safeGet<GaOverviewPayload>(endpoints.ga(meta.gaPropertyId, period))
+      ? safeGet<GaOverviewPayload>(
+          GA_ENDPOINTS.overview(meta.gaPropertyId, period),
+        )
       : Promise.resolve(null),
     includeSessions && meta.hasSessions
-      ? safeSessionsGet<SessionsOverviewPayload>(
-          endpoints.sessions(meta.key, period),
-        )
+      ? sessionsReport(meta.key, period)
       : Promise.resolve(null),
   ]);
 
@@ -357,10 +418,13 @@ async function buildOverviewProperty(
       }
     : null;
 
-  const firstParty = sessionsRaw
+  const firstParty = report
     ? {
         projectId: meta.key,
-        ...normalizeSessionsOverview(sessionsRaw),
+        ...normalizeSessionsOverview(report.summary),
+        pagesPerSession: round(report.summary.pagesPerSession ?? 0, 2),
+        activeNow: meta.activeNow,
+        deltas: sessionsDeltas(report.summary, report.previous),
       }
     : null;
 
@@ -401,20 +465,17 @@ async function buildBreakdownProperty(
   includeGoogle: boolean,
   includeSessions: boolean,
 ): Promise<UnifiedProperty> {
-  const endpoints = BREAKDOWN_ENDPOINTS[breakdown];
-
-  const [google, firstParty] = await Promise.all([
+  const [google, report] = await Promise.all([
     includeGoogle && meta.gaPropertyId
       ? safeGet<Record<string, unknown>>(
-          endpoints.ga(meta.gaPropertyId, period),
+          GA_ENDPOINTS[breakdown](meta.gaPropertyId, period),
         )
       : Promise.resolve(null),
     includeSessions && meta.hasSessions
-      ? safeSessionsGet<Record<string, unknown>>(
-          endpoints.sessions(meta.key, period),
-        )
+      ? sessionsReport(meta.key, period)
       : Promise.resolve(null),
   ]);
+  const firstParty = report ? SESSIONS_SECTIONS[breakdown](report) : null;
 
   const sources: string[] = [];
   if (google) sources.push("google");
