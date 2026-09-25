@@ -14,7 +14,7 @@ import { getLocalizedToolDefinitions } from "../ToolSchemaService.ts";
 const ACTION_TOOL_PARAMETERS: Record<string, string[]> = {
   create_discord_poll: ["question", "answers", "durationHours", "allowMultiselect"],
   create_discord_thread: ["name", "messageId", "autoArchiveMinutes"],
-  schedule_discord_reminder: ["text", "delayMinutes", "dueAt"],
+  schedule_discord_reminder: ["text", "delayMinutes", "dueAt", "pingUserId"],
   list_discord_reminders: [],
   cancel_discord_reminder: ["reminderId"],
   set_discord_nickname: ["nickname"],
@@ -61,12 +61,16 @@ describe.each(["en", "caveman"])("Discord action tool docs (%s)", (locale) => {
     );
   });
 
-  it("schedule_discord_reminder states its caps and that it is only for the requester", () => {
+  it("schedule_discord_reminder states its caps and whom it may ping", () => {
     const description = tools["schedule_discord_reminder.description"];
-    for (const cap of ["300", "1-43200", "30 d", "5 pending", "100"]) {
+    for (const cap of ["300", "1-43200", "30 d", "5 pending", "3 pending", "100"]) {
       expect(description).toContain(cap);
     }
+    // The asker, or the one member they named — lupos-bot pings nobody else.
+    expect(description).toContain("pingUserId");
     expect(description).toMatch(/never anyone else/);
+    expect(description).toMatch(/not (a )?bot/);
+    expect(tools["schedule_discord_reminder.params.pingUserId"]).toMatch(/numeric Discord user ID/);
   });
 
   it("set_discord_nickname states its caps and that it is Lupos's own", () => {

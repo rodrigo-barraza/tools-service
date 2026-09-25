@@ -693,7 +693,7 @@ export function getDiscordTools(
     endpoint: {
       path: "/discord/guild/reminders",
       method: "POST",
-      bodyParams: ["text", "delayMinutes", "dueAt"],
+      bodyParams: ["text", "delayMinutes", "dueAt", "pingUserId"],
     },
     parameters: {
       type: "object",
@@ -709,6 +709,10 @@ export function getDiscordTools(
         dueAt: {
           type: "string",
           description: translate("schedule_discord_reminder.params.dueAt"),
+        },
+        pingUserId: {
+          type: "string",
+          description: translate("schedule_discord_reminder.params.pingUserId"),
         },
       },
       required: ["text"],
