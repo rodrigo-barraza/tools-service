@@ -6,8 +6,6 @@ import {
   type OpenMeteoDailyForecast,
 } from "../../types/weather.ts";
 
-const { LATITUDE, LONGITUDE, TIMEZONE } = CONFIG;
-
 // ─── Hourly Variables ──────────────────────────────────────────────
 const HOURLY_VARIABLES = [
   // Temperature & humidity
@@ -76,19 +74,24 @@ const HOURLY_VARIABLES = [
   "uv_index",
 ];
 
-const FORECAST_URL =
-  `https://api.open-meteo.com/v1/forecast` +
-  `?latitude=${LATITUDE}&longitude=${LONGITUDE}` +
-  `&current=weather_code,temperature_2m,apparent_temperature,` +
-  `relative_humidity_2m,precipitation,rain,showers,snowfall,` +
-  `cloud_cover,wind_speed_10m,wind_direction_10m,` +
-  `wind_gusts_10m,surface_pressure,is_day,uv_index` +
-  `&hourly=${HOURLY_VARIABLES.join(",")}` +
-  `&daily=weather_code,temperature_2m_max,temperature_2m_min,` +
-  `sunrise,sunset,daylight_duration,uv_index_max,` +
-  `precipitation_sum,wind_speed_10m_max` +
-  `&timezone=${TIMEZONE}` +
-  `&forecast_days=2`;
+// Built per call: server.ts applies the resolved location to CONFIG after
+// this module is imported, so a module-level URL froze the 0,0/UTC defaults.
+function forecastUrl(): string {
+  return (
+    `https://api.open-meteo.com/v1/forecast` +
+    `?latitude=${CONFIG.LATITUDE}&longitude=${CONFIG.LONGITUDE}` +
+    `&current=weather_code,temperature_2m,apparent_temperature,` +
+    `relative_humidity_2m,precipitation,rain,showers,snowfall,` +
+    `cloud_cover,wind_speed_10m,wind_direction_10m,` +
+    `wind_gusts_10m,surface_pressure,is_day,uv_index` +
+    `&hourly=${HOURLY_VARIABLES.join(",")}` +
+    `&daily=weather_code,temperature_2m_max,temperature_2m_min,` +
+    `sunrise,sunset,daylight_duration,uv_index_max,` +
+    `precipitation_sum,wind_speed_10m_max` +
+    `&timezone=${CONFIG.TIMEZONE}` +
+    `&forecast_days=2`
+  );
+}
 
 interface RawOpenMeteoResponse {
   timezone: string;
@@ -171,7 +174,7 @@ interface RawOpenMeteoResponse {
 }
 
 export async function fetchOpenMeteoWeather(): Promise<OpenMeteoResponse> {
-  const response = await fetch(FORECAST_URL);
+  const response = await fetch(forecastUrl());
 
   if (!response.ok) {
     throw new Error(`Open-Meteo returned ${response.status}`);

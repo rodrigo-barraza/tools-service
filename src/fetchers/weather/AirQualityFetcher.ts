@@ -1,19 +1,22 @@
 import CONFIG from "../../config.ts";
 import { type AirQuality } from "../../types/weather.ts";
 
-const { LATITUDE, LONGITUDE, TIMEZONE } = CONFIG;
-
-const AIR_QUALITY_URL =
-  `https://air-quality-api.open-meteo.com/v1/air-quality` +
-  `?latitude=${LATITUDE}&longitude=${LONGITUDE}` +
-  `&current=us_aqi,european_aqi,pm10,pm2_5,` +
-  `carbon_monoxide,nitrogen_dioxide,ozone,dust,uv_index` +
-  `&hourly=us_aqi,pm2_5,pm10,uv_index` +
-  `&timezone=${TIMEZONE}` +
-  `&forecast_hours=24`;
+// Built per call: server.ts applies the resolved location to CONFIG after
+// this module is imported, so a module-level URL froze the 0,0/UTC defaults.
+function airQualityUrl(): string {
+  return (
+    `https://air-quality-api.open-meteo.com/v1/air-quality` +
+    `?latitude=${CONFIG.LATITUDE}&longitude=${CONFIG.LONGITUDE}` +
+    `&current=us_aqi,european_aqi,pm10,pm2_5,` +
+    `carbon_monoxide,nitrogen_dioxide,ozone,dust,uv_index` +
+    `&hourly=us_aqi,pm2_5,pm10,uv_index` +
+    `&timezone=${CONFIG.TIMEZONE}` +
+    `&forecast_hours=24`
+  );
+}
 
 export async function fetchAirQuality(): Promise<AirQuality> {
-  const response = await fetch(AIR_QUALITY_URL);
+  const response = await fetch(airQualityUrl());
 
   if (!response.ok) {
     throw new Error(`Air Quality API returned ${response.status}`);
