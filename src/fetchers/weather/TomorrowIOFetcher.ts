@@ -6,18 +6,24 @@ import {
   type TomorrowIODailyForecast,
 } from "../../types/weather.ts";
 
-const { LATITUDE, LONGITUDE, TOMORROWIO_API_KEY } = CONFIG;
+// Built per call: server.ts applies the resolved location to CONFIG after
+// this module is imported, so a module-level URL froze the 0,0/UTC defaults.
+function realtimeUrl(): string {
+  return (
+    `https://api.tomorrow.io/v4/weather/realtime` +
+    `?location=${CONFIG.LATITUDE},${CONFIG.LONGITUDE}` +
+    `&apikey=${CONFIG.TOMORROWIO_API_KEY}`
+  );
+}
 
-const REALTIME_URL =
-  `https://api.tomorrow.io/v4/weather/realtime` +
-  `?location=${LATITUDE},${LONGITUDE}` +
-  `&apikey=${TOMORROWIO_API_KEY}`;
-
-const DAILY_FORECAST_URL =
-  `https://api.tomorrow.io/v4/weather/forecast` +
-  `?location=${LATITUDE},${LONGITUDE}` +
-  `&timesteps=1d` +
-  `&apikey=${TOMORROWIO_API_KEY}`;
+function dailyForecastUrl(): string {
+  return (
+    `https://api.tomorrow.io/v4/weather/forecast` +
+    `?location=${CONFIG.LATITUDE},${CONFIG.LONGITUDE}` +
+    `&timesteps=1d` +
+    `&apikey=${CONFIG.TOMORROWIO_API_KEY}`
+  );
+}
 
 interface RawTomorrowRealtimeData {
   data: {
@@ -80,7 +86,7 @@ interface RawTomorrowDailyForecastResponse {
 }
 
 export async function fetchTomorrowIORealtime(): Promise<TomorrowIORealtimeResponse> {
-  const response = await fetch(REALTIME_URL);
+  const response = await fetch(realtimeUrl());
 
   if (!response.ok) {
     throw new Error(`Tomorrow.io realtime returned ${response.status}`);
@@ -122,7 +128,7 @@ export async function fetchTomorrowIORealtime(): Promise<TomorrowIORealtimeRespo
 }
 
 export async function fetchTomorrowIODailyForecast(): Promise<TomorrowIODailyForecastResponse> {
-  const response = await fetch(DAILY_FORECAST_URL);
+  const response = await fetch(dailyForecastUrl());
 
   if (!response.ok) {
     throw new Error(`Tomorrow.io daily forecast returned ${response.status}`);
