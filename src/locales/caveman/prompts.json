@@ -24,6 +24,7 @@
   "creative.image.result-success": "picture made and given to human. now write chat reply about picture — plain words only, no URL, no tag, no picture listing (human already see it).",
   "creative.audio.result-success": "sound made and given to human.",
   "creative.audio.result-local-tts": "sound made and given to human (local espeak-ng TTS).",
+  "creative.sound-effect.result-success": "sound effect made and given to human.",
   "tool-search.action-nudge-disabled": "IMPORTANT: some found tool NOT turned on (isEnabled: false). you MUST call enable_tools with tool name you need before can use. after turn on, tool available next round.",
   "tool-search.action-nudge-enabled": "all matched tool already on — use them directly.",
   "file.stale-anchor": "one or more anchor stale — file changed since read. each staleAnchors entry include CURRENT hashline window around that line: re-anchor from window (or re-read just that range) and retry. no retry with same anchor.",

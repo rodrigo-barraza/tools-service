@@ -43,6 +43,13 @@ export interface PrismTTSParams {
   username?: string;
 }
 
+export interface PrismSoundEffectParams {
+  prompt: string;
+  durationSeconds?: number;
+  loop?: boolean;
+  username?: string;
+}
+
 export interface PrismSTTParams {
   provider?: string;
   audio: string;
@@ -169,10 +176,48 @@ export async function speechToText(
 }
 
 /**
+ * Call Prism's /text-to-sound-effect endpoint (ElevenLabs sound effects).
+ * Collects the binary response into a base64-encoded buffer, as
+ * textToSpeech does — the shared client has no wrapper for this route.
+ */
+export async function soundEffect(
+  params: PrismSoundEffectParams,
+): Promise<TransformedPrismSpeechResult> {
+  try {
+    const response = await prism().requestRaw("/text-to-sound-effect", {
+      body: {
+        prompt: params.prompt,
+        durationSeconds: params.durationSeconds,
+        loop: params.loop,
+      },
+      username: params.username || "system",
+      timeoutMs: PRISM_TTS_TIMEOUT_MS,
+    });
+    const contentType = response.headers.get("content-type") || "audio/mpeg";
+    return {
+      audioBase64: Buffer.from(await response.arrayBuffer()).toString("base64"),
+      contentType,
+    };
+  } catch (error: unknown) {
+    logger.error(
+      `[PrismService] soundEffect failed: ${getErrorMessage(error)}`,
+    );
+    throw error;
+  }
+}
+
+/**
  * Fetch global user settings from Prism's /settings endpoint.
  */
 export async function getSettings(): Promise<Record<string, unknown> | null> {
   return prism().getSettings(PRISM_HEALTH_TIMEOUT_MS);
 }
 
-export default { chat, health, textToSpeech, speechToText, getSettings };
+export default {
+  chat,
+  health,
+  textToSpeech,
+  speechToText,
+  soundEffect,
+  getSettings,
+};
