@@ -385,6 +385,7 @@ const TOOL_DOMAINS = {
   remove_background: "Creative",
   synthesize_speech: "Creative",
   synthesize_speech_local: "Creative",
+  generate_sound_effect: "Creative",
   generate_audio: "Creative",
   remix_audio: "Creative",
   create_vector_animation: "Creative",
@@ -818,6 +819,7 @@ const TOOL_EMOJIS: Record<string, string | [string, string]> = {
   describe_image: ["👁️", "💻"],
   synthesize_speech: "🔊",
   synthesize_speech_local: ["🗣️", "💻"],
+  generate_sound_effect: ["💥", "🔊"],
   generate_audio: ["🔊", "🎵"],
   remix_audio: ["🎛️", "🔊"],
   create_vector_animation: ["🎬", "🎨"],
@@ -997,6 +999,7 @@ const TOOL_REQUIRED_KEYS = {
   describe_image: ["PRISM_SERVICE_URL"],
   synthesize_speech: ["PRISM_SERVICE_URL"],
   synthesize_speech_local: [],
+  generate_sound_effect: ["PRISM_SERVICE_URL"],
   transcribe_audio: ["PRISM_SERVICE_URL"],
 
   // Agent Management (require Prism for CustomAgentService)

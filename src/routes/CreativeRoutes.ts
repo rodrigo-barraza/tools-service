@@ -999,6 +999,71 @@ router.post(
 );
 
 // ────────────────────────────────────────────────────────────
+// POST /creative/sound-effect
+// ElevenLabs Sound Effects through Prism — a sound with no voice
+// ────────────────────────────────────────────────────────────
+
+/** ElevenLabs' bounds on a sound effect's length, in seconds. */
+const SOUND_EFFECT_MIN_SECONDS = 0.5;
+const SOUND_EFFECT_MAX_SECONDS = 30;
+
+router.post(
+  "/sound-effect",
+  asyncHandler(async (req: Request, res: Response) => {
+    const { prompt, durationSeconds, loop } = req.body;
+
+    if (typeof prompt !== "string" || !prompt.trim()) {
+      return res
+        .status(400)
+        .json({ error: "Missing required parameter: prompt" });
+    }
+
+    const duration =
+      durationSeconds === undefined || durationSeconds === null
+        ? undefined
+        : Number(durationSeconds);
+    if (
+      duration !== undefined &&
+      !(duration >= SOUND_EFFECT_MIN_SECONDS && duration <= SOUND_EFFECT_MAX_SECONDS)
+    ) {
+      return res.status(400).json({
+        error: `durationSeconds must be from ${SOUND_EFFECT_MIN_SECONDS} to ${SOUND_EFFECT_MAX_SECONDS}`,
+      });
+    }
+
+    const { username: callerUsername } = extractCallerContext(req);
+
+    try {
+      const result = await PrismService.soundEffect({
+        prompt: prompt.trim(),
+        durationSeconds: duration,
+        loop: loop === true || loop === "true" ? true : undefined,
+        username: callerUsername,
+      });
+
+      res.json({
+        success: true,
+        message: PromptLocaleService.get("en", "prompts.creative.sound-effect.result-success"),
+        audio: {
+          data: result.audioBase64,
+          mimeType: result.contentType,
+        },
+        prompt: prompt.trim(),
+        ...(duration !== undefined && { durationSeconds: duration }),
+        ...(await buildAudioHosting(result.audioBase64, result.contentType, "Sound effect")),
+      });
+    } catch (error: unknown) {
+      logger.error(
+        `[CreativeRoutes] sound-effect failed: ${errorMessage(error)}`,
+      );
+      res
+        .status(500)
+        .json({ error: `Sound effect failed: ${errorMessage(error)}` });
+    }
+  }),
+);
+
+// ────────────────────────────────────────────────────────────
 // POST /creative/local-text-to-speech
 // Local espeak-ng based TTS — no AI models, zero cost
 // ────────────────────────────────────────────────────────────

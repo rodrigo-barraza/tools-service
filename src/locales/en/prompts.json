@@ -24,6 +24,7 @@
   "creative.image.result-success": "Image generated and delivered to the user. Now write your chat reply about the image — plain prose only, no URLs, tags, or image listings (the user already sees it).",
   "creative.audio.result-success": "Audio generated and delivered to the user.",
   "creative.audio.result-local-tts": "Audio generated and delivered to the user (local espeak-ng TTS).",
+  "creative.sound-effect.result-success": "Sound effect generated and delivered to the user.",
   "tool-search.action-nudge-disabled": "IMPORTANT: Some discovered tools are NOT currently enabled (isEnabled: false). You MUST call enable_tools with the tool names you need before you can use them. After enabling, the tools become available on your next iteration.",
   "tool-search.action-nudge-enabled": "All matched tools are already enabled — you can call them directly.",
   "file.stale-anchor": "One or more anchors are stale — the file changed since it was read. Each staleAnchors entry includes the CURRENT hashline window around that line: re-anchor from that window (or re-read just that range) and retry. Do not retry with the same anchors.",

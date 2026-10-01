@@ -1421,6 +1421,40 @@ export function getCreativeTools(
     },
   },
   {
+    name: "generate_sound_effect",
+    dataSource: onDemand("ElevenLabs Sound Effects via Prism"),
+    description: translate("generate_sound_effect.description"),
+    endpoint: {
+      path: "/creative/sound-effect",
+      method: "POST",
+      bodyParams: ["prompt", "durationSeconds", "loop"],
+    },
+    parameters: {
+      type: "object",
+      properties: {
+        prompt: {
+          type: "string",
+          description: translate("generate_sound_effect.params.prompt"),
+        },
+        durationSeconds: {
+          type: "number",
+          description: translate("generate_sound_effect.params.durationSeconds"),
+        },
+        loop: {
+          type: "boolean",
+          description: translate("generate_sound_effect.params.loop"),
+        },
+      },
+      required: ["prompt"],
+    },
+    display: {
+      activeVerb: "Generating a sound effect of",
+      completedVerb: "Generated a sound effect of",
+      subjectParam: "prompt",
+      subjectFormat: "truncate",
+    },
+  },
+  {
     name: "create_vector_animation",
     dataSource: onDemand("Creative Vector Animation Engine"),
     description: translate("create_vector_animation.description"),

@@ -216,6 +216,7 @@ export const TOOL_CAPABILITIES: Record<string, readonly ToolCapabilityTag[]> = {
   remove_background: ["network"],
   synthesize_speech: ["network"],
   synthesize_speech_local: [],
+  generate_sound_effect: ["network"],
   create_vector_animation: [],
   generate_audio: [],
   remix_audio: ["fs_read", "network"],
