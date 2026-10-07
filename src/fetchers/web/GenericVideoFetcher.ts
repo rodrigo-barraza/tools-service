@@ -15,6 +15,7 @@ import logger from "../../logger.ts";
 import { errorMessage } from "../../utilities.ts";
 import { convertVideoToGif } from "../../services/VideoService.ts";
 import { extractVideoId } from "../knowledge/YouTubeFetcher.ts";
+import { ownServiceOrigins, validatePublicWebUrl } from "./SsrfGuard.ts";
 
 // ─── Constants ─────────────────────────────────────────────────────
 
@@ -303,6 +304,14 @@ export async function downloadVideo(
     const normalizedUrl = normalizeInputUrl(input);
     if (!normalizedUrl) {
       return { error: `Invalid URL or video ID: "${input}". Provide a valid HTTP/HTTPS URL or YouTube video ID.` };
+    }
+    // A model's URL: public, or one of our own services. yt-dlp fetches it
+    // itself, so this checks the URL and its addresses before it starts.
+    const verdict = await validatePublicWebUrl(normalizedUrl, {
+      trustedOrigins: ownServiceOrigins(),
+    });
+    if (!verdict.ok) {
+      return { error: verdict.error ?? `Blocked: ${normalizedUrl}` };
     }
 
     logger.info(

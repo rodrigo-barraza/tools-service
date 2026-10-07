@@ -1,4 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// These tests feed documents through a stubbed global fetch. The SSRF
+// guard's own transport and rules are tested in ModelUrlGuard.test.ts.
+vi.mock("../../fetchers/web/SsrfGuard.ts", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../fetchers/web/SsrfGuard.ts")>()),
+  fetchPublicOrOwnUrl: (url: string, init?: RequestInit) => globalThis.fetch(url, init),
+}));
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";

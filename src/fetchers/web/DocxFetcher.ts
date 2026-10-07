@@ -6,6 +6,7 @@ import {
   isUnresolvedAttachedSentinel,
   buildAttachedSentinelError,
 } from "../../services/AttachedMediaSentinel.ts";
+import { fetchPublicOrOwnUrl } from "./SsrfGuard.ts";
 
 const MAX_DOCX_BYTES = 10_485_760; // 10 MB
 const MAX_TEXT_CHARS = 100_000;
@@ -68,7 +69,7 @@ async function resolveDocxBuffer(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-  const response = await fetch(url, {
+  const response = await fetchPublicOrOwnUrl(url, {
     signal: controller.signal,
     headers: {
       "User-Agent": randomUserAgent(),

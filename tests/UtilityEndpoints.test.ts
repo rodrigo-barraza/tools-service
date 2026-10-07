@@ -1,4 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
+
+// The Python input-file tests serve their files through a stubbed global
+// fetch. The SSRF guard's own transport and rules are tested in
+// ModelUrlGuard.test.ts; the open routes here keep the real guard.
+vi.mock("../src/fetchers/web/SsrfGuard.ts", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/fetchers/web/SsrfGuard.ts")>()),
+  fetchPublicOrOwnUrl: (url: string, init?: RequestInit) => globalThis.fetch(url, init),
+}));
 import request from "supertest";
 import { createTestApp } from "./testApp.ts";
 import utilityRoutes from "../src/routes/UtilityRoutes.ts";

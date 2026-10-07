@@ -99,6 +99,7 @@ interface ToolsServiceConfig {
 
   // Prism (LLM Gateway)
   PRISM_SERVICE_URL: string | undefined;
+  PRISM_SERVICE_PUBLIC_URL: string | undefined;
 
   // Default AI Models
   TOOLS_IMAGE_MODEL: string | undefined;
@@ -247,6 +248,8 @@ const CONFIG: ToolsServiceConfig = {
 
   // ─── Prism (LLM Gateway) ────────────────────────────────────────
   PRISM_SERVICE_URL: process.env.PRISM_SERVICE_URL,
+  // Its public origin: media a model chains from Prism may name it.
+  PRISM_SERVICE_PUBLIC_URL: process.env.PRISM_SERVICE_PUBLIC_URL,
 
   // ─── Default AI Models (vault-backed) ───────────────────────────
   TOOLS_IMAGE_MODEL: process.env.TOOLS_IMAGE_MODEL,

@@ -14,7 +14,7 @@ import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
 import sharp from "sharp";
 import type { BrowserContext } from "playwright";
 import { getSharedBrowser } from "./AgenticBrowserService.ts";
-import { fetchPublicUrl } from "../fetchers/web/SsrfGuard.ts";
+import { fetchPublicOrOwnUrl } from "../fetchers/web/SsrfGuard.ts";
 import CONFIG from "../config.ts";
 import logger from "../logger.ts";
 
@@ -34,7 +34,8 @@ const TRANSFER_HEADERS = new Set(["content-encoding", "content-length", "transfe
 /**
  * Fetch every network request the page makes through the SSRF guard, so
  * the animation's image URLs (anyone's, on an open route) reach only public
- * addresses; anything else is aborted. Chromium itself connects nowhere.
+ * addresses or our own services' media; anything else is aborted.
+ * Chromium itself connects nowhere.
  */
 async function routeThroughSsrfGuard(context: BrowserContext): Promise<void> {
   await context.route("**/*", async (route) => {
@@ -44,7 +45,7 @@ async function routeThroughSsrfGuard(context: BrowserContext): Promise<void> {
       return;
     }
     try {
-      const response = await fetchPublicUrl(request.url(), {
+      const response = await fetchPublicOrOwnUrl(request.url(), {
         method: request.method(),
         headers: request.headers(),
         signal: AbortSignal.timeout(FRAME_RENDER_TIMEOUT_MS),
@@ -195,8 +196,8 @@ export async function encodeAnimationVideo(
         audioPath = join(workDirectory, "audio-in");
         await writeFile(audioPath, audioBuffer);
       } else {
-        // A caller's URL: every hop must land in public address space
-        const response = await fetchPublicUrl(audioUrl, { signal: AbortSignal.timeout(30_000) });
+        // A caller's URL: public, or one of our own services (SsrfGuard)
+        const response = await fetchPublicOrOwnUrl(audioUrl, { signal: AbortSignal.timeout(30_000) });
         if (!response.ok) throw new Error(`Failed to fetch audio track: HTTP ${response.status}`);
         const audioBuffer = Buffer.from(await response.arrayBuffer());
         if (audioBuffer.length > MAXIMUM_AUDIO_BYTES) throw new Error("Audio track exceeds 20 MB limit");

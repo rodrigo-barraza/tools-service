@@ -23,6 +23,7 @@ import {
   isUnresolvedAttachedSentinel,
   buildAttachedSentinelError,
 } from "./AttachedMediaSentinel.ts";
+import { fetchPublicOrOwnUrl } from "../fetchers/web/SsrfGuard.ts";
 
 const PYTHON_BIN = "python3";
 
@@ -347,7 +348,8 @@ async function resolveInputSource(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), INPUT_FETCH_TIMEOUT_MS);
   try {
-    const response = await fetch(parsed.href, {
+    // A model's URL: public, or one of our own services (SsrfGuard)
+    const response = await fetchPublicOrOwnUrl(parsed.href, {
       signal: controller.signal,
       headers: { "User-Agent": randomUserAgent(), Accept: "*/*" },
     });

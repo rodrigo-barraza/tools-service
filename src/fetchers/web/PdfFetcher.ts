@@ -6,6 +6,7 @@ import {
   isUnresolvedAttachedSentinel,
   buildAttachedSentinelError,
 } from "../../services/AttachedMediaSentinel.ts";
+import { fetchPublicOrOwnUrl } from "./SsrfGuard.ts";
 
 const MAX_PDF_BYTES = 26_214_400; // 25 MB — aligned with the other media input caps
 const MAX_PDF_MEGABYTES = MAX_PDF_BYTES / 1_048_576;
@@ -57,7 +58,7 @@ async function resolvePdfBytes(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-  const response = await fetch(url, {
+  const response = await fetchPublicOrOwnUrl(url, {
     signal: controller.signal,
     headers: {
       "User-Agent":

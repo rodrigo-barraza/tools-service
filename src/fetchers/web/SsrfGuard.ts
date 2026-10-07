@@ -17,6 +17,11 @@
 //   4. Redirects are followed here, not by the transport: every Location
 //      is a new request through 1–3. A public URL redirecting to an
 //      internal one is the classic bypass.
+//   5. Only a fetch of a URL a model supplies may also reach this fleet's
+//      own services — tools-service, prism-service and MinIO, at the exact
+//      origins (scheme, host, port) configured for them — so it can chain
+//      the media they serve. Every other origin is held to 1–4, on every
+//      hop: a redirect from one of ours to a private address is refused.
 //
 // Research basis (harness_landscape_survey_2026-07.md, D2):
 // deny-by-default egress per Anthropic sandbox-runtime
@@ -32,6 +37,7 @@ import { lookup } from "node:dns/promises";
 import { isIP, type LookupFunction } from "node:net";
 import { pipeline, Readable } from "node:stream";
 import zlib from "node:zlib";
+import CONFIG from "../../config.ts";
 
 const MAX_REDIRECTS = 5;
 
@@ -198,8 +204,48 @@ export const publicAddressLookup: LookupFunction = (
 
 // ─── URL Checks ──────────────────────────────────────────────
 
-/** The URL, when it is http(s) and not a private literal; throws otherwise. */
-function publicHttpUrl(rawUrl: string): URL {
+export interface GuardOptions {
+  /**
+   * Exact origins (scheme://host:port) that may resolve to private
+   * addresses; every other origin must be public.
+   */
+  trustedOrigins?: ReadonlySet<string>;
+}
+
+/**
+ * This fleet's own services, as configured now: the origins whose media a
+ * model may chain (tools-service, prism-service and MinIO, internal and
+ * public addresses alike).
+ */
+export function ownServiceOrigins(): Set<string> {
+  const origins = new Set<string>();
+  for (const configured of [
+    CONFIG.TOOLS_SERVICE_URL,
+    CONFIG.TOOLS_SERVICE_PUBLIC_URL,
+    CONFIG.PRISM_SERVICE_URL,
+    CONFIG.PRISM_SERVICE_PUBLIC_URL,
+    CONFIG.MINIO_ENDPOINT,
+    CONFIG.MINIO_PUBLIC_URL,
+  ]) {
+    if (!configured) continue;
+    try {
+      const { protocol, origin } = new URL(configured);
+      if (protocol === "http:" || protocol === "https:") origins.add(origin);
+    } catch {
+      // Not a URL: names no origin
+    }
+  }
+  return origins;
+}
+
+/**
+ * The URL, when it is http(s) and either trusted or not a private literal;
+ * throws otherwise. `trusted` says whether its origin is one of `options`'.
+ */
+function checkedUrl(
+  rawUrl: string,
+  { trustedOrigins }: GuardOptions,
+): { url: URL; trusted: boolean } {
   let url: URL;
   try {
     url = new URL(rawUrl);
@@ -209,8 +255,9 @@ function publicHttpUrl(rawUrl: string): URL {
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new UnsafeUrlError(`Blocked non-http(s) protocol: ${url.protocol}`);
   }
-  assertPublicHost(url.hostname);
-  return url;
+  const trusted = trustedOrigins?.has(url.origin) ?? false;
+  if (!trusted) assertPublicHost(url.hostname);
+  return { url, trusted };
 }
 
 export interface UrlValidationResult {
@@ -225,15 +272,17 @@ export interface UrlValidationResult {
  */
 export async function validatePublicWebUrl(
   rawUrl: string,
+  options: GuardOptions = {},
 ): Promise<UrlValidationResult> {
   let url: URL;
+  let trusted: boolean;
   try {
-    url = publicHttpUrl(rawUrl);
+    ({ url, trusted } = checkedUrl(rawUrl, options));
   } catch (error: unknown) {
     return { ok: false, error: (error as Error).message };
   }
   const hostname = url.hostname.replace(/^\[|\]$/g, "");
-  if (isIP(hostname)) return { ok: true };
+  if (trusted || isIP(hostname)) return { ok: true };
 
   try {
     const resolutions = await lookup(hostname, { all: true });
@@ -303,9 +352,10 @@ function toResponse(message: http.IncomingMessage, method: string): Response {
   return new Response(Readable.toWeb(body) as ReadableStream<Uint8Array>, init);
 }
 
-/** One request, connected only to a public address. */
+/** One request, connected only to a public address unless its origin is trusted. */
 function requestOnce(
   url: URL,
+  trusted: boolean,
   method: string,
   init: PublicFetchInit,
   body: string | Uint8Array | undefined,
@@ -324,7 +374,7 @@ function requestOnce(
       {
         method,
         headers,
-        lookup: publicAddressLookup,
+        lookup: trusted ? undefined : publicAddressLookup,
         // A fresh connection per request: no pooled socket skips the lookup
         agent: false,
         signal: init.signal ?? undefined,
@@ -344,25 +394,30 @@ function requestOnce(
 }
 
 /**
- * fetch() restricted to public address space: each hop connects only to an
- * address that passed the guard, and redirects are followed here so every
- * Location is checked the same way.
+ * fetch() restricted to public address space (and `options`' trusted
+ * origins): each hop connects only to an address that passed the guard,
+ * and redirects are followed here so every Location is checked the same
+ * way.
  */
 export async function fetchPublicUrl(
   rawUrl: string,
   init: PublicFetchInit = {},
+  options: GuardOptions = {},
 ): Promise<Response> {
-  let url = publicHttpUrl(rawUrl);
+  let { url, trusted } = checkedUrl(rawUrl, options);
   let method = (init.method ?? "GET").toUpperCase();
   let body = init.body;
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    const response = await requestOnce(url, method, init, body);
+    const response = await requestOnce(url, trusted, method, init, body);
     const location = response.headers.get("location");
     if (response.status >= 300 && response.status < 400 && location) {
       // Drain/cancel the redirect body before following
       await response.body?.cancel().catch(() => {});
-      url = publicHttpUrl(new URL(location, url).toString());
+      ({ url, trusted } = checkedUrl(
+        new URL(location, url).toString(),
+        options,
+      ));
       if (
         response.status === 303 ||
         ((response.status === 301 || response.status === 302) &&
@@ -381,4 +436,16 @@ export async function fetchPublicUrl(
   }
 
   throw new Error(`Too many redirects (>${MAX_REDIRECTS}): ${rawUrl}`);
+}
+
+/**
+ * fetchPublicUrl for a URL a model supplies: public addresses, or this
+ * fleet's own services at their configured origins (ownServiceOrigins), so
+ * the media one tool hosts can feed the next.
+ */
+export function fetchPublicOrOwnUrl(
+  rawUrl: string,
+  init: PublicFetchInit = {},
+): Promise<Response> {
+  return fetchPublicUrl(rawUrl, init, { trustedOrigins: ownServiceOrigins() });
 }

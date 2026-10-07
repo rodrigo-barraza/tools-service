@@ -9,6 +9,7 @@ import CONFIG from "../config.ts";
 import logger from "../logger.ts";
 import rateLimiter from "./RateLimiterService.ts";
 import { errorMessage } from "../utilities.ts";
+import { fetchPublicOrOwnUrl } from "../fetchers/web/SsrfGuard.ts";
 
 interface BraveSearchItem {
   title?: string;
@@ -76,15 +77,6 @@ const MAX_OUTPUT_CHARS = 100_000; // Truncate final markdown output
 const USER_AGENT =
   "Mozilla/5.0 (compatible; SunTools/1.0; +https://github.com/sun)";
 
-// Domains that block automated access — skip gracefully
-const BLOCKED_DOMAINS = new Set([
-  "localhost",
-  "127.0.0.1",
-  "0.0.0.0",
-  "169.254.169.254", // AWS metadata
-  "metadata.google.internal",
-]);
-
 // Google Custom Search JSON API
 const GOOGLE_CSE_BASE = "https://www.googleapis.com/customsearch/v1";
 
@@ -127,12 +119,6 @@ export async function agenticFetchUrl(
     return { error: `Invalid URL: ${url}` };
   }
 
-  // Block internal/local URLs
-  if (BLOCKED_DOMAINS.has(parsed.hostname)) {
-    return {
-      error: `Domain '${parsed.hostname}' is blocked for security reasons.`,
-    };
-  }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     return {
       error: `Only http and https protocols are supported. Got: ${parsed.protocol}`,
@@ -144,7 +130,8 @@ export async function agenticFetchUrl(
     const controller = new AbortController();
     timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-    const response = await fetch(url, {
+    // A model's URL: public, or one of our own services, on every hop
+    const response = await fetchPublicOrOwnUrl(url, {
       signal: controller.signal,
       headers: {
         "User-Agent": USER_AGENT,
@@ -152,7 +139,6 @@ export async function agenticFetchUrl(
           "text/html,application/xhtml+xml,text/plain,application/json,*/*",
         "Accept-Language": "en-US,en;q=0.9",
       },
-      redirect: "follow",
     });
 
     if (!response.ok) {
