@@ -246,7 +246,7 @@ const MOUNTS: Array<{
     path: "/lights",
     name: "lightsRoutes",
     router: lightsRoutes,
-    policy: "mixed",
+    policy: "gated",
   },
   { path: "/admin", name: "adminRoutes", router: adminRoutes, policy: "gated" },
   {
@@ -286,7 +286,7 @@ const APP_ROUTES: Array<{
 ];
 
 // The mixed families' gated routes, exactly; every other route of theirs is
-// open — except lights, discord and product, where every write is gated.
+// open — except discord and product, where every write is gated.
 const MIXED_GATED = new Set([
   "POST /compute/js/execute",
   "GET /compute/js/info",
@@ -320,8 +320,9 @@ const MIXED_GATED = new Set([
   "GET /music/spotify/get",
   "POST /music/spotify/control",
   "GET /music/spotify/auth/login",
+  "GET /music/spotify/auth/status",
 ]);
-const WRITES_GATED = new Set(["/lights", "/discord", "/product"]);
+const WRITES_GATED = new Set(["/discord", "/product"]);
 
 // What other fleet apps call here, with no secret (2026-10-06).
 const FLEET_ROUTES: Record<string, string[]> = {

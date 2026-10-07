@@ -130,12 +130,16 @@ export const GATED_ROUTES: readonly GatedRoute[] = [
     reason:
       "links a Spotify account as the owner's (the callback stays open: Spotify redirects the browser to it with the state only this issues)",
   },
+  {
+    path: "/music/spotify/auth/status",
+    reason: "which Spotify account is linked as the owner's",
+  },
   { path: "/torrent", family: true, reason: "the owner's qBittorrent" },
   {
     path: "/lights",
     family: true,
-    writesOnly: true,
-    reason: "controls the owner's lights",
+    reason:
+      "the owner's lights: their state, scenes and night lock, and control",
   },
   {
     path: "/discord",
