@@ -1,9 +1,9 @@
 // ─── Agent WebSocket Auth ─────────────────────────────────────────
 // /ws/agent (workspace bridges) and /ws/workspace (the VS Code relay)
-// answer only the agent secret — in x-api-secret, or in ?secret= from the
-// standalone agent and the tray app — compared in constant time. With no
-// secret configured, or the settings unreadable, every upgrade gets 503
-// (clients retry); a missing or wrong secret gets 401 (clients stop).
+// answer only the agent secret in x-api-secret, compared in constant time;
+// a secret in the URL is never read. With no secret configured, or the
+// settings unreadable, every upgrade gets 503 (clients retry); a missing
+// or wrong secret gets 401 (clients stop).
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import http from "node:http";
@@ -96,24 +96,28 @@ describe("agent WebSocket auth", () => {
         }),
       ).toBe(401);
       expect(await attempt(`${base}${path}?secret=wrong`)).toBe(401);
-      // The header wins over the query parameter.
+    }
+  });
+
+  it("never reads a secret from the URL", async () => {
+    const base = await serve(async () => SECRET);
+    const inUrl = `secret=${encodeURIComponent(SECRET)}`;
+    for (const path of PATHS) {
+      // The right secret in the query alone is a missing secret…
+      expect(await attempt(`${base}${path}?${inUrl}`)).toBe(401);
+      // …and does not rescue a wrong header.
       expect(
-        await attempt(`${base}${path}?secret=${SECRET}`, {
-          "x-api-secret": "wrong",
-        }),
+        await attempt(`${base}${path}?${inUrl}`, { "x-api-secret": "wrong" }),
       ).toBe(401);
     }
   });
 
-  it("upgrades with the secret, in the header or in ?secret=", async () => {
+  it("upgrades with the secret in x-api-secret", async () => {
     const base = await serve(async () => SECRET);
     for (const path of PATHS) {
       expect(await attempt(`${base}${path}`, { "x-api-secret": SECRET })).toBe(
         "open",
       );
-      expect(
-        await attempt(`${base}${path}?secret=${encodeURIComponent(SECRET)}`),
-      ).toBe("open");
     }
   });
 

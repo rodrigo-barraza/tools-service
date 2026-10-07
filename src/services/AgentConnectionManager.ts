@@ -307,11 +307,11 @@ export interface AgentWebSocketOptions {
 /**
  * Initialize the agent WebSockets on an existing HTTP server: /ws/agent
  * (workspace bridges) and /ws/workspace (the VS Code extension's relay).
- * Both answer only the agent secret, compared in constant time — in
- * x-api-secret, or in `?secret=` from the standalone agent and the tray
- * app, whose WebSocket cannot set a header. With no secret configured (or
- * the settings unreadable) every upgrade gets 503, which clients retry; a
- * missing or wrong secret gets 401, which they do not.
+ * Both answer only the agent secret in x-api-secret, compared in constant
+ * time; a secret in the URL is never read (URLs end up in logs). With no
+ * secret configured (or the settings unreadable) every upgrade gets 503,
+ * which clients retry; a missing or wrong secret gets 401, which they do
+ * not.
  */
 export function initAgentWebSocket(
   httpServer: Server,
@@ -341,9 +341,7 @@ export function initAgentWebSocket(
         refuseUpgrade(socket, 503, "Service Unavailable");
         return;
       }
-      const providedSecret =
-        req.headers[AUTH_HEADERS.apiSecret] || url.searchParams.get("secret");
-      if (!secretMatches(providedSecret, expectedSecret)) {
+      if (!secretMatches(req.headers[AUTH_HEADERS.apiSecret], expectedSecret)) {
         logger.warn(
           `[AgentWS] Rejected ${url.pathname} connection — invalid or missing secret`,
         );
