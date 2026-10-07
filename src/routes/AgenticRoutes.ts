@@ -43,10 +43,9 @@ import {
   executeCommand,
   executeCommandStreaming,
   getAllowedCommands,
-  listBackgroundProcesses,
-  getBackgroundProcess,
-  killBackgroundProcess,
 } from "../services/AgenticCommandService.ts";
+import { COMMAND_MAX_TIMEOUT_MS, COMMAND_MIN_TIMEOUT_MS } from "../services/tasks/TaskEngine.ts";
+import { runningLocalTaskCount } from "../services/tasks/WorkspaceTaskService.ts";
 import {
   agenticGitStatus,
   agenticGitDiff,
@@ -98,7 +97,6 @@ import {
   datastoreDelete,
 } from "../services/AgenticDatastoreService.ts";
 import { agenticToolSearch } from "../services/AgenticToolSearchService.ts";
-import * as BackgroundProcessRegistry from "../services/BackgroundProcessRegistry.ts";
 import {
   agenticScheduleCreate,
   agenticScheduleList,
@@ -676,7 +674,8 @@ router.post(
 // ("30" meaning 30s → historically became 30ms) or unit suffixes ("60s",
 // "2m"). Accept the unambiguous suffix forms, and reject bare sub-second
 // integers with a teaching error rather than silently running for 1ms.
-const MAX_COMMAND_TIMEOUT_MS = 120_000;
+// Bounds: Claude Code's Bash, 1000–600000 ms (services/tasks/TaskEngine.ts).
+const MAX_COMMAND_TIMEOUT_MS = COMMAND_MAX_TIMEOUT_MS;
 function normalizeTimeoutMs(
   raw: unknown,
 ): { ok: true; value: number | undefined } | { ok: false; error: string } {
@@ -686,14 +685,14 @@ function normalizeTimeoutMs(
     if (!m) {
       return {
         ok: false,
-        error: `'timeout' must be a number of milliseconds (1000–${MAX_COMMAND_TIMEOUT_MS}), or a value like "60s"/"2m"; received ${JSON.stringify(raw)}.`,
+        error: `'timeout' must be a number of milliseconds (${COMMAND_MIN_TIMEOUT_MS}–${MAX_COMMAND_TIMEOUT_MS}), or a value like "60s"/"2m"; received ${JSON.stringify(raw)}.`,
       };
     }
     const n = Number(m[1]);
     const unit = m[2] || "ms";
     const ms =
       unit === "ms" ? n : unit === "s" || unit === "sec" || unit === "secs" ? n * 1000 : n * 60_000;
-    return { ok: true, value: Math.min(Math.max(ms, 1000), MAX_COMMAND_TIMEOUT_MS) };
+    return { ok: true, value: Math.min(Math.max(ms, COMMAND_MIN_TIMEOUT_MS), MAX_COMMAND_TIMEOUT_MS) };
   }
   if (typeof raw === "number" && Number.isFinite(raw)) {
     if (raw > 0 && raw < 1000) {
@@ -702,14 +701,14 @@ function normalizeTimeoutMs(
         error: `'timeout' is in milliseconds; ${raw} is under 1 second. If you meant ${raw} seconds, send ${raw * 1000} (or "${raw}s").`,
       };
     }
-    return { ok: true, value: Math.min(Math.max(raw, 1000), MAX_COMMAND_TIMEOUT_MS) };
+    return { ok: true, value: Math.min(Math.max(raw, COMMAND_MIN_TIMEOUT_MS), MAX_COMMAND_TIMEOUT_MS) };
   }
   return { ok: false, error: `'timeout' must be a number of milliseconds; received ${typeof raw}.` };
 }
 router.post(
   "/command/run",
   asyncHandler(async (req: Request, res: Response) => {
-    const { command, cwd, timeout, run_in_background } = req.body;
+    const { command, cwd, timeout, run_in_background, description } = req.body;
     if (!command || typeof command !== "string") {
       return res
         .status(400)
@@ -734,6 +733,7 @@ router.post(
       timeout: timeoutResult.value,
       signal: abortController.signal,
       runInBackground: rib.value,
+      description: typeof description === "string" ? description : "",
     });
     // Guard: response may already be closed if the client disconnected
     if (res.headersSent || res.writableEnded) return;
@@ -800,52 +800,6 @@ router.post(
 );
 router.get("/command/allowed", (_req: Request, res: Response) => {
   res.json({ commands: getAllowedCommands() });
-});
-// ── Kill Process ───────────────────────────────────────────
-router.post(
-  "/command/kill",
-  asyncHandler(async (req: Request, res: Response) => {
-    const { pid } = req.body;
-    const pidResult = coerceInt(pid, { name: "pid", min: 1 });
-    if (!pidResult.ok) {
-      return res.status(400).json({ error: pidResult.error });
-    }
-    // Only kill PIDs this service is tracking as background processes.
-    // killProcessTree signals arbitrary host PIDs/process-groups, so a
-    // hallucinated or recycled PID could take down an unrelated process.
-    const tracked = getBackgroundProcess(pidResult.value);
-    if (!tracked) {
-      const running = listBackgroundProcesses()
-        .filter((p) => !p.exited)
-        .map((p) => `${p.pid} (${p.command.slice(0, 40)})`);
-      return res.status(400).json({
-        error: `PID ${pidResult.value} is not a tracked background process, so it cannot be killed. ${
-          running.length
-            ? `Tracked background processes: ${running.join(", ")}.`
-            : "There are no tracked background processes."
-        }`,
-      });
-    }
-    const result = killBackgroundProcess(pidResult.value);
-    if (!result.success) {
-      return res.status(400).json(result);
-    }
-    res.json(result);
-  }),
-);
-// ── Background Process Management ─────────────────────────
-router.get("/command/background/list", (_req: Request, res: Response) => {
-  res.json({ processes: listBackgroundProcesses() });
-});
-router.get("/command/background/:pid", (req: Request, res: Response) => {
-  const pid = parseInt(req.params.pid as string, 10);
-  if (isNaN(pid)) return res.status(400).json({ error: "Invalid PID" });
-  const proc = getBackgroundProcess(pid);
-  if (!proc)
-    return res
-      .status(404)
-      .json({ error: `PID ${pid} not found in background registry` });
-  res.json(proc);
 });
 // ─── 7. Git Operations ──────────────────────────────────────
 router.post(
@@ -1237,7 +1191,7 @@ export function getAgenticHealth() {
     moveFile: "on-demand (sandboxed fs)",
     deleteFile: "on-demand (sandboxed fs)",
     runCommand: "on-demand (sandboxed subprocess)",
-    backgroundProcesses: BackgroundProcessRegistry.activeCount(),
+    backgroundTasks: runningLocalTaskCount(),
     gitStatus: "on-demand (git subprocess)",
     gitDiff: "on-demand (git subprocess)",
     gitLog: "on-demand (git subprocess)",
