@@ -15,13 +15,57 @@ import logger from "../../logger.ts";
 import { errorMessage } from "../../utilities.ts";
 import { convertVideoToGif } from "../../services/VideoService.ts";
 import { extractVideoId } from "../knowledge/YouTubeFetcher.ts";
-import { ownServiceOrigins, validatePublicWebUrl } from "./SsrfGuard.ts";
+import {
+  addressPolicy,
+  ownServiceOrigins,
+  validatePublicWebUrl,
+} from "./SsrfGuard.ts";
+import { egressProxyUrl, type EgressPolicy } from "./EgressProxy.ts";
 
 // ─── Constants ─────────────────────────────────────────────────────
 
 const DOWNLOAD_TIMEOUT_MILLISECONDS = 180_000;
 const MAX_FILE_SIZE_BYTES = 200 * 1024 * 1024;
 const YTDLP_BINARY = "yt-dlp";
+
+// ─── Egress ────────────────────────────────────────────────────────
+
+/**
+ * Where yt-dlp may connect: public addresses, and our own services at their
+ * exact origins — what the URL check before it starts lets through.
+ */
+const VIDEO_EGRESS: EgressPolicy = {
+  name: "video download",
+  refusedSpace: "private/internal",
+  refuses: (address) => addressPolicy.isBlocked(address),
+  trustedOrigins: ownServiceOrigins,
+};
+
+const PROXY_VARIABLES = [
+  "http_proxy",
+  "HTTP_PROXY",
+  "https_proxy",
+  "HTTPS_PROXY",
+  "all_proxy",
+  "ALL_PROXY",
+];
+
+/**
+ * yt-dlp's arguments and environment, sending every connection it opens
+ * through the egress proxy (EgressProxy.ts): `--proxy` for yt-dlp, which
+ * hands it to the ffmpeg it drives as http_proxy; the proxy variables for
+ * any other helper; and no no_proxy to exempt a host.
+ */
+export function throughEgressProxy(
+  processArguments: string[],
+  proxyUrl: string,
+): { args: string[]; env: NodeJS.ProcessEnv } {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  delete env.no_proxy;
+  delete env.NO_PROXY;
+  for (const name of PROXY_VARIABLES) env[name] = proxyUrl;
+  return { args: [...processArguments, "--proxy", proxyUrl], env };
+}
 
 // ─── URL Validation & Normalization ────────────────────────────────
 
@@ -70,6 +114,7 @@ function runYtDlpDownload(
   videoUrl: string,
   outputDirectory: string,
   format: "mp4" | "mp3",
+  proxyUrl: string,
 ): Promise<YtDlpDownloadResult> {
   return new Promise((resolve, reject) => {
     const outputTemplate = path.join(outputDirectory, "%(id)s.%(ext)s");
@@ -109,9 +154,11 @@ function runYtDlpDownload(
             "--max-filesize", `${MAX_FILE_SIZE_BYTES}`,
           ];
 
-    const childProcess = spawn(YTDLP_BINARY, processArguments, {
+    const { args, env } = throughEgressProxy(processArguments, proxyUrl);
+    const childProcess = spawn(YTDLP_BINARY, args, {
       stdio: ["ignore", "pipe", "pipe"],
       timeout: DOWNLOAD_TIMEOUT_MILLISECONDS,
+      env,
     });
 
     let standardOutput = "";
@@ -174,7 +221,10 @@ export interface VideoMetadata {
   originalUrl: string;
 }
 
-function extractMetadataViaYtDlp(videoUrl: string): Promise<VideoMetadata> {
+function extractMetadataViaYtDlp(
+  videoUrl: string,
+  proxyUrl: string,
+): Promise<VideoMetadata> {
   return new Promise((resolve, reject) => {
     const processArguments = [
       videoUrl,
@@ -186,9 +236,11 @@ function extractMetadataViaYtDlp(videoUrl: string): Promise<VideoMetadata> {
       "--print", "%(title)s\n%(uploader)s\n%(channel)s\n%(extractor)s\n%(duration)s\n%(view_count)s\n%(upload_date)s\n%(description).200s\n%(thumbnail)s",
     ];
 
-    const childProcess = spawn(YTDLP_BINARY, processArguments, {
+    const { args, env } = throughEgressProxy(processArguments, proxyUrl);
+    const childProcess = spawn(YTDLP_BINARY, args, {
       stdio: ["ignore", "pipe", "pipe"],
       timeout: 30_000,
+      env,
     });
 
     let standardOutput = "";
@@ -306,13 +358,16 @@ export async function downloadVideo(
       return { error: `Invalid URL or video ID: "${input}". Provide a valid HTTP/HTTPS URL or YouTube video ID.` };
     }
     // A model's URL: public, or one of our own services. yt-dlp fetches it
-    // itself, so this checks the URL and its addresses before it starts.
+    // itself, so this checks the URL and its addresses before it starts,
+    // and every connection yt-dlp then opens (a redirect's, a manifest's
+    // segments, ffmpeg's) goes through the egress proxy, checked again.
     const verdict = await validatePublicWebUrl(normalizedUrl, {
       trustedOrigins: ownServiceOrigins(),
     });
     if (!verdict.ok) {
       return { error: verdict.error ?? `Blocked: ${normalizedUrl}` };
     }
+    const proxyUrl = await egressProxyUrl(VIDEO_EGRESS);
 
     logger.info(
       `[VideoFetcher] Downloading ${format.toUpperCase()}: ${normalizedUrl}`,
@@ -323,7 +378,7 @@ export async function downloadVideo(
 
     // Metadata extraction and download directory creation in parallel
     const [metadata, downloadDirectory] = await Promise.all([
-      extractMetadataViaYtDlp(normalizedUrl),
+      extractMetadataViaYtDlp(normalizedUrl, proxyUrl),
       mkdtemp(path.join(tmpdir(), "video-download-")),
     ]);
 
@@ -338,6 +393,7 @@ export async function downloadVideo(
       normalizedUrl,
       temporaryDirectory,
       downloadFormat,
+      proxyUrl,
     );
 
     logger.info(
