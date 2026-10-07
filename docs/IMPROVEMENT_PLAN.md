@@ -56,7 +56,7 @@ Foreground timeout/abort in `AgenticCommandService.ts:232,427` calls `child.kill
 Recomputed for ~274 tools on every `/admin/tool-schemas*` request (`ToolSchemaService.ts:1351,1377`). Compute once alongside the per-locale definition cache.
 
 ### 1.8 Fail closed on missing WS agent secret
-**Done 2026-10-06:** with no agent secret configured (or the settings unreadable) every upgrade is refused (503, which clients retry), the secret is compared in constant time, and a secret shorter than 24 characters draws a warning (`initAgentWebSocket` in `AgentConnectionManager.ts`).
+**Done 2026-10-06:** with no agent secret configured (or the settings unreadable) every upgrade is refused (503, which clients retry), the secret is read only from `x-api-secret` (never the URL) and compared in constant time, and a secret shorter than 24 characters draws a warning (`initAgentWebSocket` in `AgentConnectionManager.ts`).
 
 ---
 
