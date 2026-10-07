@@ -6,7 +6,7 @@ import PromptLocaleService from "../services/PromptLocaleService.ts";
 import { type Request, type Response, Router } from "express";
 import PrismService from "../services/PrismService.ts";
 import { generateAudioWav, INSTRUMENT_PRESETS, noteToFreq } from "../services/SoundSynthesizerService.ts";
-import { resolveAudioInput, decodeAudioToPcm } from "../services/AudioInputService.ts";
+import { AudioSourceError, resolveAudioInput, decodeAudioToPcm } from "../services/AudioInputService.ts";
 import { isSamplePresetRef, resolveSamplePreset, listSamplePresets } from "../services/SampleLibraryService.ts";
 import { validateSynthesizerInput } from "../services/SoundSynthesizerValidation.ts";
 import { processAudio, getAvailablePresets } from "../services/AudioRemixService.ts";
@@ -47,6 +47,7 @@ import {
 } from "../services/AttachedMediaSentinel.ts";
 import { imageStore } from "./ComputeRoutes.ts";
 import MinioService from "../services/MinioService.ts";
+import { fetchPublicOrOwnUrl } from "../fetchers/web/SsrfGuard.ts";
 import logger from "../logger.ts";
 import { extractCallerContext, errorMessage, buildDisplay, buildLocalUrl, buildEmbedHtml, escapeHtml, sanitizeCssColor, toEmbedScriptJson } from "../utilities.ts";
 import {
@@ -1153,7 +1154,8 @@ router.post(
     let audioData = audio;
     if (!audioData && audioUrl) {
       try {
-        const response = await fetch(audioUrl);
+        // A model's URL: public, or one of our own services (SsrfGuard)
+        const response = await fetchPublicOrOwnUrl(audioUrl);
         if (!response.ok) {
           return res.status(400).json({
             error: `Failed to fetch audio from URL: ${response.status}`,
@@ -1706,8 +1708,9 @@ router.post(
       logger.error(
         `[CreativeRoutes] remix-audio failed: ${errorMessage(error)}`,
       );
+      // A source it may not or cannot read is the caller's to fix
       res
-        .status(500)
+        .status(error instanceof AudioSourceError ? 400 : 500)
         .json({ error: `Audio remix failed: ${errorMessage(error)}` });
     }
   }),

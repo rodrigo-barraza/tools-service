@@ -10,6 +10,7 @@ import {
   isUnresolvedAttachedSentinel,
   buildAttachedSentinelError,
 } from "../../services/AttachedMediaSentinel.ts";
+import { fetchPublicOrOwnUrl } from "./SsrfGuard.ts";
 
 const MAX_CSV_BYTES = 26_214_400; // 25 MB — aligned with the other media input caps
 const MAX_CSV_CHARS = 4_000_000; // matches generate_csv's MAX_CSV_CHARS
@@ -217,7 +218,7 @@ async function resolveCsvText(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-  const response = await fetch(source, {
+  const response = await fetchPublicOrOwnUrl(source, {
     signal: controller.signal,
     headers: {
       "User-Agent": randomUserAgent(),

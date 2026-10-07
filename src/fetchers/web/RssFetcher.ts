@@ -3,6 +3,7 @@
 import xml2js from "xml2js";
 import { USER_AGENT } from "../../constants.ts";
 import { errorMessage } from "../../utilities.ts";
+import { fetchPublicUrl } from "./SsrfGuard.ts";
 
 const FETCH_TIMEOUT_MS = 15_000;
 const MAX_ITEMS = 50;
@@ -30,7 +31,8 @@ export async function readRssFeed(url: string, options: RssOptions = {}) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-    const response = await fetch(url, {
+    // A caller's URL: every hop must land in public address space
+    const response = await fetchPublicUrl(url, {
       signal: controller.signal,
       headers: {
         "User-Agent": USER_AGENT,

@@ -4,7 +4,7 @@ _Compiled 2026-07-13 from a four-track deep audit (schema layer, execution layer
 
 > **Status (2026-07-13): Phases 1 and 2 are implemented.** All of 1.1–1.8 and 2.1–2.5 landed; verified via typecheck + full Vitest suite (1803 tests) + subprocess smoke tests. Implementation notes/deviations:
 > - 1.2: warn-only at boot (`validateToolRegistries()` in ToolSchemaService) + hard assertions in `src/services/__tests__/RegistryIntegrity.test.ts` (also checks locale key resolution for `en` and `caveman`).
-> - 1.8: rolled out as loud warning by default; set `AGENT_WS_REQUIRE_SECRET=true` to fail closed once a secret is configured (fully failing closed by default would break agents with no secret baked).
+> - 1.8: fails closed since 2026-10-06 (`prism-login-guard`): with no agent secret every upgrade gets 503, and no agent is compiled without one; `AGENT_WS_REQUIRE_SECRET` is gone.
 > - 2.2: log-only threshold (`AGENTIC_RESULT_SIZE_WARN_BYTES`, 200KB) — enforcement deliberately deferred until telemetry shows offenders.
 > - 2.4: handler backstop `AGENTIC_HANDLER_TIMEOUT_MS` (150s, returns 504 with `code: "TIMEOUT"`), plus `server.requestTimeout`/`headersTimeout`.
 > - 2.5: allowlist is ON by default (see `AGENTIC_COMMAND_ENV_ALLOWED_NAMES/_PREFIXES`); escape hatch `AGENTIC_COMMAND_INHERIT_FULL_ENV=true`. Also applied to the Python interpreter.
@@ -56,7 +56,7 @@ Foreground timeout/abort in `AgenticCommandService.ts:232,427` calls `child.kill
 Recomputed for ~274 tools on every `/admin/tool-schemas*` request (`ToolSchemaService.ts:1351,1377`). Compute once alongside the per-locale definition cache.
 
 ### 1.8 Fail closed on missing WS agent secret
-`resolveAgentSecret` returning undefined currently disables auth on the workspace-agent WebSocket upgrade (`AgentConnectionManager.ts:195-232`). Refuse upgrades when no secret is configured (or auto-generate one at first boot and store it in Mongo).
+**Done 2026-10-06:** with no agent secret configured (or the settings unreadable) every upgrade is refused (503, which clients retry), the secret is read only from `x-api-secret` (never the URL) and compared in constant time, and a secret shorter than 24 characters draws a warning (`initAgentWebSocket` in `AgentConnectionManager.ts`).
 
 ---
 
@@ -118,9 +118,8 @@ Today `getToolSchemasForAI` always serves all ~274 schemas; deferral lives entir
 Currently an agent's allowlist is a telemetry hint; any caller can POST `/agentic/command/run` regardless (`AgenticRoutes.ts:1452-1461`). Add an optional enforcement mode (per-agent config flag): resolve tool name from the route (the `ToolCallLoggerMiddleware` path-map already does this) and 403 with a structured error when the tool isn't enabled.
 
 ### 3.6 Auth on the tool surface
-There is **no authentication** on any HTTP tool route, and CORS is `*` with credentials (`server.ts:106-120`). Since the only legitimate caller is prism-service (+ MCP):
-- Shared-bearer-token middleware (secret via vault-service, same pattern as the WS agent secret), rolled out log-only → enforce.
-- Tighten CORS to the known origins.
+**Done 2026-10-06** (`prism-login-guard`, with Prism's login): every route that runs code or commands, touches workspaces or files, changes configuration, or acts on the owner's accounts, devices or money — `/mcp` included — answers only `x-api-secret: TOOLS_SERVICE_API_SECRET`, and refuses everyone while it is unset (`GATED_ROUTES` in `src/middleware/ToolsSecretMiddleware.ts`; README "Authentication"). Read-only data stays open: other fleet apps read it, and browsers and Discord load the embeds. Still open:
+- CORS reflects any origin with credentials (`server.ts`). Harmless to the gated routes, which a browser cannot hold the secret for; tighten it to the known origins if browsers ever call this service directly again.
 
 ### 3.7 MCP consumer coherence
 `search_tools`' description tells the model to call `enable_tools`, which doesn't exist for MCP consumers (LM Studio) — an instruction they can't fulfill. Either strip/replace that sentence when serving via `McpAdapter`, or implement session-scoped enablement in the adapter. Also lift the hardcoded `sun-tools`/`1.0.0` server identity into config.

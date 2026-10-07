@@ -25,6 +25,8 @@ import {
 } from "./middleware/TraceContextMiddleware.ts";
 import { createAuthMiddleware } from "@rodrigo-barraza/utilities-library/service";
 import { DEFAULT_USERNAME, CORS_ALLOWED_HEADERS_STRING } from "@rodrigo-barraza/utilities-library/taxonomy";
+import { mountToolsSecretGuard } from "./middleware/ToolsSecretMiddleware.ts";
+import { prismUserTokenMiddleware } from "./middleware/PrismUserTokenMiddleware.ts";
 
 // ─── Model Setup ───────────────────────────────────────────────────
 
@@ -141,6 +143,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 app.use(traceContextMiddleware);
+// prism-service's x-prism-user-token: the user a callback into Prism speaks
+// for while this request is served — kept out of the request itself.
+app.use(prismUserTokenMiddleware);
 app.use(express.json({ limit: "50mb" }));
 app.use(requestLoggerMiddleware);
 app.use(toolCallLoggerMiddleware);
@@ -151,6 +156,10 @@ app.use(
     traceContext: true,
   }),
 );
+// Routes that run code, touch workspaces or act on the owner's accounts
+// and devices answer only with TOOLS_SERVICE_API_SECRET — ahead of the
+// routers, so the guard sees every path they would.
+mountToolsSecretGuard(app);
 
 // ─── Mount Domain Routers ──────────────────────────────────────────
 
@@ -238,6 +247,12 @@ async function start() {
   // Count outbound third-party calls from the very first fetch — counts
   // buffer in memory until Mongo connects, then flush on an interval.
   installExternalApiUsageTracking();
+
+  if (!CONFIG.PRISM_SERVICE_API_SECRET) {
+    logger.warn(
+      "PRISM_SERVICE_API_SECRET is not set: prism-service refuses this service's calls (images, speech, memories, custom agents, schedules).",
+    );
+  }
 
   // Fail fast if the static CSV datasets didn't ship with the build — a
   // missing file must abort startup (the healthcheck fails the deploy),

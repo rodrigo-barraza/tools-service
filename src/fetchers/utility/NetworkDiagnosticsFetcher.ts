@@ -4,6 +4,11 @@ import net from "node:net";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { USER_AGENT } from "../../constants.ts";
+import {
+  assertPublicHost,
+  fetchPublicUrl,
+  publicAddressLookup,
+} from "../web/SsrfGuard.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -146,8 +151,16 @@ export function sslCertificateCheck(
   port: number = 443,
 ): Promise<SslCertificateResult> {
   return new Promise((resolve, reject) => {
+    // A caller's host: only a public address, checked as it is connected to
+    assertPublicHost(hostname);
     const socket = tls.connect(
-      { host: hostname, port, servername: hostname, rejectUnauthorized: false },
+      {
+        host: hostname,
+        port,
+        servername: hostname,
+        rejectUnauthorized: false,
+        lookup: publicAddressLookup,
+      },
       () => {
         try {
           const certificate = socket.getPeerCertificate();
@@ -344,10 +357,10 @@ const SECURITY_HEADERS_TO_CHECK = [
 
 export async function httpHeaders(url: string): Promise<HttpHeadersResult> {
   const requestStartTime = Date.now();
-  const response = await fetch(url, {
+  // A caller's URL: every hop must land in public address space
+  const response = await fetchPublicUrl(url, {
     method: "HEAD",
     headers: { "User-Agent": USER_AGENT },
-    redirect: "follow",
     signal: AbortSignal.timeout(15_000),
   });
   const responseTimeMs = Date.now() - requestStartTime;

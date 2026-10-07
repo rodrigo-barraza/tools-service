@@ -5,6 +5,7 @@ import CONFIG from "../config.ts";
 import logger from "../logger.ts";
 import { errorMessage } from "../utilities.ts";
 import { getTraceHeaders } from "@rodrigo-barraza/utilities-library/service";
+import { prismServiceAuthHeaders } from "./PrismService.ts";
 
 // ────────────────────────────────────────────────────────────
 // Collection Setup — No-op since we proxy to prism-service
@@ -121,6 +122,7 @@ export async function agenticScheduleCreate(data: ScheduleCreateData, username?:
         ...getTraceHeaders(),
         [IDENTITY_HEADERS.project]: project,
         [IDENTITY_HEADERS.username]: username || "system",
+        ...prismServiceAuthHeaders(),
       },
       body: JSON.stringify(body),
     });
@@ -164,6 +166,7 @@ export async function agenticScheduleList(
         ...getTraceHeaders(),
         [IDENTITY_HEADERS.project]: project,
         [IDENTITY_HEADERS.username]: username || "system",
+        ...prismServiceAuthHeaders(),
       },
     });
 
@@ -211,6 +214,7 @@ export async function agenticScheduleDelete(
           ...getTraceHeaders(),
           [IDENTITY_HEADERS.project]: project,
           [IDENTITY_HEADERS.username]: username || "system",
+          ...prismServiceAuthHeaders(),
         },
       },
     );
@@ -261,6 +265,7 @@ export async function agenticTriggerFire(
           ...getTraceHeaders(),
           [IDENTITY_HEADERS.project]: project,
           [IDENTITY_HEADERS.username]: username || "system",
+          ...prismServiceAuthHeaders(),
         },
         body: JSON.stringify({ payload }),
       },

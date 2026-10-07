@@ -20,6 +20,10 @@ interface ToolsServiceConfig {
   MONGODB_DB_NAME: string;
   PRISM_MONGODB_DB_NAME: string;
 
+  // Service secrets (x-api-secret)
+  TOOLS_SERVICE_API_SECRET: string | undefined;
+  PRISM_SERVICE_API_SECRET: string | undefined;
+
   // Location (mutable)
   LATITUDE: number;
   LONGITUDE: number;
@@ -95,6 +99,7 @@ interface ToolsServiceConfig {
 
   // Prism (LLM Gateway)
   PRISM_SERVICE_URL: string | undefined;
+  PRISM_SERVICE_PUBLIC_URL: string | undefined;
 
   // Default AI Models
   TOOLS_IMAGE_MODEL: string | undefined;
@@ -156,6 +161,13 @@ const CONFIG: ToolsServiceConfig = {
   // agent secret, allowEnvFiles). A live test that boots both services on
   // test databases names prism's here too, or this reads production's.
   PRISM_MONGODB_DB_NAME: process.env.PRISM_SERVICE_MONGO_DB_NAME || "prism",
+
+  // ─── Service Secrets (x-api-secret) ─────────────────────────────
+  // TOOLS_SERVICE_API_SECRET admits a caller to the gated routes
+  // (ToolsSecretMiddleware); unset, they refuse everyone.
+  // PRISM_SERVICE_API_SECRET is this service's credential at prism-service.
+  TOOLS_SERVICE_API_SECRET: process.env.TOOLS_SERVICE_API_SECRET,
+  PRISM_SERVICE_API_SECRET: process.env.PRISM_SERVICE_API_SECRET,
 
   // ─── Location (populated dynamically by LocationService.initLocation()) ───
   // Defaults act as fallbacks if initLocation() hasn't run yet.
@@ -236,6 +248,8 @@ const CONFIG: ToolsServiceConfig = {
 
   // ─── Prism (LLM Gateway) ────────────────────────────────────────
   PRISM_SERVICE_URL: process.env.PRISM_SERVICE_URL,
+  // Its public origin: media a model chains from Prism may name it.
+  PRISM_SERVICE_PUBLIC_URL: process.env.PRISM_SERVICE_PUBLIC_URL,
 
   // ─── Default AI Models (vault-backed) ───────────────────────────
   TOOLS_IMAGE_MODEL: process.env.TOOLS_IMAGE_MODEL,

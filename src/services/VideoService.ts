@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { writeFile, readFile, unlink } from "node:fs/promises";
 import crypto from "node:crypto";
 import { validatePath } from "./AgenticFileService.ts";
+import { fetchPublicOrOwnUrl } from "../fetchers/web/SsrfGuard.ts";
 import CONFIG from "../config.ts";
 
 const executeFileAsynchronously = promisify(execFile);
@@ -78,7 +79,8 @@ export async function convertVideoToGif({
       resolvedInputPath = join(tmpdir(), `vid-in-${uniqueInputId}`);
       isInputTemporaryFile = true;
 
-      const networkResponse = await fetch(input, {
+      // A model's URL: public, or one of our own services (SsrfGuard)
+      const networkResponse = await fetchPublicOrOwnUrl(input, {
         signal: AbortSignal.timeout(30_000),
       });
 
@@ -293,7 +295,8 @@ export async function trimVideo({
       resolvedInputPath = join(tmpdir(), `trim-in-${uniqueInputId}.mp4`);
       isInputTemporaryFile = true;
 
-      const networkResponse = await fetch(input, {
+      // A model's URL: public, or one of our own services (SsrfGuard)
+      const networkResponse = await fetchPublicOrOwnUrl(input, {
         signal: AbortSignal.timeout(60_000),
       });
 

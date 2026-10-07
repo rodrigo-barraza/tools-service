@@ -4,6 +4,7 @@ import ExcelJS from "exceljs";
 import { Readable } from "node:stream";
 import { extname } from "node:path";
 import { errorMessage } from "../../utilities.ts";
+import { fetchPublicOrOwnUrl } from "./SsrfGuard.ts";
 
 const MAX_SPREADSHEET_BYTES = 10_485_760; // 10 MB
 const MAX_TEXT_CHARACTERS = 100_000;
@@ -167,7 +168,7 @@ export async function readSpreadsheetUrl(url: string, options: SpreadsheetOption
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MILLISECONDS);
 
-    const response = await fetch(url, {
+    const response = await fetchPublicOrOwnUrl(url, {
       signal: controller.signal,
       headers: {
         "User-Agent":

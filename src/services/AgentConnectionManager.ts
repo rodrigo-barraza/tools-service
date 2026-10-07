@@ -24,6 +24,7 @@ import {
 } from "../constants.ts";
 import { clampCommandTimeout } from "./tasks/TaskEngine.ts";
 import { clampHookRunTimeout } from "./tasks/WorkspaceHooks.ts";
+import { secretMatches } from "../utilities/secretMatches.ts";
 
 // RPC method → timeout category. Commands, hooks and tasks: rpcTimeoutFor.
 const TIMEOUT_MAP = {
@@ -226,11 +227,12 @@ function translatePathForAgent(
 }
 
 // ────────────────────────────────────────────────────────────
-// Workspace Agent Secret (from MongoDB settings, cached)
+// Workspace Agent Secret (prism-service's settings)
 // ────────────────────────────────────────────────────────────
 
 import { getDatabase } from "@rodrigo-barraza/utilities-library/service/mongo";
 
+/** The agent secret; undefined when none is set or the settings cannot be read. */
 export async function resolveAgentSecret(): Promise<string | undefined> {
   try {
     const database = getDatabase();
@@ -250,23 +252,76 @@ export async function resolveAgentSecret(): Promise<string | undefined> {
       }
     }
   } catch {
-    // DB unavailable — no secret enforcement
+    // Settings unreadable: no secret, so every connection is refused
   }
 
   return undefined;
+}
+
+/** A shorter secret draws a warning, not a refusal: rotating it is the owner's step. */
+export const AGENT_SECRET_MIN_LENGTH = 24;
+
+let warnedShortSecret: string | undefined;
+let warnedSecretUnset = false;
+
+/** Say once what is wrong with the agent secret: missing, or short. */
+function warnAboutAgentSecret(secret: string | undefined): void {
+  if (!secret) {
+    if (!warnedSecretUnset) {
+      warnedSecretUnset = true;
+      logger.error(
+        "[AgentWS] No workspace agent secret (prism settings.workspace.agentSecret): every bridge and workspace connection is refused.",
+      );
+    }
+    return;
+  }
+  warnedSecretUnset = false;
+  if (secret.length >= AGENT_SECRET_MIN_LENGTH || secret === warnedShortSecret) {
+    return;
+  }
+  warnedShortSecret = secret;
+  logger.warn(
+    `[AgentWS] The workspace agent secret is ${secret.length} characters; rotate it to at least ${AGENT_SECRET_MIN_LENGTH} (prism settings.workspace.agentSecret).`,
+  );
 }
 
 // ────────────────────────────────────────────────────────────
 // WebSocket Server Setup
 // ────────────────────────────────────────────────────────────
 
+const AGENT_SOCKET_PATHS = new Set(["/ws/agent", "/ws/workspace"]);
+
+/** Answer the upgrade with `status` and close once it is sent (as ws does). */
+function refuseUpgrade(socket: Duplex, status: number, reason: string): void {
+  socket.once("finish", () => socket.destroy());
+  socket.end(
+    `HTTP/1.1 ${status} ${reason}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`,
+  );
+}
+
+export interface AgentWebSocketOptions {
+  /** Where the agent secret comes from (default: prism-service's settings). */
+  resolveSecret?: () => Promise<string | undefined>;
+}
+
 /**
- * Initialize the agent WebSocket server on an existing HTTP server.
- * Handles upgrade requests on /ws/agent path.
+ * Initialize the agent WebSockets on an existing HTTP server: /ws/agent
+ * (workspace bridges) and /ws/workspace (the VS Code extension's relay).
+ * Both answer only the agent secret in x-api-secret, compared in constant
+ * time; a secret in the URL is never read (URLs end up in logs). With no
+ * secret configured (or the settings unreadable) every upgrade gets 503,
+ * which clients retry; a missing or wrong secret gets 401, which they do
+ * not.
  */
-export function initAgentWebSocket(httpServer: Server) {
+export function initAgentWebSocket(
+  httpServer: Server,
+  { resolveSecret = resolveAgentSecret }: AgentWebSocketOptions = {},
+) {
   const wss = new WebSocketServer({ noServer: true });
   const clientWss = new WebSocketServer({ noServer: true });
+
+  // Say at startup whether the secret is missing or short.
+  resolveSecret().then(warnAboutAgentSecret, () => warnAboutAgentSecret(undefined));
 
   httpServer.on(
     "upgrade",
@@ -275,37 +330,23 @@ export function initAgentWebSocket(httpServer: Server) {
         req.url || "",
         `http://${req.headers.host || "localhost"}`,
       );
-
-      // Auth check (shared across both endpoints)
-      const incomingSecret =
-        req.headers[AUTH_HEADERS.apiSecret] || url.searchParams.get("secret") || "";
-      const expectedSecret = await resolveAgentSecret();
-
-      if (expectedSecret && incomingSecret !== expectedSecret) {
-        logger.warn(`[AgentWS] Rejected connection — invalid secret`);
-        socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
-        socket.destroy();
+      if (!AGENT_SOCKET_PATHS.has(url.pathname)) {
+        refuseUpgrade(socket, 404, "Not Found");
         return;
       }
 
-      // No secret configured — auth is effectively OFF for this connection.
-      // Warn loudly every time; refuse entirely when enforcement is enabled
-      // (set AGENT_WS_REQUIRE_SECRET=true once a secret is configured in
-      // prism settings.workspace.agentSecret and baked into agents).
+      const expectedSecret = await resolveSecret().catch(() => undefined);
+      warnAboutAgentSecret(expectedSecret);
       if (!expectedSecret) {
-        if (process.env.AGENT_WS_REQUIRE_SECRET === "true") {
-          logger.error(
-            `[AgentWS] Rejected connection — no agent secret configured and AGENT_WS_REQUIRE_SECRET=true. ` +
-              `Set settings.workspace.agentSecret in the prism settings collection.`,
-          );
-          socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
-          socket.destroy();
-          return;
-        }
+        refuseUpgrade(socket, 503, "Service Unavailable");
+        return;
+      }
+      if (!secretMatches(req.headers[AUTH_HEADERS.apiSecret], expectedSecret)) {
         logger.warn(
-          `[AgentWS] ⚠️ Accepting UNAUTHENTICATED ${url.pathname} connection — no agent secret configured. ` +
-            `Set settings.workspace.agentSecret (and AGENT_WS_REQUIRE_SECRET=true) to enforce auth.`,
+          `[AgentWS] Rejected ${url.pathname} connection — invalid or missing secret`,
         );
+        refuseUpgrade(socket, 401, "Unauthorized");
+        return;
       }
 
       // Agent connections (workspace-service sidecar → tools-service)

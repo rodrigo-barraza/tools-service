@@ -10,6 +10,7 @@ import { writeFile, readFile, unlink } from "node:fs/promises";
 import crypto from "node:crypto";
 import type { ImageOperation } from "../types/image.ts";
 import { validatePath } from "./AgenticFileService.ts";
+import { fetchPublicOrOwnUrl } from "../fetchers/web/SsrfGuard.ts";
 import { assertNoUnresolvedAttachedSentinel } from "./AttachedMediaSentinel.ts";
 
 const execFileAsync = promisify(execFile);
@@ -86,7 +87,8 @@ export async function resolveInput(input: string, store?: ImageStore) {
 
   // ── URL ───────────────────────────────────────────────────
   if (input.startsWith("http://") || input.startsWith("https://")) {
-    const response = await fetch(input, {
+    // A model's URL: public, or one of our own services (SsrfGuard)
+    const response = await fetchPublicOrOwnUrl(input, {
       signal: AbortSignal.timeout(15_000),
     });
     if (!response.ok) {

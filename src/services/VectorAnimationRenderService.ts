@@ -12,7 +12,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
 import sharp from "sharp";
+import type { BrowserContext } from "playwright";
 import { getSharedBrowser } from "./AgenticBrowserService.ts";
+import { fetchPublicOrOwnUrl } from "../fetchers/web/SsrfGuard.ts";
 import CONFIG from "../config.ts";
 import logger from "../logger.ts";
 
@@ -25,6 +27,43 @@ const ENCODE_TIMEOUT_MS = 90_000;
 const TILE_HEIGHT = 240;
 const TILE_GAP = 4;
 const LABEL_BAR_HEIGHT = 26;
+
+/** Response headers that describe the transfer, not the (decoded) body. */
+const TRANSFER_HEADERS = new Set(["content-encoding", "content-length", "transfer-encoding", "connection"]);
+
+/**
+ * Fetch every network request the page makes through the SSRF guard, so
+ * the animation's image URLs (anyone's, on an open route) reach only public
+ * addresses or our own services' media; anything else is aborted.
+ * Chromium itself connects nowhere.
+ */
+async function routeThroughSsrfGuard(context: BrowserContext): Promise<void> {
+  await context.route("**/*", async (route) => {
+    const request = route.request();
+    if (!/^https?:/i.test(request.url())) {
+      await route.continue();
+      return;
+    }
+    try {
+      const response = await fetchPublicOrOwnUrl(request.url(), {
+        method: request.method(),
+        headers: request.headers(),
+        signal: AbortSignal.timeout(FRAME_RENDER_TIMEOUT_MS),
+      });
+      const headers: Record<string, string> = {};
+      response.headers.forEach((value, name) => {
+        if (!TRANSFER_HEADERS.has(name)) headers[name] = value;
+      });
+      await route.fulfill({
+        status: response.status,
+        headers,
+        body: Buffer.from(await response.arrayBuffer()),
+      });
+    } catch {
+      await route.abort("blockedbyclient");
+    }
+  });
+}
 
 /**
  * Render the animation at the given times and return one PNG buffer per
@@ -39,6 +78,7 @@ export async function renderAnimationFrames(
   const browser = await getSharedBrowser();
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   try {
+    await routeThroughSsrfGuard(context);
     const page = await context.newPage();
     page.setDefaultTimeout(FRAME_RENDER_TIMEOUT_MS);
     await page.setContent(embedHtml, { waitUntil: "load" });
@@ -156,7 +196,8 @@ export async function encodeAnimationVideo(
         audioPath = join(workDirectory, "audio-in");
         await writeFile(audioPath, audioBuffer);
       } else {
-        const response = await fetch(audioUrl, { signal: AbortSignal.timeout(30_000) });
+        // A caller's URL: public, or one of our own services (SsrfGuard)
+        const response = await fetchPublicOrOwnUrl(audioUrl, { signal: AbortSignal.timeout(30_000) });
         if (!response.ok) throw new Error(`Failed to fetch audio track: HTTP ${response.status}`);
         const audioBuffer = Buffer.from(await response.arrayBuffer());
         if (audioBuffer.length > MAXIMUM_AUDIO_BYTES) throw new Error("Audio track exceeds 20 MB limit");

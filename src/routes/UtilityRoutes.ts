@@ -933,7 +933,7 @@ export function getUtilityHealth() {
     airports: "on-demand (in-memory, ~4,555 airports)",
     pythonInterpreter: "on-demand (sandboxed subprocess)",
     chart: "on-demand (Chart.js embed)",
-    scraper: "on-demand (Crawlee + Cheerio)",
+    scraper: "on-demand (Cheerio, public addresses only)",
   };
 }
 // ── Unified Airport Lookup Dispatcher ──────────────────────────────

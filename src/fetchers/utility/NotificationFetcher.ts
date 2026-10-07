@@ -1,3 +1,5 @@
+import { fetchPublicUrl } from "../web/SsrfGuard.ts";
+
 // ─── Push Notification (ntfy.sh) ───────────────────────────────────
 
 interface PushNotificationOptions {
@@ -83,40 +85,9 @@ interface WebhookResult {
   responseTimeMs: number;
 }
 
-// Block private/internal IPs to prevent SSRF
-const BLOCKED_HOSTNAME_PATTERNS = [
-  /^localhost$/i,
-  /^127\.\d+\.\d+\.\d+$/,
-  /^10\.\d+\.\d+\.\d+$/,
-  /^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/,
-  /^192\.168\.\d+\.\d+$/,
-  /^0\.0\.0\.0$/,
-  /^::1$/,
-  /^fd[0-9a-f]{2}:/i,
-  /^fe80:/i,
-  /^169\.254\.\d+\.\d+$/,
-];
-
-function isUrlBlocked(urlString: string): boolean {
-  try {
-    const parsedUrl = new URL(urlString);
-    return BLOCKED_HOSTNAME_PATTERNS.some((pattern) =>
-      pattern.test(parsedUrl.hostname),
-    );
-  } catch {
-    return true;
-  }
-}
-
 export async function sendWebhook(
   options: WebhookOptions,
 ): Promise<WebhookResult> {
-  if (isUrlBlocked(options.url)) {
-    throw new Error(
-      "Webhook URL targets a private/internal network address. Only public URLs are allowed.",
-    );
-  }
-
   const method = options.method || "POST";
   const requestHeaders: Record<string, string> = {
     "Content-Type": "application/json",
@@ -124,7 +95,8 @@ export async function sendWebhook(
   };
 
   const requestStartTime = Date.now();
-  const response = await fetch(options.url, {
+  // Public addresses only, checked as each hop connects (SsrfGuard)
+  const response = await fetchPublicUrl(options.url, {
     method,
     headers: requestHeaders,
     body: JSON.stringify(options.payload),
