@@ -48,6 +48,7 @@ import {
   sendRpc,
   offlineRemoteRootForPath,
 } from "./AgentConnectionManager.ts";
+import { prismTempRoot } from "./tasks/TaskEngine.ts";
 import logger from "../logger.ts";
 
 // ────────────────────────────────────────────────────────────
@@ -64,6 +65,30 @@ import logger from "../logger.ts";
 const NO_AGENT = Symbol("no-agent");
 
 /**
+ * RPCs that only read. A read may also reach an agent's aux root — the task
+ * output files and transcripts it registered — which nothing ever writes to.
+ */
+const READ_METHODS = new Set([
+  "file.read",
+  "file.readMulti",
+  "file.info",
+  "file.diff",
+  "directory.list",
+  "directory.tree",
+  "search.grep",
+  "search.glob",
+]);
+
+/**
+ * This service's own task output (a background command or monitor run in
+ * local mode) — read here, even while an agent serving "/" is connected.
+ */
+function isLocalTaskOutput(targetPath: string): boolean {
+  const root = prismTempRoot();
+  return (targetPath === root || targetPath.startsWith(root + "/")) && existsSync(targetPath);
+}
+
+/**
  * Route a workspace operation to a remote agent if one serves the target path.
  * Returns the NO_AGENT sentinel if no agent matches (caller falls back to local
  * handling); otherwise returns the remote result (or an { error } object).
@@ -73,7 +98,9 @@ async function tryAgentRoute(
   params: Record<string, unknown>,
   targetPath: string,
 ): Promise<unknown> {
-  const agent = resolveAndRouteToAgent(targetPath, ALLOWED_ROOTS[0]);
+  const isRead = READ_METHODS.has(method);
+  if (isRead && isLocalTaskOutput(targetPath)) return NO_AGENT;
+  const agent = resolveAndRouteToAgent(targetPath, ALLOWED_ROOTS[0], { allowAuxRoots: isRead });
   if (!agent) {
     const offlineRoot = offlineRemoteRootForPath(targetPath, ALLOWED_ROOTS[0]);
     if (offlineRoot) {
@@ -239,9 +266,10 @@ function realRoot(root: string): string {
 }
 
 /**
- * Validate and resolve a path against the sandbox.
+ * Validate and resolve a path against the sandbox. A read may also reach this
+ * service's task output and transcripts (`<tmp>/prism-<uid>`); a write never.
  */
-function validatePath(inputPath: string | unknown) {
+function validatePath(inputPath: string | unknown, { read = false }: { read?: boolean } = {}) {
   if (!inputPath || typeof inputPath !== "string") {
     return { safe: false, resolved: "", error: "Path is required (string)" };
   }
@@ -319,6 +347,11 @@ function validatePath(inputPath: string | unknown) {
     }
   }
 
+  // Task output files and transcripts: readable, never writable
+  if (!inAllowedRoot && read && isWithin(prismTempRoot())) {
+    inAllowedRoot = true;
+  }
+
   if (!inAllowedRoot) {
     return {
       safe: false,
@@ -374,7 +407,7 @@ export async function agenticReadFile(
   );
   if (agentResult !== NO_AGENT) return agentResult as Record<string, unknown>;
 
-  const validation = validatePath(filePath);
+  const validation = validatePath(filePath, { read: true });
   if (!validation.safe) {
     return { error: validation.error };
   }
@@ -1031,7 +1064,7 @@ export async function agenticListDirectory(
   );
   if (agentResult !== NO_AGENT) return agentResult as Record<string, unknown>;
 
-  const validation = validatePath(dirPath);
+  const validation = validatePath(dirPath, { read: true });
   if (!validation.safe) {
     return { error: validation.error };
   }
@@ -1061,7 +1094,7 @@ export async function agenticListDirectory(
         const relativePath = relative(resolved, fullPath);
 
         // Skip blocked paths
-        const pathValidation = validatePath(fullPath);
+        const pathValidation = validatePath(fullPath, { read: true });
         if (!pathValidation.safe) continue;
 
         if (entry.isDirectory()) {
@@ -1216,7 +1249,7 @@ export async function agenticGrepSearch(
   );
   if (agentResult !== NO_AGENT) return agentResult as Record<string, unknown>;
 
-  const validation = validatePath(searchPath);
+  const validation = validatePath(searchPath, { read: true });
   if (!validation.safe) {
     return { error: validation.error };
   }
@@ -1276,7 +1309,7 @@ export async function agenticGrepSearch(
       }
 
       // Check blocked patterns
-      const pathCheck = validatePath(filePath);
+      const pathCheck = validatePath(filePath, { read: true });
       if (!pathCheck.safe) return;
 
       try {
@@ -1405,7 +1438,7 @@ export async function agenticGlobFiles(pattern: string, searchPath: string) {
   );
   if (agentResult !== NO_AGENT) return agentResult as Record<string, unknown>;
 
-  const validation = validatePath(searchPath);
+  const validation = validatePath(searchPath, { read: true });
   if (!validation.safe) {
     return { error: validation.error };
   }
@@ -1437,7 +1470,7 @@ export async function agenticGlobFiles(pattern: string, searchPath: string) {
           await walk(fullPath);
         } else {
           if (globRegex.test(relativePath) || globRegex.test(entry.name)) {
-            const pathCheck = validatePath(fullPath);
+            const pathCheck = validatePath(fullPath, { read: true });
             if (!pathCheck.safe) continue;
 
             try {
@@ -1571,7 +1604,7 @@ export async function agenticFileInfo(paths: string | string[]) {
         return entry;
       }
 
-      const validation = validatePath(filePath);
+      const validation = validatePath(filePath, { read: true });
       if (!validation.safe) {
         return { path: filePath, exists: false, error: validation.error };
       }

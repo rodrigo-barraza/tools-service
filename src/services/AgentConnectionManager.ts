@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { getErrorMessage } from "@rodrigo-barraza/utilities-library";
 import { IDENTITY_HEADERS, AUTH_HEADERS } from "@rodrigo-barraza/utilities-library/taxonomy";
 import crypto from "node:crypto";
+import { EventEmitter } from "node:events";
 import { resolve } from "node:path";
 import logger from "../logger.ts";
 import CONFIG from "../config.ts";
@@ -13,13 +14,17 @@ import { requestLocalStorage } from "@rodrigo-barraza/utilities-library/service"
 import {
   AGENT_RPC_TIMEOUT_FILE_MS as RPC_TIMEOUT_FILE_MS,
   AGENT_RPC_TIMEOUT_GIT_MS as RPC_TIMEOUT_GIT_MS,
-  AGENT_RPC_TIMEOUT_COMMAND_MS as RPC_TIMEOUT_COMMAND_MS,
+  AGENT_RPC_COMMAND_MARGIN_MS as RPC_COMMAND_MARGIN_MS,
+  AGENT_RPC_HOOK_MARGIN_MS as RPC_HOOK_MARGIN_MS,
+  AGENT_RPC_TIMEOUT_TASK_MS as RPC_TIMEOUT_TASK_MS,
   AGENT_RPC_TIMEOUT_DEFAULT_MS as RPC_TIMEOUT_DEFAULT_MS,
   AGENT_HEALTH_CHECK_INTERVAL_MS as HEALTH_CHECK_INTERVAL_MS,
   AGENT_STALE_TIMEOUT_MS as STALE_AGENT_TIMEOUT_MS,
 } from "../constants.ts";
+import { clampCommandTimeout } from "./tasks/TaskEngine.ts";
+import { clampHookRunTimeout } from "./tasks/WorkspaceHooks.ts";
 
-// RPC method → timeout category
+// RPC method → timeout category. Commands, hooks and tasks: rpcTimeoutFor.
 const TIMEOUT_MAP = {
   "file.read": RPC_TIMEOUT_FILE_MS,
   "file.write": RPC_TIMEOUT_FILE_MS,
@@ -38,14 +43,38 @@ const TIMEOUT_MAP = {
   "git.status": RPC_TIMEOUT_GIT_MS,
   "git.diff": RPC_TIMEOUT_GIT_MS,
   "git.log": RPC_TIMEOUT_GIT_MS,
-  "command.run": RPC_TIMEOUT_COMMAND_MS,
-  "command.stream": RPC_TIMEOUT_COMMAND_MS,
   "project.summary": RPC_TIMEOUT_FILE_MS * 3,
   "directory.create": RPC_TIMEOUT_FILE_MS,
   "directory.tree": RPC_TIMEOUT_FILE_MS * 2,
   "watch.subscribe": RPC_TIMEOUT_FILE_MS,
   "watch.unsubscribe": RPC_TIMEOUT_FILE_MS,
+  "hooks.config": RPC_TIMEOUT_FILE_MS,
+  "transcript.append": RPC_TIMEOUT_FILE_MS,
 };
+
+/**
+ * How long an RPC may take, per call. A command's own timeout governs it —
+ * the bridge kills the command at that deadline, and the margin covers the
+ * kill and the trip back — and a hook's likewise; task.* and the rest have
+ * a fixed budget.
+ */
+export function rpcTimeoutFor(method: string, params: Record<string, unknown> = {}): number {
+  if (method === "command.run" || method === "command.stream") {
+    return clampCommandTimeout(params.timeout) + RPC_COMMAND_MARGIN_MS;
+  }
+  if (method === "hook.run") return clampHookRunTimeout(params.timeoutMs) + RPC_HOOK_MARGIN_MS;
+  if (method.startsWith("task.")) return RPC_TIMEOUT_TASK_MS;
+  return (TIMEOUT_MAP as Record<string, number>)[method] || RPC_TIMEOUT_DEFAULT_MS;
+}
+
+/**
+ * Bridge lifecycle and task notifications, for the workspace task service
+ * (which imports this module — an event keeps the dependency one-way):
+ *   "registered"        (agentId)
+ *   "deregistered"      (agentId)
+ *   "task-notification" (agentId, { method: "task.event" | "task.exit", params })
+ */
+export const agentEvents = new EventEmitter();
 
 // ────────────────────────────────────────────────────────────
 // Agent Registry
@@ -74,6 +103,8 @@ interface AgentRegistryEntry {
   roots: string[];
   originalRoots: string[];
   displayRoots: string[];
+  /** Read-only roots (task output, transcripts): reachable by reads, never a workspace. */
+  auxRoots: string[];
   normalizedToOriginalRoot: Map<string, string>;
   capabilities: string[];
   version: string;
@@ -83,9 +114,8 @@ interface AgentRegistryEntry {
   connectedAt: Date;
   lastPong: Date;
   pendingRpc: Map<string, PendingRpc>;
-  _streamCallback?:
-    | ((method: string, params: Record<string, unknown>) => void)
-    | null;
+  /** command.stream output, by the id of the RPC it belongs to */
+  streamCallbacks: Map<string, (method: string, params: Record<string, unknown>) => void>;
 }
 
 interface AgentRpcMessage {
@@ -96,6 +126,7 @@ interface AgentRpcMessage {
     name?: string;
     roots?: string[];
     displayRoots?: string[];
+    auxRoots?: unknown;
     capabilities?: string[];
     version?: string;
     machineInfo?: MachineInfo;
@@ -460,7 +491,7 @@ function handleAgentMessage(
 ) {
   // Registration
   if (message.method === "agent.register") {
-    const { agentId, name, roots, displayRoots, capabilities, version } =
+    const { agentId, name, roots, displayRoots, auxRoots, capabilities, version } =
       message.params || {};
 
     if (!agentId || !Array.isArray(roots) || roots.length === 0) {
@@ -487,10 +518,19 @@ function handleAgentMessage(
     // Normalize Windows drive-letter paths to POSIX for server-side consistency
     const normalizedRoots = roots.map((root: string) => normalizeWindowsRootPath(root));
 
+    // Aux roots: where its task output files and transcripts live
+    const originalAuxRoots = Array.isArray(auxRoots)
+      ? auxRoots.filter((root): root is string => typeof root === "string" && root.length > 1)
+      : [];
+    const normalizedAuxRoots = originalAuxRoots.map((root) => normalizeWindowsRootPath(root));
+
     // Build normalized-to-original root mapping for reverse translation when sending RPCs
     const normalizedToOriginalRoot = new Map<string, string>();
     for (let rootIndex = 0; rootIndex < roots.length; rootIndex++) {
       normalizedToOriginalRoot.set(normalizedRoots[rootIndex], roots[rootIndex]);
+    }
+    for (let rootIndex = 0; rootIndex < originalAuxRoots.length; rootIndex++) {
+      normalizedToOriginalRoot.set(normalizedAuxRoots[rootIndex], originalAuxRoots[rootIndex]);
     }
 
     const resolvedMachineInfo = message.params?.machineInfo || undefined;
@@ -502,6 +542,7 @@ function handleAgentMessage(
       roots: normalizedRoots,
       originalRoots: [...roots],
       displayRoots: Array.isArray(displayRoots) && displayRoots.length > 0 ? displayRoots : [],
+      auxRoots: normalizedAuxRoots,
       normalizedToOriginalRoot,
       capabilities: capabilities || [],
       version: version || "unknown",
@@ -511,6 +552,7 @@ function handleAgentMessage(
       connectedAt: new Date(),
       lastPong: new Date(),
       pendingRpc: new Map(),
+      streamCallbacks: new Map(),
     };
 
     agents.set(agentId, entry);
@@ -518,6 +560,10 @@ function handleAgentMessage(
     // Map roots to this agent
     for (const root of normalizedRoots) {
       rootToAgent.set(root, agentId);
+      if (root !== "/") knownRemoteRoots.add(root);
+    }
+    // Its task output lives on its machine: offline, a read there must say so
+    for (const root of normalizedAuxRoots) {
       if (root !== "/") knownRemoteRoots.add(root);
     }
 
@@ -534,6 +580,7 @@ function handleAgentMessage(
       method: "agent.registered",
       params: { agentId },
     });
+    agentEvents.emit("registered", agentId);
     return;
   }
 
@@ -596,15 +643,18 @@ function handleAgentMessage(
     return;
   }
 
-  // Streaming notification from agent (command.stdout, command.stderr)
+  // Notifications from the agent
   if (message.method && !message.id) {
-    // These are forwarded to the appropriate SSE response
-    // by the caller who set up the streaming RPC
-    for (const [, agent] of agents) {
-      if (agent.websocket === websocket && agent._streamCallback) {
-        agent._streamCallback(message.method, message.params || {});
-      }
+    const agent = [...agents.values()].find((candidate) => candidate.websocket === websocket);
+    if (!agent) return;
+    const params = message.params || {};
+    // A background task's events and exit
+    if (message.method === "task.event" || message.method === "task.exit") {
+      agentEvents.emit("task-notification", agent.id, { method: message.method, params });
+      return;
     }
+    // command.stream output, forwarded to the SSE response of the RPC it names
+    agent.streamCallbacks.get(String(params.requestId ?? ""))?.(message.method, params);
     return;
   }
 }
@@ -636,6 +686,7 @@ function deregisterAgent(agentId: string, reason: string) {
   rebuildAllowedRootsFromAgents();
 
   logger.info(`[AgentWS] Agent deregistered: "${agent.name}" (${reason})`);
+  agentEvents.emit("deregistered", agentId);
 }
 
 /**
@@ -673,6 +724,29 @@ export function sendRpc(
   method: string,
   params: Record<string, unknown> = {},
 ): Promise<unknown> {
+  return dispatchRpc(agentId, method, params, null);
+}
+
+/**
+ * Send an RPC request to an agent with a streaming callback for notifications.
+ * Used for command.stream: stdout/stderr arrive as notifications carrying
+ * this request's id, so concurrent streams on one agent never cross.
+ */
+export function sendRpcStreaming(
+  agentId: string,
+  method: string,
+  params: Record<string, unknown> = {},
+  onNotification: (method: string, params: Record<string, unknown>) => void,
+): Promise<unknown> {
+  return dispatchRpc(agentId, method, params, onNotification);
+}
+
+function dispatchRpc(
+  agentId: string,
+  method: string,
+  params: Record<string, unknown>,
+  onNotification: ((method: string, params: Record<string, unknown>) => void) | null,
+): Promise<unknown> {
   return new Promise<unknown>((resolve, reject) => {
     const agent = agents.get(agentId);
     if (!agent) {
@@ -703,15 +777,26 @@ export function sendRpc(
     }
 
     const id = crypto.randomUUID();
-    const timeout =
-      (TIMEOUT_MAP as Record<string, number>)[method] || RPC_TIMEOUT_DEFAULT_MS;
+    const timeout = rpcTimeoutFor(method, params);
 
     const timer = setTimeout(() => {
       agent.pendingRpc.delete(id);
+      agent.streamCallbacks.delete(id);
       reject(new Error(`RPC timeout (${method}, ${timeout}ms)`));
     }, timeout);
 
-    agent.pendingRpc.set(id, { resolve, reject, timer });
+    agent.pendingRpc.set(id, {
+      resolve: (value) => {
+        agent.streamCallbacks.delete(id);
+        resolve(value);
+      },
+      reject: (reason) => {
+        agent.streamCallbacks.delete(id);
+        reject(reason);
+      },
+      timer,
+    });
+    if (onNotification) agent.streamCallbacks.set(id, onNotification);
 
     sendJson(agent.websocket, {
       jsonrpc: "2.0",
@@ -722,26 +807,6 @@ export function sendRpc(
   });
 }
 
-/**
- * Send an RPC request to an agent with a streaming callback for notifications.
- * Used for command.stream where stdout/stderr arrive as notifications.
- */
-export function sendRpcStreaming(
-  agentId: string,
-  method: string,
-  params: Record<string, unknown> = {},
-  onNotification: (method: string, params: Record<string, unknown>) => void,
-): Promise<unknown> {
-  const agent = agents.get(agentId);
-  if (!agent) return Promise.reject(new Error("Agent not found"));
-
-  // Set up streaming callback
-  agent._streamCallback = onNotification;
-
-  return sendRpc(agentId, method, params).finally(() => {
-    agent._streamCallback = null;
-  });
-}
 
 // ────────────────────────────────────────────────────────────
 // Routing — Find agent for a given path
@@ -773,12 +838,74 @@ export function routeForPath(absolutePath: string | undefined | null) {
     if (isMatch) {
       const agent = agents.get(agentId);
       if (agent && agent.websocket.readyState === 1) {
-        return { id: agent.id, name: agent.name, roots: agent.roots };
+        return agentRoute(agent);
       }
     }
   }
 
   return null;
+}
+
+/**
+ * The agent whose aux root holds this path — its task output files and
+ * transcripts. For READS only: nothing is ever written there through the
+ * file tools, and an aux root is never a workspace.
+ */
+export function routeForAuxPath(absolutePath: string | undefined | null) {
+  if (!absolutePath) return null;
+  const normalizedPath = normalizeWindowsRootPath(absolutePath);
+  let best: { agent: AgentRegistryEntry; root: string } | null = null;
+  for (const agent of agents.values()) {
+    if (agent.websocket.readyState !== 1) continue;
+    for (const root of agent.auxRoots) {
+      const holds = normalizedPath === root || normalizedPath.startsWith(root + "/");
+      if (holds && (!best || root.length > best.root.length)) best = { agent, root };
+    }
+  }
+  return best ? agentRoute(best.agent) : null;
+}
+
+function agentRoute(agent: AgentRegistryEntry) {
+  return { id: agent.id, name: agent.name, roots: agent.roots, capabilities: agent.capabilities };
+}
+
+/** A connected agent's name and capabilities, or null when it is not connected. */
+export function getAgentSummary(agentId: string) {
+  const agent = agents.get(agentId);
+  if (!agent || agent.websocket.readyState !== 1) return null;
+  return agentRoute(agent);
+}
+
+/** Every connected agent's name and capabilities. */
+export function listAgentSummaries() {
+  return [...agents.values()]
+    .filter((agent) => agent.websocket.readyState === 1)
+    .map((agent) => agentRoute(agent));
+}
+
+/**
+ * Resolve a potentially-relative workspace path against the current request
+ * context: X-Workspace-Override (an active worktree), then X-Workspace-Root,
+ * then `fallbackRoot`. Absolute paths pass through; null for an empty one.
+ */
+export function resolveWorkspaceTargetPath(
+  targetPath: string,
+  fallbackRoot?: string,
+): string | null {
+  // Strip surrounding quotes from LLM-generated path values
+  const sanitizedTargetPath = targetPath.trim().replace(/^["']+|["']+$/g, "").trim();
+  if (!sanitizedTargetPath) return null;
+  if (sanitizedTargetPath.startsWith("/")) return sanitizedTargetPath;
+
+  const requestStore = requestLocalStorage.getStore();
+  const workspaceOverride = requestStore?.workspaceOverride;
+  const workspaceRoot = requestStore?.workspaceRoot;
+  if (workspaceOverride && workspaceOverride.startsWith("/tmp/prism-worktrees/")) {
+    return resolve(workspaceOverride, sanitizedTargetPath);
+  }
+  if (workspaceRoot) return resolve(workspaceRoot, sanitizedTargetPath);
+  if (fallbackRoot) return resolve(fallbackRoot, sanitizedTargetPath);
+  return sanitizedTargetPath;
 }
 
 /**
@@ -797,33 +924,17 @@ export function routeForPath(absolutePath: string | undefined | null) {
  *
  * @param targetPath - The path to route (absolute or relative)
  * @param fallbackRoot - Static fallback root when no request context exists
+ * @param options.allowAuxRoots - A read: an agent's aux root (task output) also routes it
  */
 export function resolveAndRouteToAgent(
   targetPath: string | undefined | null,
   fallbackRoot?: string,
+  { allowAuxRoots = false }: { allowAuxRoots?: boolean } = {},
 ) {
   if (!targetPath) return null;
-
-  // Strip surrounding quotes from LLM-generated path values
-  const sanitizedTargetPath = targetPath.trim().replace(/^["']+|["']+$/g, "").trim();
-  if (!sanitizedTargetPath) return null;
-
-  let resolvedPath = sanitizedTargetPath;
-  if (!sanitizedTargetPath.startsWith("/")) {
-    const requestStore = requestLocalStorage.getStore();
-    const workspaceOverride = requestStore?.workspaceOverride;
-    const workspaceRoot = requestStore?.workspaceRoot;
-
-    if (workspaceOverride && workspaceOverride.startsWith("/tmp/prism-worktrees/")) {
-      resolvedPath = resolve(workspaceOverride, sanitizedTargetPath);
-    } else if (workspaceRoot) {
-      resolvedPath = resolve(workspaceRoot, sanitizedTargetPath);
-    } else if (fallbackRoot) {
-      resolvedPath = resolve(fallbackRoot, sanitizedTargetPath);
-    }
-  }
-
-  return routeForPath(resolvedPath);
+  const resolvedPath = resolveWorkspaceTargetPath(targetPath, fallbackRoot);
+  if (!resolvedPath) return null;
+  return routeForPath(resolvedPath) ?? (allowAuxRoots ? routeForAuxPath(resolvedPath) : null);
 }
 
 /**
@@ -840,35 +951,27 @@ export function offlineRemoteRootForPath(
 ): string | null {
   if (!targetPath || knownRemoteRoots.size === 0) return null;
 
-  const sanitized = targetPath.trim().replace(/^["']+|["']+$/g, "").trim();
-  if (!sanitized) return null;
-
-  let resolvedPath = sanitized;
-  if (!sanitized.startsWith("/")) {
-    const requestStore = requestLocalStorage.getStore();
-    const workspaceOverride = requestStore?.workspaceOverride;
-    const workspaceRoot = requestStore?.workspaceRoot;
-    if (workspaceOverride && workspaceOverride.startsWith("/tmp/prism-worktrees/")) {
-      resolvedPath = resolve(workspaceOverride, sanitized);
-    } else if (workspaceRoot) {
-      resolvedPath = resolve(workspaceRoot, sanitized);
-    } else if (fallbackRoot) {
-      resolvedPath = resolve(fallbackRoot, sanitized);
-    }
-  }
+  const resolvedPath = resolveWorkspaceTargetPath(targetPath, fallbackRoot);
+  if (!resolvedPath) return null;
   const normalized = normalizeWindowsRootPath(resolvedPath);
 
   // If a live agent already serves this path, there is no hazard.
-  if (routeForPath(normalized)) return null;
+  if (routeForPath(normalized) || routeForAuxPath(normalized)) return null;
 
   // Otherwise, is it under a known-remote root whose agent is now gone?
   for (const root of Array.from(knownRemoteRoots).sort((a, b) => b.length - a.length)) {
     const underRoot = normalized === root || normalized.startsWith(root + "/");
-    if (underRoot && !rootToAgent.has(root)) {
+    if (underRoot && !rootToAgent.has(root) && !isLiveAuxRoot(root)) {
       return root;
     }
   }
   return null;
+}
+
+function isLiveAuxRoot(root: string): boolean {
+  return [...agents.values()].some(
+    (agent) => agent.websocket.readyState === 1 && agent.auxRoots.includes(root),
+  );
 }
 
 // ────────────────────────────────────────────────────────────
@@ -1016,6 +1119,7 @@ export default {
   sendRpc,
   sendRpcStreaming,
   routeForPath,
+  routeForAuxPath,
   resolveAndRouteToAgent,
   isAgentPath,
   getConnectedAgents,

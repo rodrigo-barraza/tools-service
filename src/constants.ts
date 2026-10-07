@@ -2839,7 +2839,12 @@ export const PRISM_STT_TIMEOUT_MS = 120_000;
 
 export const AGENT_RPC_TIMEOUT_FILE_MS = 10_000;
 export const AGENT_RPC_TIMEOUT_GIT_MS = 15_000;
-export const AGENT_RPC_TIMEOUT_COMMAND_MS = 130_000;
+/** command.run / command.stream wait for the command's own timeout plus this (the kill and the trip back). */
+export const AGENT_RPC_COMMAND_MARGIN_MS = 15_000;
+/** hook.run waits for the hook's own timeout plus this. */
+export const AGENT_RPC_HOOK_MARGIN_MS = 5_000;
+/** task.start / task.stop / task.list / task.events */
+export const AGENT_RPC_TIMEOUT_TASK_MS = 15_000;
 export const AGENT_RPC_TIMEOUT_DEFAULT_MS = 15_000;
 
 export const AGENT_HEALTH_CHECK_INTERVAL_MS = 45_000;
