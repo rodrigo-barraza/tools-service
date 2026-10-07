@@ -104,6 +104,7 @@ import {
   agenticTriggerFire,
 } from "../services/AgenticSchedulerService.ts";
 import { agenticNotebookEdit } from "../services/AgenticNotebookService.ts";
+import { prismServiceAuthHeaders } from "../services/PrismService.ts";
 import { TOOL_DEFINITIONS } from "../services/ToolSchemaService.ts";
 import type { AgenticTask } from "../types/agentic.ts";
 const router: ReturnType<typeof Router> = Router();
@@ -1519,7 +1520,11 @@ router.post(
         `${CONFIG.PRISM_SERVICE_URL}/agent-memories`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json", ...getTraceHeaders() },
+          headers: {
+            "Content-Type": "application/json",
+            ...getTraceHeaders(),
+            ...prismServiceAuthHeaders(),
+          },
           body: JSON.stringify({
             agent,
             project: project || DEFAULT_PROJECT,
@@ -1599,7 +1604,11 @@ router.post(
         `${CONFIG.PRISM_SERVICE_URL}/custom-agents`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json", ...getTraceHeaders() },
+          headers: {
+            "Content-Type": "application/json",
+            ...getTraceHeaders(),
+            ...prismServiceAuthHeaders(),
+          },
           body: JSON.stringify({
             name: name.trim(),
             description: description || "",
@@ -1646,7 +1655,9 @@ router.get(
   "/custom-agent/list",
   asyncHandler(async (_req: Request, res: Response) => {
     try {
-      const prismResponse = await fetch(`${CONFIG.PRISM_SERVICE_URL}/custom-agents`, { headers: getTraceHeaders() });
+      const prismResponse = await fetch(`${CONFIG.PRISM_SERVICE_URL}/custom-agents`, {
+        headers: { ...getTraceHeaders(), ...prismServiceAuthHeaders() },
+      });
       if (!prismResponse.ok) {
         const errorBody = await prismResponse.json().catch(() => ({}));
         return res
@@ -1676,7 +1687,9 @@ router.get(
   "/agent/list",
   asyncHandler(async (_req: Request, res: Response) => {
     try {
-      const prismResponse = await fetch(`${CONFIG.PRISM_SERVICE_URL}/config/agents`, { headers: getTraceHeaders() });
+      const prismResponse = await fetch(`${CONFIG.PRISM_SERVICE_URL}/config/agents`, {
+        headers: { ...getTraceHeaders(), ...prismServiceAuthHeaders() },
+      });
       if (!prismResponse.ok) {
         const errorBody = await prismResponse.json().catch(() => ({}));
         return res
@@ -1757,7 +1770,11 @@ router.post(
         `${CONFIG.PRISM_SERVICE_URL}/custom-agents/${id}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json", ...getTraceHeaders() },
+          headers: {
+            "Content-Type": "application/json",
+            ...getTraceHeaders(),
+            ...prismServiceAuthHeaders(),
+          },
           body: JSON.stringify({
             ...(name !== undefined && { name }),
             ...(description !== undefined && { description }),

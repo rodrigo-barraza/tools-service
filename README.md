@@ -48,6 +48,7 @@ tools-service is publicly routed. Every route that runs code or commands, reads 
 - **Gated:** `/agentic`, `/filesystem`, `/agents`, `/admin`, `/mcp`, `/communication`, `/torrent`, `/infrastructure`, `/analytics`; `/compute/js`, `/compute/shell` and the compute routes that read local paths (`image/process`, `image/ascii`, `barcode/scan`, `video/gif`); `/utility/python/{execute,stream,info}`, `/utility/calendar`, `/utility/ports`, `/utility/ping`; `/knowledge/video`; the creative routes that call Prism or read local audio; Spotify `get`, `control` and `auth/login`; every write to `/lights`, `/discord` and `/product`.
 - **Open:** read-only data (weather, finance, knowledge, Discord archive reads, …), the embed and render URLs browsers and Discord load (`buildLocalUrl`), Spotify's OAuth callback, and `/health`.
 - An LM Studio `ephemeral_mcp` integration sends the secret in its `headers`.
+- Calls to prism-service send `x-api-secret: $PRISM_SERVICE_API_SECRET`.
 - The bridge's WebSockets (`/ws/agent`, `/ws/workspace`) keep their own agent secret.
 
 ## Agentic Services

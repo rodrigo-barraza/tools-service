@@ -244,6 +244,12 @@ async function start() {
   // buffer in memory until Mongo connects, then flush on an interval.
   installExternalApiUsageTracking();
 
+  if (!CONFIG.PRISM_SERVICE_API_SECRET) {
+    logger.warn(
+      "PRISM_SERVICE_API_SECRET is not set: prism-service refuses this service's calls (images, speech, memories, custom agents, schedules).",
+    );
+  }
+
   // Fail fast if the static CSV datasets didn't ship with the build — a
   // missing file must abort startup (the healthcheck fails the deploy),
   // not surface later as empty tool results.

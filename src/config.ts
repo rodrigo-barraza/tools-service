@@ -22,6 +22,7 @@ interface ToolsServiceConfig {
 
   // Service secrets (x-api-secret)
   TOOLS_SERVICE_API_SECRET: string | undefined;
+  PRISM_SERVICE_API_SECRET: string | undefined;
 
   // Location (mutable)
   LATITUDE: number;
@@ -163,7 +164,9 @@ const CONFIG: ToolsServiceConfig = {
   // ─── Service Secrets (x-api-secret) ─────────────────────────────
   // TOOLS_SERVICE_API_SECRET admits a caller to the gated routes
   // (ToolsSecretMiddleware); unset, they refuse everyone.
+  // PRISM_SERVICE_API_SECRET is this service's credential at prism-service.
   TOOLS_SERVICE_API_SECRET: process.env.TOOLS_SERVICE_API_SECRET,
+  PRISM_SERVICE_API_SECRET: process.env.PRISM_SERVICE_API_SECRET,
 
   // ─── Location (populated dynamically by LocationService.initLocation()) ───
   // Defaults act as fallbacks if initLocation() hasn't run yet.

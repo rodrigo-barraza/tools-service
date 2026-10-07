@@ -1,7 +1,8 @@
 // ─── HTTP Client for Prism LLM Gateway ──────────────────────
 //
 // Thin wrapper around the shared PrismApiClient: tools-service defaults
-// (project/username, per-endpoint timeouts) plus trace-header propagation.
+// (project/username, per-endpoint timeouts, the service secret) plus
+// trace-header propagation.
 
 import { PrismApiClient } from "@rodrigo-barraza/utilities-library/service";
 import { getErrorMessage } from "@rodrigo-barraza/utilities-library";
@@ -14,6 +15,7 @@ import {
   PRISM_STT_TIMEOUT_MS,
 } from "../constants.ts";
 import { getTraceHeaders } from "@rodrigo-barraza/utilities-library/service";
+import { AUTH_HEADERS } from "@rodrigo-barraza/utilities-library/taxonomy";
 
 // ────────────────────────────────────────────────────────────
 // Types
@@ -75,6 +77,16 @@ export interface TransformedPrismSTTResult {
   [key: string]: unknown;
 }
 
+/**
+ * This service's credential at prism-service (x-api-secret). The shared
+ * client sends it itself; the calls made with plain `fetch` (memories,
+ * custom agents, schedules) spread this into their headers.
+ */
+export function prismServiceAuthHeaders(): Record<string, string> {
+  const secret = CONFIG.PRISM_SERVICE_API_SECRET;
+  return secret ? { [AUTH_HEADERS.apiSecret]: secret } : {};
+}
+
 // Lazy so a missing PRISM_SERVICE_URL fails at call time, not module load.
 let client: PrismApiClient | null = null;
 function prism(): PrismApiClient {
@@ -84,6 +96,7 @@ function prism(): PrismApiClient {
       baseUrl: CONFIG.PRISM_SERVICE_URL as string,
       project: "tools-api",
       defaultUsername: "system",
+      apiSecret: CONFIG.PRISM_SERVICE_API_SECRET,
       // Request-scoped trace/identity headers win over the static defaults,
       // so calls made while serving a request keep the caller's identity.
       getExtraHeaders: getTraceHeaders,
