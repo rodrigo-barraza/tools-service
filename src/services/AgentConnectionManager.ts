@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { getErrorMessage } from "@rodrigo-barraza/utilities-library";
 import { IDENTITY_HEADERS, AUTH_HEADERS } from "@rodrigo-barraza/utilities-library/taxonomy";
 import crypto from "node:crypto";
+import { existsSync } from "node:fs";
 import { EventEmitter } from "node:events";
 import { resolve } from "node:path";
 import logger from "../logger.ts";
@@ -565,6 +566,15 @@ function handleAgentMessage(
     // Its task output lives on its machine: offline, a read there must say so
     for (const root of normalizedAuxRoots) {
       if (root !== "/") knownRemoteRoots.add(root);
+    }
+    // A bridge in WSL/standalone mode serves the virtual root "/" and names the
+    // folders it really serves as display roots. "/" stays out of
+    // knownRemoteRoots (it matches every local path), so before this a dropped
+    // bridge's commands ran HERE, on the tools-service host. A display root this
+    // host does not have can only ever be that bridge's: remember it, so an op
+    // under it waits for the bridge instead of running on the wrong machine.
+    for (const root of entry.displayRoots.map((displayRoot: string) => normalizeWindowsRootPath(displayRoot))) {
+      if (root !== "/" && !existsSync(root)) knownRemoteRoots.add(root);
     }
 
     // Merge agent roots into ALLOWED_ROOTS so they appear in the workspace list

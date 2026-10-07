@@ -40,6 +40,7 @@ export async function connectBridge(
     agentId = randomUUID(),
     name = "fake-bridge",
     roots,
+    displayRoots,
     auxRoots = [],
     capabilities = ["file", "git", "command", "project", "tasks", "hooks", "transcripts"],
     answers = new Map<string, RpcAnswer>(),
@@ -47,6 +48,8 @@ export async function connectBridge(
     agentId?: string;
     name?: string;
     roots: string[];
+    /** The folders a "/"-rooted (WSL/standalone) bridge really serves */
+    displayRoots?: string[];
     auxRoots?: string[];
     capabilities?: string[];
     answers?: Map<string, RpcAnswer>;
@@ -86,7 +89,7 @@ export async function connectBridge(
     JSON.stringify({
       jsonrpc: "2.0",
       method: "agent.register",
-      params: { agentId, name, roots, auxRoots, capabilities, machineInfo: { hostname: "test" } },
+      params: { agentId, name, roots, ...(displayRoots ? { displayRoots } : {}), auxRoots, capabilities, machineInfo: { hostname: "test" } },
     }),
   );
   await registered;
