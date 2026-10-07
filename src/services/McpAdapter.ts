@@ -30,6 +30,7 @@ import { errorMessage } from "../utilities.ts";
 import type { ToolEndpoint } from "../types/tools.ts";
 import { IDENTITY_HEADERS } from "@rodrigo-barraza/utilities-library/service";
 import { toolsSecretHeaders } from "../middleware/ToolsSecretMiddleware.ts";
+import { prismUserTokenHeaders } from "../middleware/PrismUserTokenMiddleware.ts";
 
 // ── Self base URL (vault-resolved, localhost fallback) ───────
 const SELF_BASE_URL = CONFIG.TOOLS_SERVICE_URL;
@@ -84,7 +85,8 @@ const ARG_REMAPS: Record<string, Record<string, string>> = {
 
 // ── Execute tool via internal HTTP ──────────────────────────
 // A session exists only past the gate on /mcp, so its calls carry the
-// service secret to the gated tools — sent to this service alone.
+// service secret to the gated tools — sent to this service alone — and the
+// turn's user token, which a tool's call back into Prism speaks for.
 export async function executeTool(
   toolName: string,
   endpoint: ToolEndpoint,
@@ -110,6 +112,7 @@ export async function executeTool(
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
         ...toolsSecretHeaders(),
+        ...prismUserTokenHeaders(),
       };
       if (context.project) headers[IDENTITY_HEADERS.project] = context.project;
       if (context.agent) headers[IDENTITY_HEADERS.agent] = context.agent;
@@ -142,7 +145,10 @@ export async function executeTool(
     }
 
     const url = buildUrl(endpoint, resolvedArgs);
-    const headers: Record<string, string> = { ...toolsSecretHeaders() };
+    const headers: Record<string, string> = {
+      ...toolsSecretHeaders(),
+      ...prismUserTokenHeaders(),
+    };
     if (context.project) headers[IDENTITY_HEADERS.project] = context.project;
     if (context.agent) headers[IDENTITY_HEADERS.agent] = context.agent;
     if (context.username) headers[IDENTITY_HEADERS.username] = context.username;

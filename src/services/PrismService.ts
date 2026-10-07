@@ -1,8 +1,8 @@
 // ─── HTTP Client for Prism LLM Gateway ──────────────────────
 //
 // Thin wrapper around the shared PrismApiClient: tools-service defaults
-// (project/username, per-endpoint timeouts, the service secret) plus
-// trace-header propagation.
+// (project/username, per-endpoint timeouts), the credential of the request
+// being served, plus trace-header propagation.
 
 import { PrismApiClient } from "@rodrigo-barraza/utilities-library/service";
 import { getErrorMessage } from "@rodrigo-barraza/utilities-library";
@@ -16,6 +16,7 @@ import {
 } from "../constants.ts";
 import { getTraceHeaders } from "@rodrigo-barraza/utilities-library/service";
 import { AUTH_HEADERS } from "@rodrigo-barraza/utilities-library/taxonomy";
+import { currentPrismUserToken } from "../middleware/PrismUserTokenMiddleware.ts";
 
 // ────────────────────────────────────────────────────────────
 // Types
@@ -78,11 +79,16 @@ export interface TransformedPrismSTTResult {
 }
 
 /**
- * This service's credential at prism-service (x-api-secret). The shared
- * client sends it itself; the calls made with plain `fetch` (memories,
- * custom agents, schedules) spread this into their headers.
+ * This service's credential at prism-service, decided per call: the user
+ * token of the turn being served (x-prism-user-token, from prism-service)
+ * as a bearer, else the service secret in x-api-secret. One or the other,
+ * never both: prism-service never falls back from a bearer to the secret.
+ * The shared client asks for it on every request; the calls made with
+ * plain `fetch` (memories, custom agents, schedules) spread it in.
  */
 export function prismServiceAuthHeaders(): Record<string, string> {
+  const userToken = currentPrismUserToken();
+  if (userToken) return { Authorization: `Bearer ${userToken}` };
   const secret = CONFIG.PRISM_SERVICE_API_SECRET;
   return secret ? { [AUTH_HEADERS.apiSecret]: secret } : {};
 }
@@ -96,10 +102,10 @@ function prism(): PrismApiClient {
       baseUrl: CONFIG.PRISM_SERVICE_URL as string,
       project: "tools-api",
       defaultUsername: "system",
-      apiSecret: CONFIG.PRISM_SERVICE_API_SECRET,
-      // Request-scoped trace/identity headers win over the static defaults,
-      // so calls made while serving a request keep the caller's identity.
-      getExtraHeaders: getTraceHeaders,
+      // Per request: trace/identity headers win over the static defaults,
+      // so calls made while serving a request keep the caller's identity,
+      // and the credential is that request's (prismServiceAuthHeaders).
+      getExtraHeaders: () => ({ ...getTraceHeaders(), ...prismServiceAuthHeaders() }),
       defaultTimeoutMs: PRISM_CHAT_TIMEOUT_MS,
       logger,
     });

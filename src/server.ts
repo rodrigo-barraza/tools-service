@@ -26,6 +26,7 @@ import {
 import { createAuthMiddleware } from "@rodrigo-barraza/utilities-library/service";
 import { DEFAULT_USERNAME, CORS_ALLOWED_HEADERS_STRING } from "@rodrigo-barraza/utilities-library/taxonomy";
 import { mountToolsSecretGuard } from "./middleware/ToolsSecretMiddleware.ts";
+import { prismUserTokenMiddleware } from "./middleware/PrismUserTokenMiddleware.ts";
 
 // ─── Model Setup ───────────────────────────────────────────────────
 
@@ -142,6 +143,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 app.use(traceContextMiddleware);
+// prism-service's x-prism-user-token: the user a callback into Prism speaks
+// for while this request is served — kept out of the request itself.
+app.use(prismUserTokenMiddleware);
 app.use(express.json({ limit: "50mb" }));
 app.use(requestLoggerMiddleware);
 app.use(toolCallLoggerMiddleware);
