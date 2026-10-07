@@ -25,6 +25,7 @@ import {
 } from "./middleware/TraceContextMiddleware.ts";
 import { createAuthMiddleware } from "@rodrigo-barraza/utilities-library/service";
 import { DEFAULT_USERNAME, CORS_ALLOWED_HEADERS_STRING } from "@rodrigo-barraza/utilities-library/taxonomy";
+import { mountToolsSecretGuard } from "./middleware/ToolsSecretMiddleware.ts";
 
 // ─── Model Setup ───────────────────────────────────────────────────
 
@@ -151,6 +152,10 @@ app.use(
     traceContext: true,
   }),
 );
+// Routes that run code, touch workspaces or act on the owner's accounts
+// and devices answer only with TOOLS_SERVICE_API_SECRET — ahead of the
+// routers, so the guard sees every path they would.
+mountToolsSecretGuard(app);
 
 // ─── Mount Domain Routers ──────────────────────────────────────────
 

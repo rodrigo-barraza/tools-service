@@ -118,9 +118,8 @@ Today `getToolSchemasForAI` always serves all ~274 schemas; deferral lives entir
 Currently an agent's allowlist is a telemetry hint; any caller can POST `/agentic/command/run` regardless (`AgenticRoutes.ts:1452-1461`). Add an optional enforcement mode (per-agent config flag): resolve tool name from the route (the `ToolCallLoggerMiddleware` path-map already does this) and 403 with a structured error when the tool isn't enabled.
 
 ### 3.6 Auth on the tool surface
-There is **no authentication** on any HTTP tool route, and CORS is `*` with credentials (`server.ts:106-120`). Since the only legitimate caller is prism-service (+ MCP):
-- Shared-bearer-token middleware (secret via vault-service, same pattern as the WS agent secret), rolled out log-only → enforce.
-- Tighten CORS to the known origins.
+**Done 2026-10-06** (`prism-login-guard`, with Prism's login): every route that runs code or commands, touches workspaces or files, changes configuration, or acts on the owner's accounts, devices or money — `/mcp` included — answers only `x-api-secret: TOOLS_SERVICE_API_SECRET`, and refuses everyone while it is unset (`GATED_ROUTES` in `src/middleware/ToolsSecretMiddleware.ts`; README "Authentication"). Read-only data stays open: other fleet apps read it, and browsers and Discord load the embeds. Still open:
+- CORS reflects any origin with credentials (`server.ts`). Harmless to the gated routes, which a browser cannot hold the secret for; tighten it to the known origins if browsers ever call this service directly again.
 
 ### 3.7 MCP consumer coherence
 `search_tools`' description tells the model to call `enable_tools`, which doesn't exist for MCP consumers (LM Studio) — an instruction they can't fulfill. Either strip/replace that sentence when serving via `McpAdapter`, or implement session-scoped enablement in the adapter. Also lift the hardcoded `sun-tools`/`1.0.0` server identity into config.

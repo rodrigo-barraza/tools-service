@@ -20,6 +20,9 @@ interface ToolsServiceConfig {
   MONGODB_DB_NAME: string;
   PRISM_MONGODB_DB_NAME: string;
 
+  // Service secrets (x-api-secret)
+  TOOLS_SERVICE_API_SECRET: string | undefined;
+
   // Location (mutable)
   LATITUDE: number;
   LONGITUDE: number;
@@ -156,6 +159,11 @@ const CONFIG: ToolsServiceConfig = {
   // agent secret, allowEnvFiles). A live test that boots both services on
   // test databases names prism's here too, or this reads production's.
   PRISM_MONGODB_DB_NAME: process.env.PRISM_SERVICE_MONGO_DB_NAME || "prism",
+
+  // ─── Service Secrets (x-api-secret) ─────────────────────────────
+  // TOOLS_SERVICE_API_SECRET admits a caller to the gated routes
+  // (ToolsSecretMiddleware); unset, they refuse everyone.
+  TOOLS_SERVICE_API_SECRET: process.env.TOOLS_SERVICE_API_SECRET,
 
   // ─── Location (populated dynamically by LocationService.initLocation()) ───
   // Defaults act as fallbacks if initLocation() hasn't run yet.

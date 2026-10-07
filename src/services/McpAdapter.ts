@@ -6,11 +6,13 @@
 //
 // Transport: SSE (GET /mcp/sse + POST /mcp/messages)
 //
-// Usage in LM Studio native API:
+// Usage in LM Studio native API (/mcp answers only with the service
+// secret — ToolsSecretMiddleware):
 //   "integrations": [{
 //     "type": "ephemeral_mcp",
 //     "server_label": "tools",
-//     "server_url": "<TOOLS_SERVICE_URL>/mcp"
+//     "server_url": "<TOOLS_SERVICE_URL>/mcp/sse",
+//     "headers": { "x-api-secret": "<TOOLS_SERVICE_API_SECRET>" }
 //   }]
 // ────────────────────────────────────────────────────────────
 
@@ -27,6 +29,7 @@ import type { Request, Response, Application } from "express";
 import { errorMessage } from "../utilities.ts";
 import type { ToolEndpoint } from "../types/tools.ts";
 import { IDENTITY_HEADERS } from "@rodrigo-barraza/utilities-library/service";
+import { toolsSecretHeaders } from "../middleware/ToolsSecretMiddleware.ts";
 
 // ── Self base URL (vault-resolved, localhost fallback) ───────
 const SELF_BASE_URL = CONFIG.TOOLS_SERVICE_URL;
@@ -80,7 +83,9 @@ const ARG_REMAPS: Record<string, Record<string, string>> = {
 };
 
 // ── Execute tool via internal HTTP ──────────────────────────
-async function executeTool(
+// A session exists only past the gate on /mcp, so its calls carry the
+// service secret to the gated tools — sent to this service alone.
+export async function executeTool(
   toolName: string,
   endpoint: ToolEndpoint,
   args: Record<string, unknown> = {},
@@ -104,6 +109,7 @@ async function executeTool(
       const url = buildUrl(endpoint, resolvedArgs).split("?")[0];
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
+        ...toolsSecretHeaders(),
       };
       if (context.project) headers[IDENTITY_HEADERS.project] = context.project;
       if (context.agent) headers[IDENTITY_HEADERS.agent] = context.agent;
@@ -136,7 +142,7 @@ async function executeTool(
     }
 
     const url = buildUrl(endpoint, resolvedArgs);
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = { ...toolsSecretHeaders() };
     if (context.project) headers[IDENTITY_HEADERS.project] = context.project;
     if (context.agent) headers[IDENTITY_HEADERS.agent] = context.agent;
     if (context.username) headers[IDENTITY_HEADERS.username] = context.username;
