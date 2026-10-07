@@ -22,6 +22,9 @@
 //      origins (scheme, host, port) configured for them — so it can chain
 //      the media they serve. Every other origin is held to 1–4, on every
 //      hop: a redirect from one of ours to a private address is refused.
+//   6. Programs that fetch by themselves — yt-dlp, the agentic browser —
+//      go through EgressProxy.ts, which holds each connection they open to
+//      2–3 under its own policy.
 //
 // Research basis (harness_landscape_survey_2026-07.md, D2):
 // deny-by-default egress per Anthropic sandbox-runtime
@@ -93,25 +96,34 @@ function embeddedIpv4(high: number, low: number): number[] {
   return [high >> 8, high & 0xff, low >> 8, low & 0xff];
 }
 
-function isPrivateIpv6(words: number[]): boolean {
-  const [first, second] = words;
-  // ::a.b.c.d (compatible) and ::ffff:a.b.c.d (mapped): the IPv4 address decides
+/**
+ * The IPv4 address an IPv6 address stands for, when it carries one:
+ * ::a.b.c.d (compatible), ::ffff:a.b.c.d (mapped), 64:ff9b::a.b.c.d
+ * (NAT64, the address it reaches) and 2002:aabb:ccdd::/48 (6to4, words 1–2).
+ * Such an address is classified as the IPv4 address it carries.
+ */
+function carriedIpv4(words: number[]): number[] | null {
   if (
     words.slice(0, 5).every((word) => word === 0) &&
     (words[5] === 0 || words[5] === 0xffff)
   ) {
-    return isPrivateIpv4(embeddedIpv4(words[6], words[7]));
+    return embeddedIpv4(words[6], words[7]);
   }
-  // 64:ff9b::/96 NAT64: so does the IPv4 address it reaches
   if (
-    first === 0x64 &&
-    second === 0xff9b &&
+    words[0] === 0x64 &&
+    words[1] === 0xff9b &&
     words.slice(2, 6).every((word) => word === 0)
   ) {
-    return isPrivateIpv4(embeddedIpv4(words[6], words[7]));
+    return embeddedIpv4(words[6], words[7]);
   }
-  // 2002::/16 6to4: and the one in words 1–2
-  if (first === 0x2002) return isPrivateIpv4(embeddedIpv4(words[1], words[2]));
+  if (words[0] === 0x2002) return embeddedIpv4(words[1], words[2]);
+  return null;
+}
+
+function isPrivateIpv6(words: number[]): boolean {
+  const carried = carriedIpv4(words);
+  if (carried) return isPrivateIpv4(carried);
+  const [first, second] = words;
   return (
     first < 0x0100 || // ::/8 reserved (unspecified, loopback, translated, …)
     (first === 0x0100 && words.slice(1, 4).every((word) => word === 0)) || // 100::/64 discard
@@ -133,6 +145,44 @@ export function isPrivateAddress(address: string): boolean {
   }
   // Not an IP literal — caller resolves via DNS first
   return true;
+}
+
+/**
+ * 169.254/16, where every major cloud serves instance metadata, and the
+ * metadata endpoints outside it: Alibaba Cloud's 100.100.100.200 and AWS's
+ * IPv6 fd00:ec2::254.
+ */
+function isLinkLocalOrMetadataIpv4([first, second, third, fourth]: number[]) {
+  return (
+    (first === 169 && second === 254) ||
+    (first === 100 && second === 100 && third === 100 && fourth === 200)
+  );
+}
+
+const AWS_METADATA_IPV6 = [0xfd00, 0x0ec2, 0, 0, 0, 0, 0, 0x0254];
+
+/**
+ * True when the IP is link-local — 169.254/16 or fe80::/10 — or a cloud
+ * metadata endpoint, in every spelling isPrivateAddress knows (an IPv6
+ * address carrying such an IPv4 address included). The agentic browser
+ * refuses this space and no other: browsing one's own LAN stays allowed.
+ */
+export function isLinkLocalOrMetadataAddress(address: string): boolean {
+  if (isIP(address) === 4) {
+    return isLinkLocalOrMetadataIpv4(address.split(".").map(Number));
+  }
+  if (isIP(address.replace(/%.*$/, "")) !== 6) {
+    // Not an IP literal — caller resolves via DNS first
+    return true;
+  }
+  const words = ipv6Words(address);
+  if (!words) return true;
+  const carried = carriedIpv4(words);
+  if (carried) return isLinkLocalOrMetadataIpv4(carried);
+  return (
+    (words[0] & 0xffc0) === 0xfe80 || // fe80::/10 link-local
+    words.every((word, index) => word === AWS_METADATA_IPV6[index])
+  );
 }
 
 /** A URL or host the guard refuses: never retried, never a network fault. */

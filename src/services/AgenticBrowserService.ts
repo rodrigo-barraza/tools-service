@@ -22,6 +22,12 @@ import {
 } from "../constants.ts";
 import { errorMessage } from "../utilities.ts";
 import CONFIG from "../config.ts";
+import {
+  egressProxyUrl,
+  egressRefusal,
+  type EgressPolicy,
+} from "../fetchers/web/EgressProxy.ts";
+import { isLinkLocalOrMetadataAddress } from "../fetchers/web/SsrfGuard.ts";
 
 // ────────────────────────────────────────────────────────────
 // Input Coercion
@@ -57,7 +63,41 @@ function coerceInteger(
 /** Allowed URL schemes for navigation. Blocks file:// and chrome:// access. */
 const ALLOWED_URL_PROTOCOLS = new Set(["http:", "https:", "data:", "about:"]);
 
-function validateUrl(url: string): string | null {
+/**
+ * Where the browser may connect. SSRF: link-local space (cloud metadata,
+ * 169.254.169.254) and the other metadata endpoints are refused in every
+ * spelling the SSRF guard classifies — no legitimate browsing target lives
+ * there. Broader private ranges stay allowed here (browsing one's own LAN
+ * is a legitimate interactive use); the headless fetch path (SsrfGuard.ts)
+ * blocks them fully.
+ */
+const BROWSER_EGRESS: EgressPolicy = {
+  name: "agentic browser",
+  refusedSpace: "link-local/metadata",
+  refuses: isLinkLocalOrMetadataAddress,
+};
+
+/**
+ * The proxy every page of the browser goes through (EgressProxy.ts): each
+ * request — a navigation, a subresource, a redirect, a page's own fetch or
+ * socket — is checked on the address it connects to. `<-loopback>` keeps
+ * Chromium from sending loopback and link-local destinations around the
+ * proxy, as it otherwise does.
+ */
+async function browserProxy(): Promise<{ server: string; bypass: string }> {
+  return {
+    server: await egressProxyUrl(BROWSER_EGRESS),
+    bypass: "<-loopback>",
+  };
+}
+
+/**
+ * Why the browser will not open this URL, or null. An http(s) host is
+ * checked here as the egress proxy will check it, for a clear error: a
+ * link-local or metadata address, or a name resolving to one, is refused,
+ * and a name that does not resolve is named.
+ */
+export async function checkNavigationUrl(url: string): Promise<string | null> {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -67,15 +107,8 @@ function validateUrl(url: string): string | null {
   if (!ALLOWED_URL_PROTOCOLS.has(parsed.protocol)) {
     return `Unsupported URL scheme "${parsed.protocol}//" — only http(s), data and about URLs can be opened.`;
   }
-  // SSRF: block link-local (cloud metadata, 169.254.169.254) outright —
-  // no legitimate browsing target lives there. Broader private ranges stay
-  // allowed here (browsing one's own LAN is a legitimate interactive use);
-  // the headless auto-tier fetch path (SsrfGuard.ts) blocks them fully.
-  const hostname = parsed.hostname.replace(/^\[|\]$/g, "");
-  if (/^169\.254\.\d+\.\d+$/.test(hostname) || /^fe[89ab]/i.test(hostname)) {
-    return `Blocked link-local/metadata address: ${hostname}`;
-  }
-  return null;
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+  return egressRefusal(BROWSER_EGRESS, parsed);
 }
 
 // ────────────────────────────────────────────────────────────
@@ -182,6 +215,7 @@ async function getSession(sessionId: string): Promise<BrowserSession> {
     viewport: VIEWPORT,
     userAgent:
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    proxy: await browserProxy(),
   });
   const page = await context.newPage();
 
@@ -237,7 +271,7 @@ function cleanupIdleSessions() {
 
 async function actionNavigate(page: Page, { url }: { url?: string }) {
   if (!url) return { error: "Missing required parameter: url" };
-  const urlError = validateUrl(url);
+  const urlError = await checkNavigationUrl(url);
   if (urlError) return { error: urlError };
 
   try {
@@ -260,7 +294,12 @@ async function actionNavigate(page: Page, { url }: { url?: string }) {
       status: response?.status() || null,
     };
   } catch (error: unknown) {
-    return { error: `Navigation failed: ${errorMessage(error)}` };
+    const message = errorMessage(error);
+    // Chromium says no more than this of a tunnel the egress proxy did not open
+    const hint = message.includes("ERR_TUNNEL_CONNECTION_FAILED")
+      ? " (the browser's egress proxy could not open that connection: a name that does not resolve, a host that refused or did not answer, or a link-local/metadata address)"
+      : "";
+    return { error: `Navigation failed: ${message}${hint}` };
   }
 }
 
@@ -1062,6 +1101,10 @@ async function actionRunScript(
     ...(CONFIG.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH && {
       executablePath: CONFIG.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
     }),
+    // The browser it is handed answers to the same egress proxy as a
+    // session's. The script itself is Node code (gated by the tools secret,
+    // like the shell) and can open sockets of its own.
+    proxy: await browserProxy(),
   };
 
   // Wrap the user script with boilerplate that launches an isolated browser
