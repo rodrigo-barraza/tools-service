@@ -1,8 +1,8 @@
-import { createHash, timingSafeEqual } from "node:crypto";
 import type { Application, NextFunction, Request, Response } from "express";
 import { AUTH_HEADERS } from "@rodrigo-barraza/utilities-library/taxonomy";
 import CONFIG from "../config.ts";
 import logger from "../logger.ts";
+import { secretMatches } from "../utilities/secretMatches.ts";
 
 // ─── Tools Secret Guard ───────────────────────────────────────────
 // tools-service is publicly routed, and it runs commands on the owner's
@@ -170,19 +170,9 @@ export const GATED_ROUTES: readonly GatedRoute[] = [
 
 const READ_METHODS = new Set(["GET", "HEAD"]);
 
-// Both sides are hashed first: equal-length buffers for timingSafeEqual,
-// so the comparison takes the same time whatever was sent, and neither the
-// secret's length nor a matching prefix shows in it.
-function secretDigest(value: string): Buffer {
-  return createHash("sha256").update(value, "utf8").digest();
-}
-
 /** Whether `provided` is the tools-service secret. An unset secret matches nothing. */
 export function toolsSecretMatches(provided: unknown): boolean {
-  const secret = CONFIG.TOOLS_SERVICE_API_SECRET;
-  if (!secret || typeof provided !== "string" || provided.length === 0)
-    return false;
-  return timingSafeEqual(secretDigest(provided), secretDigest(secret));
+  return secretMatches(provided, CONFIG.TOOLS_SERVICE_API_SECRET);
 }
 
 /** Let the request through only with the tools-service secret. */

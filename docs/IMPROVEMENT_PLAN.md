@@ -4,7 +4,7 @@ _Compiled 2026-07-13 from a four-track deep audit (schema layer, execution layer
 
 > **Status (2026-07-13): Phases 1 and 2 are implemented.** All of 1.1–1.8 and 2.1–2.5 landed; verified via typecheck + full Vitest suite (1803 tests) + subprocess smoke tests. Implementation notes/deviations:
 > - 1.2: warn-only at boot (`validateToolRegistries()` in ToolSchemaService) + hard assertions in `src/services/__tests__/RegistryIntegrity.test.ts` (also checks locale key resolution for `en` and `caveman`).
-> - 1.8: rolled out as loud warning by default; set `AGENT_WS_REQUIRE_SECRET=true` to fail closed once a secret is configured (fully failing closed by default would break agents with no secret baked).
+> - 1.8: fails closed since 2026-10-06 (`prism-login-guard`): with no agent secret every upgrade gets 503, and no agent is compiled without one; `AGENT_WS_REQUIRE_SECRET` is gone.
 > - 2.2: log-only threshold (`AGENTIC_RESULT_SIZE_WARN_BYTES`, 200KB) — enforcement deliberately deferred until telemetry shows offenders.
 > - 2.4: handler backstop `AGENTIC_HANDLER_TIMEOUT_MS` (150s, returns 504 with `code: "TIMEOUT"`), plus `server.requestTimeout`/`headersTimeout`.
 > - 2.5: allowlist is ON by default (see `AGENTIC_COMMAND_ENV_ALLOWED_NAMES/_PREFIXES`); escape hatch `AGENTIC_COMMAND_INHERIT_FULL_ENV=true`. Also applied to the Python interpreter.
@@ -56,7 +56,7 @@ Foreground timeout/abort in `AgenticCommandService.ts:232,427` calls `child.kill
 Recomputed for ~274 tools on every `/admin/tool-schemas*` request (`ToolSchemaService.ts:1351,1377`). Compute once alongside the per-locale definition cache.
 
 ### 1.8 Fail closed on missing WS agent secret
-`resolveAgentSecret` returning undefined currently disables auth on the workspace-agent WebSocket upgrade (`AgentConnectionManager.ts:195-232`). Refuse upgrades when no secret is configured (or auto-generate one at first boot and store it in Mongo).
+**Done 2026-10-06:** with no agent secret configured (or the settings unreadable) every upgrade is refused (503, which clients retry), the secret is compared in constant time, and a secret shorter than 24 characters draws a warning (`initAgentWebSocket` in `AgentConnectionManager.ts`).
 
 ---
 

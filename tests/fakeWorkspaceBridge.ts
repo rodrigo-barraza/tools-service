@@ -12,9 +12,12 @@ import { initAgentWebSocket } from "../src/services/AgentConnectionManager.ts";
  * asked, and push notifications as the bridge's TaskEngine would.
  */
 
+/** The agent secret the test server answers to, and the fake bridge sends. */
+export const BRIDGE_SECRET = "fake-bridge-secret-0123456789abcdef";
+
 export async function startServer(app: express.Express): Promise<{ server: http.Server; baseUrl: string; wsUrl: string }> {
   const server = http.createServer(app);
-  initAgentWebSocket(server);
+  initAgentWebSocket(server, { resolveSecret: async () => BRIDGE_SECRET });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
   const { port } = server.address() as AddressInfo;
   return { server, baseUrl: `http://127.0.0.1:${port}`, wsUrl: `ws://127.0.0.1:${port}/ws/agent` };
@@ -55,7 +58,7 @@ export async function connectBridge(
     answers?: Map<string, RpcAnswer>;
   },
 ): Promise<FakeBridge> {
-  const socket = new WebSocket(wsUrl);
+  const socket = new WebSocket(wsUrl, { headers: { "x-api-secret": BRIDGE_SECRET } });
   const requests: FakeBridge["requests"] = [];
   await new Promise<void>((resolve, reject) => {
     socket.once("open", () => resolve());

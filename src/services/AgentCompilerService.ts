@@ -168,6 +168,15 @@ export default class AgentCompilerService {
    * The caller is responsible for deleting the file after streaming.
    */
   static async compile(target: CompilationTarget): Promise<{ executablePath: string; fileName: string }> {
+    // The socket refuses every agent while no secret is set, so build none
+    // without it.
+    const apiSecret = await resolveAgentSecret();
+    if (!apiSecret) {
+      throw new Error(
+        "No workspace agent secret is configured (prism settings.workspace.agentSecret); an agent built without one could never connect.",
+      );
+    }
+
     const buildId = crypto.randomUUID();
     const buildPath = join(TEMPORARY_BUILD_DIRECTORY, buildId);
     await ensureDirectoryExists(buildPath);
@@ -178,8 +187,7 @@ export default class AgentCompilerService {
     const outputFileName = target === "win-x64" ? "workspace-agent.exe" : "workspace-agent";
     const finalExecutablePath = join(buildPath, outputFileName);
 
-    // 1. Resolve agent secret & backend public WebSocket URL
-    const apiSecret = (await resolveAgentSecret()) || "";
+    // 1. Resolve the backend public WebSocket URL
     let publicBackendUrl = CONFIG.TOOLS_SERVICE_PUBLIC_URL || CONFIG.TOOLS_SERVICE_URL || "";
     if (publicBackendUrl.startsWith("http://")) {
       publicBackendUrl = publicBackendUrl.replace("http://", "ws://");
