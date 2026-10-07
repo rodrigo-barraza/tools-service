@@ -83,6 +83,7 @@ import energyRoutes, { getEnergyHealth } from "./routes/EnergyRoutes.ts";
 import agenticRoutes, { getAgenticHealth } from "./routes/AgenticRoutes.ts";
 import hookCommandRoutes from "./routes/HookCommandRoutes.ts";
 import workspaceTaskRoutes from "./routes/WorkspaceTaskRoutes.ts";
+import workspaceHookRoutes from "./routes/WorkspaceHookRoutes.ts";
 import communicationRoutes, {
   getCommunicationHealth,
 } from "./routes/CommunicationRoutes.ts";
@@ -170,6 +171,7 @@ app.use("/energy", energyRoutes);
 // Before /agentic: their own routers, not agentic tools.
 app.use("/agentic/hook-command", hookCommandRoutes);
 app.use("/agentic/tasks", workspaceTaskRoutes);
+app.use("/agentic", workspaceHookRoutes);
 app.use("/agentic", agenticRoutes);
 app.use("/communication", communicationRoutes);
 app.use("/creative", express.json({ limit: "50mb" }), creativeRoutes);
