@@ -2728,9 +2728,10 @@ export const SHELL_MAX_OUTPUT_BYTES = 512 * 1024;
 export const SHELL_MAX_INPUT_BYTES = 1024 * 1024;
 
 /**
- * Hard ceiling for any single agentic tool handler. Command routes clamp to
- * 120s themselves; this backstop covers local file/grep/git/LSP/parse work
- * that previously had no timeout at all and could hang a request forever.
+ * Hard ceiling for any single agentic tool handler. Command routes have their
+ * own deadline (up to 600s, services/tasks/TaskEngine.ts); this backstop
+ * covers local file/grep/git/LSP/parse work that previously had no timeout
+ * at all and could hang a request forever.
  */
 export const AGENTIC_HANDLER_TIMEOUT_MS = 150_000;
 
@@ -2741,11 +2742,10 @@ export const AGENTIC_HANDLER_TIMEOUT_MS = 150_000;
  */
 export const AGENTIC_RESULT_SIZE_WARN_BYTES = 200 * 1024;
 
-export const AGENTIC_COMMAND_DEFAULT_TIMEOUT_MS = 60_000;
-export const AGENTIC_COMMAND_MAX_TIMEOUT_MS = 120_000;
+// A command's default and maximum timeout (120s / 600s, Claude Code's Bash)
+// live with the task engine both this service and the workspace bridge run:
+// services/tasks/TaskEngine.ts.
 export const AGENTIC_COMMAND_MAX_OUTPUT_BYTES = 512 * 1024;
-export const AGENTIC_COMMAND_BACKGROUND_WARMUP_MS = 2_500;
-export const AGENTIC_COMMAND_KILL_GRACE_PERIOD_MS = 3_000;
 
 // Environment allowlist for spawned commands. The service process env holds
 // API keys and DB credentials that arbitrary commands have no business seeing;
@@ -2797,12 +2797,6 @@ export const HOOK_COMMAND_MAX_STDIN_CHARS = 1_000_000;
 /** The only caller-supplied variables a hook command receives. */
 export const HOOK_COMMAND_ENV_NAME_PATTERN = /^PRISM_HOOK_[A-Z0-9_]+$/;
 export const HOOK_COMMAND_ENV_VALUE_MAX_CHARS = 4_096;
-
-export const BACKGROUND_PROCESS_MAX_TTL_MS = 30 * 60 * 1000;
-export const BACKGROUND_PROCESS_CLEANUP_INTERVAL_MS = 60 * 1000;
-export const BACKGROUND_PROCESS_MAX_BUFFERED_BYTES = 256 * 1024;
-export const BACKGROUND_PROCESS_EXIT_TTL_MS = 5 * 60 * 1000;
-export const BACKGROUND_PROCESS_FORCE_KILL_DELAY_MS = 3_000;
 
 export const PYTHON_DEFAULT_TIMEOUT_MS = 30_000;
 export const PYTHON_MAX_TIMEOUT_MS = 60_000;

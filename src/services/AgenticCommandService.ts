@@ -5,28 +5,41 @@ import { existsSync } from "node:fs";
 import { validatePath, ALLOWED_ROOTS } from "./AgenticFileService.ts";
 import {
   resolveAndRouteToAgent,
+  resolveWorkspaceTargetPath,
   sendRpc,
   sendRpcStreaming,
   offlineRemoteRootForPath,
 } from "./AgentConnectionManager.ts";
-import * as BackgroundProcessRegistry from "./BackgroundProcessRegistry.ts";
-import logger from "../logger.ts";
+import { adoptAgentShell, startLocalShell } from "./tasks/WorkspaceTaskService.ts";
 import {
-  AGENTIC_COMMAND_DEFAULT_TIMEOUT_MS as DEFAULT_TIMEOUT_MS,
-  AGENTIC_COMMAND_MAX_TIMEOUT_MS as MAX_TIMEOUT_MS,
+  KILL_GRACE_MS,
+  backgroundCommandResult,
+  clampCommandTimeout,
+  signalProcessGroup,
+  terminateProcessGroup,
+} from "./tasks/TaskEngine.ts";
+import type { TaskOwner } from "./tasks/TaskEngine.ts";
+import {
   AGENTIC_COMMAND_MAX_OUTPUT_BYTES as MAX_OUTPUT_BYTES,
-  AGENTIC_COMMAND_BACKGROUND_WARMUP_MS as BACKGROUND_WARMUP_MS,
-  AGENTIC_COMMAND_KILL_GRACE_PERIOD_MS as KILL_GRACE_PERIOD_MS,
   AGENTIC_COMMAND_ENV_ALLOWED_NAMES as ENV_ALLOWED_NAMES,
   AGENTIC_COMMAND_ENV_ALLOWED_PREFIXES as ENV_ALLOWED_PREFIXES,
 } from "../constants.ts";
 import { errorMessage, RESOLVED_BASH_PATH } from "../utilities.ts";
 import { OutputAccumulator } from "../utilities/OutputAccumulator.ts";
 import type { ChildProcess } from "node:child_process";
+import type { CommandExecutionResult as LibraryCommandExecutionResult } from "@rodrigo-barraza/utilities-library";
 
-
-import type { CommandExecutionResult } from "@rodrigo-barraza/utilities-library";
-export type { CommandExecutionResult };
+/**
+ * A command's result. A background run (run_in_background) answers at once,
+ * as Claude Code's Bash does: `backgrounded`, the `taskId`, its `outputFile`
+ * and the line the model reads (`message`).
+ */
+export type CommandExecutionResult = Omit<LibraryCommandExecutionResult, "pid"> & {
+  pid?: number | null;
+  taskId?: string;
+  outputFile?: string;
+  message?: string;
+};
 
 // ────────────────────────────────────────────────────────────
 // Validation
@@ -78,17 +91,25 @@ export function buildCommandEnv(): NodeJS.ProcessEnv {
 }
 
 /**
- * Kill a spawned command's entire process group (children spawn detached,
- * so the bash child is its group leader). Signaling only the direct child
- * orphans grandchildren — npm→node, python -m http.server, etc.
+ * At the deadline: SIGTERM the command's process group, SIGKILL it 2 s later
+ * (children spawn detached, so the bash child leads the group and the signal
+ * reaches npm→node and the like). A descendant outside the group that kept
+ * our pipes must not hold the answer back, so they close soon after.
  */
-function killChildGroup(child: ChildProcess, signal: NodeJS.Signals): void {
-  if (!child.pid) return;
-  try {
-    process.kill(-child.pid, signal);
-  } catch {
-    child.kill(signal);
-  }
+function killAtDeadline(child: ChildProcess): ReturnType<typeof setTimeout> {
+  terminateProcessGroup(child);
+  return setTimeout(() => {
+    child.stdout?.destroy();
+    child.stderr?.destroy();
+  }, KILL_GRACE_MS + 500);
+}
+
+/**
+ * The working directory: `cwd` (a relative one is the request's workspace's),
+ * or the request's worktree / workspace root, or the first allowed root.
+ */
+function commandWorkingDirectory(cwd: string | undefined): string {
+  return resolveWorkspaceTargetPath(cwd || ".", ALLOWED_ROOTS[0]) ?? cwd ?? ALLOWED_ROOTS[0];
 }
 
 // ────────────────────────────────────────────────────────────
@@ -125,7 +146,10 @@ async function tryAgentRouteCommand(
     return NO_AGENT;
   }
   try {
-    return (await sendRpc(agent.id, method, params)) as CommandExecutionResult;
+    const result = (await sendRpc(agent.id, method, params)) as CommandExecutionResult;
+    // A background run is a task on that agent: its events come back here
+    if (result.backgrounded && result.taskId) adoptAgentShell(agent, result, params);
+    return result;
   } catch (error: unknown) {
     return {
       success: false,
@@ -139,39 +163,42 @@ async function tryAgentRouteCommand(
 }
 
 /**
- * Execute a project-scoped command.
- *
- * Supports two non-blocking strategies for long-running processes:
- *   1. **Explicit `runInBackground`** — model sets this to true; the command
- *      spawns, collects warmup output (~2.5s), then returns with a `pid`.
- *   2. **Auto-background on timeout** — instead of killing the process,
- *      it's promoted to the background registry and returns what we have.
+ * Execute a project-scoped command, as Claude Code's Bash does:
+ *   - foreground: `timeout` defaults to 120 s, at most 600 s; past it the
+ *     process group is killed and the result carries the output so far and
+ *     "Command timed out after <N>ms". It is never moved to the background.
+ *   - `runInBackground`: a shell task (TaskEngine) — detached, no time limit,
+ *     its output in a file; the answer comes at once with the task id.
+ * Where the cwd is served by a workspace agent, the agent runs it.
  */
 export async function executeCommand(
   command: string,
   {
     cwd,
-    timeout = DEFAULT_TIMEOUT_MS,
+    timeout,
     signal,
     runInBackground = false,
+    description = "",
+    owner = {},
   }: {
     cwd?: string;
     timeout?: number;
     signal?: AbortSignal;
     runInBackground?: boolean;
+    description?: string;
+    owner?: TaskOwner;
   } = {},
 ): Promise<CommandExecutionResult> {
-  const resolvedCwd = cwd || ALLOWED_ROOTS[0];
+  const resolvedCwd = commandWorkingDirectory(cwd);
+  const clampedTimeout = clampCommandTimeout(timeout);
 
   // Agent routing — if CWD is served by a remote agent, proxy the command
   const agentResult = await tryAgentRouteCommand(
     "command.run",
-    { command, cwd: resolvedCwd, timeout, runInBackground },
+    { command, cwd: resolvedCwd, timeout: clampedTimeout, runInBackground, description, owner },
     resolvedCwd,
   );
   if (agentResult !== NO_AGENT) return agentResult;
-
-  const clampedTimeout = Math.min(Math.max(timeout, 1000), MAX_TIMEOUT_MS);
 
   // Validate command
   const validation = validateCommand(command);
@@ -224,14 +251,32 @@ export async function executeCommand(
     };
   }
 
+  if (runInBackground) {
+    try {
+      return backgroundCommandResult(
+        startLocalShell({ command, cwd: cwdValidation.resolved, description, owner }),
+      );
+    } catch (error: unknown) {
+      return {
+        success: false,
+        stdout: "",
+        stderr: "",
+        exitCode: null,
+        executionTimeMs: 0,
+        error: `Could not start the background command: ${errorMessage(error)}`,
+      };
+    }
+  }
+
   const startTime = performance.now();
 
   return new Promise<CommandExecutionResult>((resolve) => {
     const stdoutAccumulator = new OutputAccumulator(MAX_OUTPUT_BYTES);
     const stderrAccumulator = new OutputAccumulator(MAX_OUTPUT_BYTES);
-    const timedOut = false;
+    let timedOut = false;
     let aborted = false;
     let settled = false;
+    let forceCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
     // Use bash -l -c to get full PATH (conda, nvm, etc.)
     // detached: true makes the bash child a process-group leader so
@@ -245,36 +290,6 @@ export async function executeCommand(
 
     child.stdin.end();
 
-    // ── Helper: background the process and resolve immediately ────
-    function backgroundAndResolve(reason: string) {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      if (signal) signal.removeEventListener("abort", onAbort);
-
-      const executionTimeMs = Math.round(performance.now() - startTime);
-
-      // Register in the background process registry
-      BackgroundProcessRegistry.register(child, {
-        command,
-        cwd: cwdValidation.resolved || "",
-      });
-      logger.info(
-        `[AgenticCommandService] Backgrounded PID ${child.pid}: ${reason} (${command.slice(0, 60)})`,
-      );
-
-      resolve({
-        success: true,
-        stdout: stdoutAccumulator.toString(),
-        stderr: stderrAccumulator.toString(),
-        exitCode: null,
-        executionTimeMs,
-        backgrounded: true,
-        pid: child.pid,
-        backgroundReason: reason,
-      });
-    }
-
     child.stdout.on("data", (chunk: Buffer) => {
       stdoutAccumulator.append(chunk);
     });
@@ -283,39 +298,28 @@ export async function executeCommand(
       stderrAccumulator.append(chunk);
     });
 
-    // Tier 3: On timeout, auto-background instead of killing
+    // At the deadline the group is killed — never moved to the background
     const timer = setTimeout(() => {
-      if (!settled) {
-        // If the process is still alive and producing output, background it
-        // instead of killing it. This handles unexpected long-running commands.
-        backgroundAndResolve("auto_backgrounded_timeout");
-      }
+      timedOut = true;
+      forceCloseTimer = killAtDeadline(child);
     }, clampedTimeout);
 
     // Kill child process when upstream abort signal fires (user pressed Stop)
     const onAbort = () => {
       if (!settled) {
         aborted = true;
-        killChildGroup(child, "SIGKILL");
+        signalProcessGroup(child, "SIGKILL");
       }
     };
     if (signal && !signal.aborted) {
       signal.addEventListener("abort", onAbort, { once: true });
     }
 
-    // Tier 1: Explicit run_in_background — warmup then return
-    if (runInBackground) {
-      setTimeout(() => {
-        if (!settled) {
-          backgroundAndResolve("run_in_background");
-        }
-      }, BACKGROUND_WARMUP_MS);
-    }
-
     function finish(exitCode: number | null, signalName?: NodeJS.Signals | null) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      if (forceCloseTimer) clearTimeout(forceCloseTimer);
       if (signal) signal.removeEventListener("abort", onAbort);
 
       const executionTimeMs = Math.round(performance.now() - startTime);
@@ -354,6 +358,7 @@ export async function executeCommand(
       if (!settled) {
         settled = true;
         clearTimeout(timer);
+        if (forceCloseTimer) clearTimeout(forceCloseTimer);
         if (signal) signal.removeEventListener("abort", onAbort);
         resolve({
           success: false,
@@ -375,7 +380,7 @@ export async function executeCommandStreaming(
   command: string,
   {
     cwd,
-    timeout = DEFAULT_TIMEOUT_MS,
+    timeout,
     onChunk,
     signal,
   }: {
@@ -385,7 +390,8 @@ export async function executeCommandStreaming(
     signal?: AbortSignal;
   } = {},
 ): Promise<CommandExecutionResult> {
-  const resolvedCwd = cwd || ALLOWED_ROOTS[0];
+  const resolvedCwd = commandWorkingDirectory(cwd);
+  const clampedTimeout = clampCommandTimeout(timeout);
 
   // Agent routing for streaming commands
   const agent = resolveAndRouteToAgent(resolvedCwd, ALLOWED_ROOTS[0]);
@@ -394,7 +400,7 @@ export async function executeCommandStreaming(
       return (await sendRpcStreaming(
         agent.id,
         "command.stream",
-        { command, cwd: resolvedCwd, timeout },
+        { command, cwd: resolvedCwd, timeout: clampedTimeout },
         (method: string, params: Record<string, unknown>) => {
           if (method === "command.stdout")
             onChunk?.("stdout", params.data as string);
@@ -413,8 +419,6 @@ export async function executeCommandStreaming(
       };
     }
   }
-
-  const clampedTimeout = Math.min(Math.max(timeout, 1000), MAX_TIMEOUT_MS);
 
   const validation = validateCommand(command);
   if (!validation.valid) {
@@ -462,6 +466,7 @@ export async function executeCommandStreaming(
     let timedOut = false;
     let aborted = false;
     let settled = false;
+    let forceCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
     const child = spawn(RESOLVED_BASH_PATH, ["-l", "-c", command], {
       cwd: cwdValidation.resolved,
@@ -493,14 +498,14 @@ export async function executeCommandStreaming(
 
     const timer = setTimeout(() => {
       timedOut = true;
-      killChildGroup(child, "SIGKILL");
+      forceCloseTimer = killAtDeadline(child);
     }, clampedTimeout);
 
     // Kill child process when upstream abort signal fires (user pressed Stop)
     const onAbort = () => {
       if (!settled) {
         aborted = true;
-        killChildGroup(child, "SIGKILL");
+        signalProcessGroup(child, "SIGKILL");
       }
     };
     if (signal && !signal.aborted) {
@@ -511,6 +516,7 @@ export async function executeCommandStreaming(
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      if (forceCloseTimer) clearTimeout(forceCloseTimer);
       if (signal) signal.removeEventListener("abort", onAbort);
       resolve({
         success: exitCode === 0 && !timedOut && !aborted,
@@ -533,6 +539,7 @@ export async function executeCommandStreaming(
       if (!settled) {
         settled = true;
         clearTimeout(timer);
+        if (forceCloseTimer) clearTimeout(forceCloseTimer);
         if (signal) signal.removeEventListener("abort", onAbort);
         resolve({
           success: false,
@@ -554,101 +561,4 @@ export async function executeCommandStreaming(
  */
 export function getAllowedCommands(): string[] {
   return [];
-}
-
-/**
- * List all background processes.
- */
-export function listBackgroundProcesses(): BackgroundProcessRegistry.ProcessListEntry[] {
-  return BackgroundProcessRegistry.list();
-}
-
-/**
- * Get a specific background process by PID.
- */
-export function getBackgroundProcess(pid: number) {
-  return BackgroundProcessRegistry.getProcess(pid);
-}
-
-/**
- * Kill a tracked background process (registry-scoped, process-group aware).
- * Unlike killProcessTree this only touches PIDs in the background registry.
- */
-export function killBackgroundProcess(pid: number) {
-  return BackgroundProcessRegistry.kill(pid);
-}
-
-/**
- * Kill a process tree by PID.
- * Attempts SIGTERM first, then SIGKILL after a grace period.
- */
-export async function killProcessTree(
-  pid: number,
-  { gracePeriodMs = KILL_GRACE_PERIOD_MS }: { gracePeriodMs?: number } = {},
-): Promise<{
-  success: boolean;
-  pid?: number;
-  signal?: string;
-  escalated?: boolean;
-  error?: string;
-  message?: string;
-}> {
-  if (!pid || typeof pid !== "number" || pid <= 0) {
-    return {
-      success: false,
-      error: "Valid PID is required (positive integer)",
-    };
-  }
-
-  // Safety: refuse to kill PID 1 or our own process
-  if (pid === 1 || pid === process.pid) {
-    return {
-      success: false,
-      error: `Refusing to kill PID ${pid} (protected process)`,
-    };
-  }
-
-  try {
-    // Check if the process exists first
-    process.kill(pid, 0); // Signal 0 = existence check, no actual signal sent
-  } catch {
-    return {
-      success: false,
-      error: `Process ${pid} not found or not accessible`,
-    };
-  }
-
-  try {
-    // Try to kill the entire process group (negative PID)
-    // This catches child processes spawned by the target
-    try {
-      process.kill(-pid, "SIGTERM");
-    } catch {
-      // If process group kill fails (e.g. not a group leader), kill just the process
-      process.kill(pid, "SIGTERM");
-    }
-
-    // Wait for grace period then check if still alive
-    await new Promise<void>((resolve) => setTimeout(resolve, gracePeriodMs));
-
-    try {
-      process.kill(pid, 0); // Still alive?
-      // Escalate to SIGKILL
-      try {
-        process.kill(-pid, "SIGKILL");
-      } catch {
-        process.kill(pid, "SIGKILL");
-      }
-      return { success: true, pid, signal: "SIGKILL", escalated: true };
-    } catch {
-      // Process is gone — SIGTERM was sufficient
-      return { success: true, pid, signal: "SIGTERM", escalated: false };
-    }
-  } catch (error: unknown) {
-    return {
-      success: false,
-      pid,
-      error: `Failed to kill process: ${errorMessage(error)}`,
-    };
-  }
 }

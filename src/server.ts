@@ -82,6 +82,7 @@ import maritimeRoutes, { getMaritimeHealth } from "./routes/MaritimeRoutes.ts";
 import energyRoutes, { getEnergyHealth } from "./routes/EnergyRoutes.ts";
 import agenticRoutes, { getAgenticHealth } from "./routes/AgenticRoutes.ts";
 import hookCommandRoutes from "./routes/HookCommandRoutes.ts";
+import workspaceTaskRoutes from "./routes/WorkspaceTaskRoutes.ts";
 import communicationRoutes, {
   getCommunicationHealth,
 } from "./routes/CommunicationRoutes.ts";
@@ -166,8 +167,9 @@ app.use("/utility", utilityRoutes);
 app.use("/compute", computeRoutes);
 app.use("/maritime", maritimeRoutes);
 app.use("/energy", energyRoutes);
-// Before /agentic: its own router, not one of the agentic tools.
+// Before /agentic: their own routers, not agentic tools.
 app.use("/agentic/hook-command", hookCommandRoutes);
+app.use("/agentic/tasks", workspaceTaskRoutes);
 app.use("/agentic", agenticRoutes);
 app.use("/communication", communicationRoutes);
 app.use("/creative", express.json({ limit: "50mb" }), creativeRoutes);
@@ -324,10 +326,10 @@ async function start() {
   const port = CONFIG.TOOLS_SERVICE_PORT;
   const httpServer = http.createServer(app);
 
-  // Request lifecycle ceilings — a hung handler must not hold a socket
-  // forever. Sized above the longest legitimate operation (commands cap at
-  // 120s, the agentic handler backstop at 150s); SSE streams send data
-  // continuously so they survive the idle timeout.
+  // Request lifecycle ceilings — receiving a request may not take forever.
+  // They bound reading the request, not the response: a command may answer
+  // after up to 600s, and a task's SSE stream (a `: ping` every 15s) lasts
+  // as long as the task.
   httpServer.requestTimeout = 300_000;
   httpServer.headersTimeout = 60_000;
 
@@ -349,13 +351,14 @@ async function start() {
 
 // ─── Graceful Shutdown Hooks ────────────────────────────────────────
 
-import { killAll as killAllBackgroundProcesses } from "./services/BackgroundProcessRegistry.ts";
+import { stopLocalTasks } from "./services/tasks/WorkspaceTaskService.ts";
 import { agenticLspShutdown } from "./services/AgenticLspService.ts";
 import { agenticDebugShutdown } from "./services/AgenticDebugService.ts";
 
 async function gracefulShutdown(signal: string) {
   logger.info(`[Server] Received ${signal}, terminating active background tasks...`);
-  killAllBackgroundProcesses();
+  // Background commands and monitors this service runs itself (a bridge's stay with the bridge)
+  stopLocalTasks();
   // Language servers and debug adapters are child processes — reap them so a
   // restart never leaves orphaned tsserver/debugpy processes behind (2s cap).
   await Promise.race([

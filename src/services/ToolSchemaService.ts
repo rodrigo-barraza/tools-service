@@ -316,9 +316,6 @@ const TOOL_DOMAINS = {
 
   // Agentic — Command Execution
   execute_command: "Core Workspace Tools",
-  get_background_output: "Core Workspace Tools",
-  list_background_processes: "Core Workspace Tools",
-  kill_process: "Core Workspace Tools",
 
   // Agentic — Git
 
@@ -780,9 +777,6 @@ const TOOL_EMOJIS: Record<string, string | [string, string]> = {
   search_images: ["🖼️", "🔍"],
   search_videos: ["🎬", "🔍"],
   execute_command: ["▶️", "🖥️"],
-  get_background_output: ["📟", "👀"],
-  list_background_processes: ["📟", "📋"],
-  kill_process: ["📟", "🛑"],
   run_git: ["📦", "🔀"],
   control_browser: ["🌐", "🖱️"],
   execute_browser_script: ["🌐", "📜"],

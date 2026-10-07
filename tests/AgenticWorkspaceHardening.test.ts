@@ -129,12 +129,41 @@ describe("Agentic workspace router hardening", () => {
     expect(res.body.error).toMatch(/millisecond/i);
   });
 
-  it("kill_process refuses a PID that is not a tracked background process", async () => {
+  it("execute_command kills the whole group at its timeout — never backgrounds it — and keeps the output so far", async () => {
+    // Children inherit the ignored SIGTERM: only the SIGKILL 2 s later stops them
+    const started = Date.now();
     const res = await request(app)
-      .post("/agentic/command/kill")
-      .send({ pid: 999999 });
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/not a tracked background process/);
+      .post("/agentic/command/run")
+      .send({ command: 'trap "" TERM; echo before; sleep 300 & echo "CHILD:$!"; wait', cwd: testRoot, timeout: 1500 });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ success: false, timedOut: true, exitCode: null, error: "Command timed out after 1500ms" });
+    expect(res.body.backgrounded).toBeUndefined();
+    expect(res.body.stdout).toContain("before");
+    expect(Date.now() - started).toBeGreaterThanOrEqual(3_000);
+    const childPid = Number(res.body.stdout.match(/CHILD:(\d+)/)[1]);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(() => process.kill(childPid, 0)).toThrow();
+  }, 15_000);
+
+  it("execute_command run_in_background answers at once with a task id and an output file", async () => {
+    const started = Date.now();
+    const res = await request(app)
+      .post("/agentic/command/run")
+      .send({ command: "sleep 0.5; echo done-in-background", cwd: testRoot, run_in_background: true, description: "Echo later" });
+    expect(Date.now() - started).toBeLessThan(1_000);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ success: true, backgrounded: true, exitCode: null, stdout: "", stderr: "" });
+    expect(res.body.taskId).toMatch(/^shell-[0-9a-z]{8}$/);
+    expect(res.body.message).toBe(
+      `Command running in background with ID: ${res.body.taskId}. Output is being written to: ${res.body.outputFile}`,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 1_500));
+    expect(fs.readFileSync(res.body.outputFile, "utf8")).toBe("done-in-background\n");
+  });
+
+  it("the background-process routes are gone (task_stop and read_file replace them)", async () => {
+    expect((await request(app).post("/agentic/command/kill").send({ pid: 1 })).status).toBe(404);
+    expect((await request(app).get("/agentic/command/background/list")).status).toBe(404);
   });
 
   it("notebook edit rejects a non-integer cellIndex instead of splicing cell 0", async () => {

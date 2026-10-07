@@ -408,7 +408,7 @@ export function getCoreWorkspaceTools(
     endpoint: {
       method: "POST",
       path: "/agentic/command/run",
-      bodyParams: ["command", "cwd", "timeout", "run_in_background"],
+      bodyParams: ["command", "description", "cwd", "timeout", "run_in_background"],
     },
     parameters: {
       type: "object",
@@ -434,7 +434,7 @@ export function getCoreWorkspaceTools(
           description: translate("execute_command.params.run_in_background"),
         },
       },
-      required: ["command", "cwd"],
+      required: ["command"],
     },
     display: {
       activeVerb: "Running",
@@ -443,71 +443,6 @@ export function getCoreWorkspaceTools(
       subjectFormat: "truncate",
       descriptionParam: "description",
       toolLabel: "Bash",
-    },
-  },
-  {
-    name: "get_background_output",
-    dataSource: compute("background process registry"),
-    description: translate("get_background_output.description"),
-    endpoint: {
-      method: "GET",
-      path: "/agentic/command/background/:pid",
-      pathParams: ["pid"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        pid: {
-          type: "integer",
-          description: translate("get_background_output.params.pid"),
-        },
-      },
-      required: ["pid"],
-    },
-    display: {
-      activeVerb: "Checking",
-      completedVerb: "Checked",
-      subjectParam: "pid",
-      subjectFormat: "full",
-    },
-  },
-  {
-    name: "list_background_processes",
-    dataSource: compute("background process registry"),
-    description: translate("list_background_processes.description"),
-    endpoint: {
-      method: "GET",
-      path: "/agentic/command/background/list",
-    },
-    parameters: {
-      type: "object",
-      properties: {},
-    },
-  },
-  {
-    name: "kill_process",
-    dataSource: compute("background process registry"),
-    description: translate("kill_process.description"),
-    endpoint: {
-      method: "POST",
-      path: "/agentic/command/kill",
-      bodyParams: ["pid"],
-    },
-    parameters: {
-      type: "object",
-      properties: {
-        pid: {
-          type: "integer",
-          description: translate("kill_process.params.pid"),
-        },
-      },
-      required: ["pid"],
-    },
-    display: {
-      activeVerb: "Killing",
-      completedVerb: "Killed",
-      subjectParam: "pid",
-      subjectFormat: "full",
     },
   },
   {
