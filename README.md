@@ -45,11 +45,11 @@ All endpoints support sparse fieldsets via `?fields=name,venue.city`.
 
 tools-service is publicly routed. Every route that runs code or commands, reads or writes files or workspaces, changes configuration, or acts on the owner's accounts, devices or money answers only a caller sending `x-api-secret: $TOOLS_SERVICE_API_SECRET` — prism-service, and prism-client's server proxy for its signed-in user. Without it the answer is 401; while the secret is unset, 503. The whole policy is `GATED_ROUTES` in `src/middleware/ToolsSecretMiddleware.ts`, and `tests/ToolsSecretGuard.test.ts` holds every route to it.
 
-- **Gated:** `/agentic`, `/filesystem`, `/agents`, `/admin`, `/mcp`, `/communication`, `/torrent`, `/infrastructure`, `/analytics`; `/compute/js`, `/compute/shell` and the compute routes that read local paths (`image/process`, `image/ascii`, `barcode/scan`, `video/gif`); `/utility/python/{execute,stream,info}`, `/utility/calendar`, `/utility/ports`, `/utility/ping`; `/knowledge/video`; the creative routes that call Prism or read local audio; Spotify `get`, `control` and `auth/login`; every write to `/lights`, `/discord` and `/product`.
-- **Open:** read-only data (weather, finance, knowledge, Discord archive reads, …), the embed and render URLs browsers and Discord load (`buildLocalUrl`), Spotify's OAuth callback, and `/health`.
+- **Gated:** `/agentic`, `/filesystem`, `/agents`, `/admin`, `/mcp`, `/communication`, `/torrent`, `/infrastructure`, `/analytics`, `/lights`; `/compute/js`, `/compute/shell` and the compute routes that read local paths (`image/process`, `image/ascii`, `barcode/scan`, `video/gif`); `/utility/python/{execute,stream,info}`, `/utility/calendar`, `/utility/ports`, `/utility/ping`; `/knowledge/video`; the creative routes that call Prism or read local audio; Spotify `get`, `control`, `auth/login` and `auth/status`; every write to `/discord` and `/product`.
+- **Open:** read-only data (weather, finance, knowledge, Discord archive reads, …), the embed and render URLs browsers and Discord load (`buildLocalUrl`), Spotify's OAuth callback, and `/health`. The open routes that fetch a caller's URL — page metadata, HTTP headers, TLS certificates, feeds, web content, an animation's images and soundtrack — reach only public addresses: `src/fetchers/web/SsrfGuard.ts` checks every hop as it connects.
 - An LM Studio `ephemeral_mcp` integration sends the secret in its `headers`.
 - Calls to prism-service send `x-api-secret: $PRISM_SERVICE_API_SECRET`.
-- The bridge's WebSockets (`/ws/agent`, `/ws/workspace`) keep their own agent secret.
+- The bridge's WebSockets (`/ws/agent`, `/ws/workspace`) answer only the agent secret (prism `settings.workspace.agentSecret`), in `x-api-secret` or, from the standalone agent and the tray app, `?secret=`: 401 without it, 503 for everyone while it is unset. A secret shorter than 24 characters draws a warning.
 
 ## Agentic Services
 
