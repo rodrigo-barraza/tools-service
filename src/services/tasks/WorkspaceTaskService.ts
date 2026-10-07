@@ -142,8 +142,8 @@ export function stopLocalTasks(): void {
 // ────────────────────────────────────────────────────────────
 
 /** The owner the request names, else who is asking (the identity headers). */
-function ownerOf(owner: unknown): Record<string, unknown> {
-  if (typeof owner === "object" && owner !== null && !Array.isArray(owner)) {
+export function ownerOf(owner: unknown): Record<string, unknown> {
+  if (typeof owner === "object" && owner !== null && !Array.isArray(owner) && Object.keys(owner).length > 0) {
     return owner as Record<string, unknown>;
   }
   const store = requestLocalStorage.getStore();
@@ -207,9 +207,9 @@ export function startLocalShell({ command, cwd, description, owner }: {
   command: string;
   cwd: string;
   description: string;
-  owner: TaskOwner;
+  owner: Record<string, unknown>;
 }): TaskStartResult {
-  const params = { kind: "shell" as const, command, cwd, description, owner: ownerOf(owner) };
+  const params = { kind: "shell" as const, command, cwd, description, owner };
   const started = engine().start(params);
   adopt(started, null, LOCAL, params);
   return started;

@@ -10,7 +10,7 @@ import {
   sendRpcStreaming,
   offlineRemoteRootForPath,
 } from "./AgentConnectionManager.ts";
-import { adoptAgentShell, startLocalShell } from "./tasks/WorkspaceTaskService.ts";
+import { adoptAgentShell, ownerOf, startLocalShell } from "./tasks/WorkspaceTaskService.ts";
 import {
   KILL_GRACE_MS,
   backgroundCommandResult,
@@ -191,11 +191,13 @@ export async function executeCommand(
 ): Promise<CommandExecutionResult> {
   const resolvedCwd = commandWorkingDirectory(cwd);
   const clampedTimeout = clampCommandTimeout(timeout);
+  // A background run belongs to whoever asks, unless told otherwise
+  const taskOwner = ownerOf(owner);
 
   // Agent routing — if CWD is served by a remote agent, proxy the command
   const agentResult = await tryAgentRouteCommand(
     "command.run",
-    { command, cwd: resolvedCwd, timeout: clampedTimeout, runInBackground, description, owner },
+    { command, cwd: resolvedCwd, timeout: clampedTimeout, runInBackground, description, owner: taskOwner },
     resolvedCwd,
   );
   if (agentResult !== NO_AGENT) return agentResult;
@@ -254,7 +256,7 @@ export async function executeCommand(
   if (runInBackground) {
     try {
       return backgroundCommandResult(
-        startLocalShell({ command, cwd: cwdValidation.resolved, description, owner }),
+        startLocalShell({ command, cwd: cwdValidation.resolved, description, owner: taskOwner }),
       );
     } catch (error: unknown) {
       return {

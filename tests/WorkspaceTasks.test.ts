@@ -342,15 +342,20 @@ describe("execute_command through the bridge", () => {
         message: `Command running in background with ID: ${taskId}. Output is being written to: ${outputFile}`,
       }),
     });
-    const response = await post("/agentic/command/run", {
-      command: "npm run build",
-      cwd: bridgeRoot,
-      run_in_background: true,
-      description: "Build the client",
-    });
+    const response = await post(
+      "/agentic/command/run",
+      { command: "npm run build", cwd: bridgeRoot, run_in_background: true, description: "Build the client" },
+      { "x-username": "rodrigo", "x-conversation-id": "conversation-8" },
+    );
     expect(await response.json()).toMatchObject({ backgrounded: true, taskId, outputFile });
     const run = bridge.requests.find((request) => request.method === "command.run")!;
-    expect(run.params).toMatchObject({ runInBackground: true, description: "Build the client", timeout: 120_000 });
+    expect(run.params).toMatchObject({
+      runInBackground: true,
+      description: "Build the client",
+      timeout: 120_000,
+      // Nobody named an owner: it belongs to whoever asked
+      owner: { username: "rodrigo", conversationId: "conversation-8" },
+    });
 
     const reading = readEvents(`${baseUrl}/agentic/tasks/${taskId}/events`);
     await sleep(150);
