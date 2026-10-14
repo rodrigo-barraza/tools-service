@@ -45,6 +45,14 @@ const TIMEOUT_MAP = {
   "git.status": RPC_TIMEOUT_GIT_MS,
   "git.diff": RPC_TIMEOUT_GIT_MS,
   "git.log": RPC_TIMEOUT_GIT_MS,
+  // A worktree checkout plus hard-linked node_modules (the bridge gives
+  // itself 90 s + 45 s); under the agentic handler's 150 s
+  "git.worktreeCreate": 140_000,
+  "git.worktreeCommit": RPC_TIMEOUT_GIT_MS * 4,
+  "git.worktreeRemove": RPC_TIMEOUT_GIT_MS * 4,
+  "git.worktreeMerge": RPC_TIMEOUT_GIT_MS * 4,
+  "git.worktreeDiff": RPC_TIMEOUT_GIT_MS * 4,
+  "git.worktreeCleanup": RPC_TIMEOUT_GIT_MS,
   "project.summary": RPC_TIMEOUT_FILE_MS * 3,
   "directory.create": RPC_TIMEOUT_FILE_MS,
   "directory.tree": RPC_TIMEOUT_FILE_MS * 2,
@@ -810,20 +818,28 @@ function dispatchRpc(
       return;
     }
 
-    // Translate normalized POSIX paths back to the agent's native format
+    // A relative path is resolved here, against the request's worktree or
+    // root (resolveWorkspaceTargetPath), the way it was resolved to pick this
+    // agent: sent as is, the agent resolved it against its own first root —
+    // the main checkout, for a sub-agent working in a worktree. Then
+    // normalized POSIX paths go back to the agent's native format.
+    const isAbsolutePath = (pathString: string) =>
+      pathString.startsWith("/") || /^[A-Za-z]:[\\/]/.test(pathString) || pathString.startsWith("\\\\");
+    const toAgentPath = (pathString: string) =>
+      translatePathForAgent(
+        agent,
+        isAbsolutePath(pathString) ? pathString : (resolveWorkspaceTargetPath(pathString) ?? pathString),
+      );
     const translatedParams = { ...params };
     const pathKeys = ["path", "searchPath", "source", "destination", "pathA", "pathB", "cwd", "filePath"] as const;
     for (const key of pathKeys) {
       if (typeof translatedParams[key] === "string") {
-        translatedParams[key] = translatePathForAgent(
-          agent,
-          translatedParams[key] as string,
-        );
+        translatedParams[key] = toAgentPath(translatedParams[key] as string);
       }
     }
     if (Array.isArray(translatedParams.paths)) {
-      translatedParams.paths = (translatedParams.paths as string[]).map(
-        (pathString) => translatePathForAgent(agent, pathString),
+      translatedParams.paths = (translatedParams.paths as unknown[]).map((pathString) =>
+        typeof pathString === "string" ? toAgentPath(pathString) : pathString,
       );
     }
 
@@ -935,6 +951,17 @@ export function listAgentSummaries() {
 }
 
 /**
+ * A sub-agent's worktree, as X-Workspace-Override names it: one this
+ * service made (/tmp/prism-worktrees/…), or one a connected bridge made in a
+ * repository it serves (<repo>/.claude/worktrees/<name>, GitWorktreeHandler).
+ * Any other override is ignored, as before.
+ */
+export function isSubAgentWorktree(workspaceOverride: string): boolean {
+  if (workspaceOverride.startsWith("/tmp/prism-worktrees/")) return true;
+  return /\/\.claude\/worktrees\/[^/]+\/?$/.test(workspaceOverride) && routeForPath(workspaceOverride) !== null;
+}
+
+/**
  * Resolve a potentially-relative workspace path against the current request
  * context: X-Workspace-Override (an active worktree), then X-Workspace-Root,
  * then `fallbackRoot`. Absolute paths pass through; null for an empty one.
@@ -951,7 +978,7 @@ export function resolveWorkspaceTargetPath(
   const requestStore = requestLocalStorage.getStore();
   const workspaceOverride = requestStore?.workspaceOverride;
   const workspaceRoot = requestStore?.workspaceRoot;
-  if (workspaceOverride && workspaceOverride.startsWith("/tmp/prism-worktrees/")) {
+  if (workspaceOverride && isSubAgentWorktree(workspaceOverride)) {
     return resolve(workspaceOverride, sanitizedTargetPath);
   }
   if (workspaceRoot) return resolve(workspaceRoot, sanitizedTargetPath);

@@ -141,6 +141,22 @@ describe("git worktree create — the branch is the name asked for", () => {
     expect(created.worktreePath).toBeUndefined();
     expect(branches(repo)).toEqual(["main"]);
   });
+
+  // The one failure prism-service may answer by sharing the directory:
+  // every other one refuses the sub-agent (OrchestratorService)
+  it("says reason: not-a-repository for a directory with no repository", async () => {
+    const plain = realpathSync(mkdtempSync(join(tmpdir(), "worktree-plain-")));
+    tempDirs.push(plain);
+    if (!ALLOWED_ROOTS.includes(plain)) ALLOWED_ROOTS.push(plain);
+    const created = await agenticGitWorktreeCreate(plain, "orchestrator/abc");
+
+    expect(created.reason).toBe("not-a-repository");
+    expect(created.worktreePath).toBeUndefined();
+
+    // …and for a project directory not made yet
+    const notYet = await agenticGitWorktreeCreate(join(plain, "new-app"), "orchestrator/abc");
+    expect(notYet.reason).toBe("not-a-repository");
+  });
 });
 
 describe("POST /agentic/git/worktree/diff — the contract", () => {
