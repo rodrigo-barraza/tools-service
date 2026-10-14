@@ -5,7 +5,7 @@ import { join, resolve } from "node:path";
 import { realpathSync } from "node:fs";
 import { validatePath } from "./AgenticFileService.ts";
 import { WORKTREE_DIR } from "../config.ts";
-import { resolveAndRouteToAgent, sendRpc } from "./AgentConnectionManager.ts";
+import { offlineRemoteRootForPath, resolveAndRouteToAgent, sendRpc } from "./AgentConnectionManager.ts";
 
 import type {
   GitFileChange,
@@ -20,8 +20,13 @@ export interface GitWorktreeCreateResult {
   worktreePath?: string;
   /** The branch as created — callers store THIS name, never their own. */
   branch?: string;
+  /** The tree the worktree branched from: pass it as `path` to the calls that follow. */
   repoPath?: string;
+  /** A bridge's: the package directories whose node_modules it hard-linked in. */
+  linked?: string[];
   error?: string;
+  /** "not-a-repository": nothing to isolate, so a caller may share the directory. */
+  reason?: "not-a-repository";
 }
 
 export interface GitWorktreeRemoveResult {
@@ -51,8 +56,10 @@ export interface GitWorktreeMergeResult {
    * Set on a refused merge. "conflict": the branches conflict, and the merge
    * was aborted so the target tree is as it was. "local-changes": uncommitted
    * work in the target tree would be overwritten, so git never started.
+   * "protected-branch" (a bridge's): the target is a branch sub-agent work
+   * never merges into (master, main); the work stays on its branch.
    */
-  reason?: "conflict" | "local-changes";
+  reason?: "conflict" | "local-changes" | "protected-branch";
   conflictingFiles?: string[];
   error?: string;
 }
@@ -102,14 +109,24 @@ export interface GitWorktreeCleanupResult {
   error?: string;
 }
 
-// Agent routing helper
+// Agent routing helper. A path no live agent serves runs here — unless it is
+// a bridged repository whose agent is offline: git on this host would run in
+// a directory that does not exist (or another machine's), so it is refused,
+// as file operations are.
 async function tryAgentRoute(
   method: string,
   params: Record<string, unknown>,
   targetPath: string,
 ): Promise<unknown> {
   const agent = resolveAndRouteToAgent(targetPath);
-  if (!agent) return null;
+  if (!agent) {
+    const offlineRoot = offlineRemoteRootForPath(targetPath);
+    return offlineRoot
+      ? {
+          error: `The workspace agent serving '${offlineRoot}' is offline, so this repository cannot be reached. Reconnect the workspace agent and retry — nothing was run on the server.`,
+        }
+      : null;
+  }
   try {
     return await sendRpc(agent.id, method, params);
   } catch (error: unknown) {
@@ -615,6 +632,15 @@ export async function agenticGitWorktreeCreate(
   repoPath: string,
   branchName: string,
 ): Promise<GitWorktreeCreateResult> {
+  // A bridged repository: its bridge makes the worktree, in
+  // <main checkout>/.claude/worktrees (workspace-service GitWorktreeHandler)
+  const agentResult = await tryAgentRoute(
+    "git.worktreeCreate",
+    { path: repoPath, branch: branchName },
+    repoPath,
+  );
+  if (agentResult) return agentResult as GitWorktreeCreateResult;
+
   const validation = validatePath(repoPath);
   if (!validation.safe) {
     return { error: validation.error };
@@ -644,7 +670,12 @@ export async function agenticGitWorktreeCreate(
   );
 
   if (result.error) {
-    return { error: result.error, repoPath: cwd };
+    // Nothing to isolate: the one failure a caller may answer with a shared directory
+    return {
+      error: result.error,
+      repoPath: cwd,
+      ...(/not a git repository/i.test(result.error) && { reason: "not-a-repository" as const }),
+    };
   }
 
   return {
@@ -663,6 +694,13 @@ export async function agenticGitWorktreeCommit(
   worktreePath: string,
   message: string,
 ): Promise<GitWorktreeCommitResult> {
+  const agentResult = await tryAgentRoute(
+    "git.worktreeCommit",
+    { path: repoPath, worktreePath, message },
+    repoPath,
+  );
+  if (agentResult) return agentResult as GitWorktreeCommitResult;
+
   const validation = validatePath(repoPath);
   if (!validation.safe) {
     return { error: validation.error };
@@ -710,6 +748,13 @@ export async function agenticGitWorktreeRemove(
   worktreePath: string,
   { deleteBranch = true, force = false }: WorktreeRemoveOptions = {},
 ): Promise<GitWorktreeRemoveResult> {
+  const agentResult = await tryAgentRoute(
+    "git.worktreeRemove",
+    { path: repoPath, worktreePath, deleteBranch, force },
+    repoPath,
+  );
+  if (agentResult) return agentResult as GitWorktreeRemoveResult;
+
   const validation = validatePath(repoPath);
   if (!validation.safe) {
     return { error: validation.error };
@@ -794,6 +839,13 @@ export async function agenticGitWorktreeMerge(
   branch: string,
   { message }: WorktreeMergeOptions = {},
 ): Promise<GitWorktreeMergeResult> {
+  const agentResult = await tryAgentRoute(
+    "git.worktreeMerge",
+    { path: repoPath, branch, ...(message && { message }) },
+    repoPath,
+  );
+  if (agentResult) return agentResult as GitWorktreeMergeResult;
+
   const validation = validatePath(repoPath);
   if (!validation.safe) {
     return { error: validation.error };
@@ -898,6 +950,9 @@ export async function agenticGitWorktreeDiff(
   repoPath: string,
   branch: string,
 ): Promise<GitWorktreeDiffResult> {
+  const agentResult = await tryAgentRoute("git.worktreeDiff", { path: repoPath, branch }, repoPath);
+  if (agentResult) return agentResult as GitWorktreeDiffResult;
+
   const validation = validatePath(repoPath);
   if (!validation.safe) {
     return { error: validation.error ?? "Invalid path" };
@@ -943,6 +998,10 @@ export async function agenticGitWorktreeDiff(
 export async function agenticGitWorktreeCleanup(
   repoPath: string,
 ): Promise<GitWorktreeCleanupResult> {
+  // A bridge only prunes: its worktrees sit beside every other agent's
+  const agentResult = await tryAgentRoute("git.worktreeCleanup", { path: repoPath }, repoPath);
+  if (agentResult) return agentResult as GitWorktreeCleanupResult;
+
   const validation = validatePath(repoPath);
   if (!validation.safe) {
     return { error: validation.error };
