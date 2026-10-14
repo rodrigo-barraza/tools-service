@@ -152,6 +152,10 @@ describe("git worktree create — the branch is the name asked for", () => {
 
     expect(created.reason).toBe("not-a-repository");
     expect(created.worktreePath).toBeUndefined();
+
+    // …and for a project directory not made yet
+    const notYet = await agenticGitWorktreeCreate(join(plain, "new-app"), "orchestrator/abc");
+    expect(notYet.reason).toBe("not-a-repository");
   });
 });
 

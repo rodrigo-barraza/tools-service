@@ -2,7 +2,7 @@
 
 import { spawn } from "node:child_process";
 import { join, resolve } from "node:path";
-import { realpathSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { validatePath } from "./AgenticFileService.ts";
 import { WORKTREE_DIR } from "../config.ts";
 import { offlineRemoteRootForPath, resolveAndRouteToAgent, sendRpc } from "./AgentConnectionManager.ts";
@@ -647,6 +647,11 @@ export async function agenticGitWorktreeCreate(
   }
 
   const cwd = validation.resolved;
+  // A project not made yet holds no repository (git could not even start in
+  // it, and said "invalid branch name")
+  if (!existsSync(cwd)) {
+    return { error: `No such directory: ${cwd}`, reason: "not-a-repository", repoPath: cwd };
+  }
   const invalidName = await validateBranchName(branchName, cwd);
   if (invalidName) {
     return { error: invalidName, repoPath: cwd };
